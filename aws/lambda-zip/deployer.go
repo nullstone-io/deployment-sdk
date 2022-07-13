@@ -30,17 +30,17 @@ type Deployer struct {
 	Infra    Outputs
 }
 
-func (d Deployer) Deploy(ctx context.Context, version string) (*string, error) {
+func (d Deployer) Deploy(ctx context.Context, version string) (string, error) {
 	d.Logger.Printf("Deploying app %q\n", d.Details.App.Name)
 	if version == "" {
-		return nil, fmt.Errorf("--version is required to deploy app")
+		return "", fmt.Errorf("--version is required to deploy app")
 	}
 
 	d.Logger.Printf("Updating lambda to %q\n", version)
 	if err := UpdateLambdaVersion(ctx, d.Infra, version); err != nil {
-		return nil, fmt.Errorf("error updating lambda version: %w", err)
+		return "", fmt.Errorf("error updating lambda version: %w", err)
 	}
 
 	d.Logger.Printf("Deployed app %q\n", d.Details.App.Name)
-	return nil, nil
+	return "", nil
 }

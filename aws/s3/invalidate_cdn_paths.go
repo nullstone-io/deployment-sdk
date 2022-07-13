@@ -10,10 +10,11 @@ import (
 	"time"
 )
 
-func InvalidateCdnPaths(ctx context.Context, infra Outputs, urlPaths []string) error {
+func InvalidateCdnPaths(ctx context.Context, infra Outputs, urlPaths []string) ([]string, error) {
 	cfClient := nsaws.NewCloudfrontClient(infra.Deployer, infra.Region)
+	invalidationIds := make([]string, 0)
 	for _, cdnId := range infra.CdnIds {
-		_, err := cfClient.CreateInvalidation(ctx, &cloudfront.CreateInvalidationInput{
+		out, err := cfClient.CreateInvalidation(ctx, &cloudfront.CreateInvalidationInput{
 			DistributionId: aws.String(cdnId),
 			InvalidationBatch: &cftypes.InvalidationBatch{
 				CallerReference: aws.String(time.Now().String()),
@@ -24,8 +25,10 @@ func InvalidateCdnPaths(ctx context.Context, infra Outputs, urlPaths []string) e
 			},
 		})
 		if err != nil {
-			return fmt.Errorf("error invalidating cdn %s: %w", cdnId, err)
+			return invalidationIds, fmt.Errorf("error invalidating cdn %s: %w", cdnId, err)
+		} else if out != nil && out.Invalidation != nil {
+			invalidationIds = append(invalidationIds, *out.Invalidation.Id)
 		}
 	}
-	return nil
+	return invalidationIds, nil
 }

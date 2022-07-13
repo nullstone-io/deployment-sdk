@@ -30,22 +30,28 @@ type Deployer struct {
 	Infra    Outputs
 }
 
-func (d Deployer) Deploy(ctx context.Context, version string) (*string, error) {
+func (d Deployer) Deploy(ctx context.Context, version string) (string, error) {
 	d.Logger.Printf("Deploying app %q\n", d.Details.App.Name)
 	if version == "" {
-		return nil, fmt.Errorf("no version specified, version is required to deploy")
+		return "", fmt.Errorf("no version specified, version is required to deploy")
 	}
 
 	d.Logger.Printf("Updating CDN version to %q\n", version)
 	if err := UpdateCdnVersion(ctx, d.Infra, version); err != nil {
-		return nil, fmt.Errorf("error updating CDN version: %w", err)
+		return "", fmt.Errorf("error updating CDN version: %w", err)
 	}
 
 	d.Logger.Println("Invalidating cache in CDNs")
-	if err := InvalidateCdnPaths(ctx, d.Infra, []string{"/*"}); err != nil {
-		return nil, fmt.Errorf("error invalidating /*: %w", err)
+	invalidationIds, err := InvalidateCdnPaths(ctx, d.Infra, []string{"/*"})
+	if err != nil {
+		return "", fmt.Errorf("error invalidating /*: %w", err)
 	}
-
 	d.Logger.Printf("Deployed app %q\n", d.Details.App.Name)
-	return nil, nil
+
+	// NOTE: We only know how to return a single CDN invalidation ID
+	//       The first iteration of the loop will return the first one
+	for _, invalidationId := range invalidationIds {
+		return invalidationId, nil
+	}
+	return "", nil
 }

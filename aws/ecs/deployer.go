@@ -60,38 +60,41 @@ func (d Deployer) Print() {
 //   Register new task definition
 //   Deregister old task definition
 //   Update ECS Service (This always causes deployment)
-func (d Deployer) Deploy(ctx context.Context, version string) (*string, error) {
+func (d Deployer) Deploy(ctx context.Context, version string) (string, error) {
 	d.Print()
 
 	if version == "" {
-		return nil, fmt.Errorf("no version specified, version is required to deploy")
+		return "", fmt.Errorf("no version specified, version is required to deploy")
 	}
 
 	d.Logger.Printf("Deploying app %q\n", d.Details.App.Name)
 
 	taskDef, err := GetTaskDefinition(ctx, d.Infra)
 	if err != nil {
-		return nil, fmt.Errorf("error retrieving current service information: %w", err)
+		return "", fmt.Errorf("error retrieving current service information: %w", err)
 	} else if taskDef == nil {
-		return nil, fmt.Errorf("could not find task definition")
+		return "", fmt.Errorf("could not find task definition")
 	}
 
 	d.Logger.Printf("Updating image tag to %q\n", version)
 	newTaskDef, err := UpdateTaskImageTag(ctx, d.Infra, taskDef, version)
 	if err != nil {
-		return nil, fmt.Errorf("error updating task with new image tag: %w", err)
+		return "", fmt.Errorf("error updating task with new image tag: %w", err)
 	}
 	newTaskDefArn := *newTaskDef.TaskDefinitionArn
 
 	if d.Infra.ServiceName == "" {
-		d.Logger.Printf("No service name in outputs. Skipping update service.")
-		return nil, nil
+		d.Logger.Printf("No service name in outputs. Skipping update service.\n")
+		return "", nil
 	}
 
 	deployment, err := UpdateServiceTask(ctx, d.Infra, newTaskDefArn)
 	if err != nil {
-		return nil, fmt.Errorf("error deploying service: %w", err)
+		return "", fmt.Errorf("error deploying service: %w", err)
+	} else if deployment == nil {
+		d.Logger.Printf("Updated service, but could not find a deployment.\n")
+		return "", nil
 	}
 	d.Logger.Printf("Deployed app %q\n", d.Details.App.Name)
-	return deployment.Id, nil
+	return *deployment.Id, nil
 }
