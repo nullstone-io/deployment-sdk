@@ -2,7 +2,7 @@ package app
 
 import (
 	"context"
-	"github.com/nullstone-io/deployment-sdk/app"
+	"gopkg.in/nullstone-io/go-api-client.v0"
 	"log"
 )
 
@@ -12,9 +12,9 @@ type Provider struct {
 	NewDeployStatusGetter NewDeployStatusGetterFunc
 }
 
-type NewPusherFunc func(logger *log.Logger, nsConfig api.Config, appDetails app.Details) (Pusher, error)
-type NewDeployerFunc func(logger *log.Logger, nsConfig api.Config, appDetails app.Details) (Deployer, error)
-type NewDeployStatusGetterFunc func(logger *log.Logger, nsConfig api.Config, appDetails app.Details) (DeployStatusGetter, error)
+type NewPusherFunc func(logger *log.Logger, nsConfig api.Config, appDetails Details) (Pusher, error)
+type NewDeployerFunc func(logger *log.Logger, nsConfig api.Config, appDetails Details) (Deployer, error)
+type NewDeployStatusGetterFunc func(logger *log.Logger, nsConfig api.Config, appDetails Details) (DeployStatusGetter, error)
 
 type Pusher interface {
 	Push(ctx context.Context, source, version string) error

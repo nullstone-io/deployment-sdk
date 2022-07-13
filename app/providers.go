@@ -1,11 +1,10 @@
 package app
 
 import (
+	"gopkg.in/nullstone-io/go-api-client.v0"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
 	"log"
 )
-
-type ProviderFactory func(logger *log.Logger, nsConfig api.Config, appDetails Details) Provider
 
 type Providers map[types.ModuleContractName]Provider
 
@@ -14,7 +13,7 @@ func (s Providers) FindPusher(logger *log.Logger, nsConfig api.Config, appDetail
 	if factory == nil {
 		return nil, nil
 	}
-	return factory.NewPusher()
+	return factory.NewPusher(logger, nsConfig, appDetails)
 }
 
 func (s Providers) FindDeployer(logger *log.Logger, nsConfig api.Config, appDetails Details) (Deployer, error) {
@@ -22,7 +21,7 @@ func (s Providers) FindDeployer(logger *log.Logger, nsConfig api.Config, appDeta
 	if factory == nil {
 		return nil, nil
 	}
-	return factory.NewDeployer()
+	return factory.NewDeployer(logger, nsConfig, appDetails)
 }
 
 func (s Providers) FindDeployStatusGetter(logger *log.Logger, nsConfig api.Config, appDetails Details) (DeployStatusGetter, error) {
@@ -30,7 +29,7 @@ func (s Providers) FindDeployStatusGetter(logger *log.Logger, nsConfig api.Confi
 	if factory == nil {
 		return nil, nil
 	}
-	return factory.NewDeployStatusGetter()
+	return factory.NewDeployStatusGetter(logger, nsConfig, appDetails)
 }
 
 func (s Providers) FindFactory(curModule types.Module) *Provider {
