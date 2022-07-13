@@ -15,7 +15,6 @@ require (
 	github.com/aws/smithy-go v1.12.0
 	github.com/docker/docker v20.10.17+incompatible
 	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20220615192849-536330572134
-	gopkg.in/nullstone-io/nullstone.v0 v0.0.64
 )
 
 require (
