@@ -2,6 +2,7 @@ package aws_s3
 
 import (
 	"github.com/nullstone-io/deployment-sdk/app"
+	"github.com/nullstone-io/deployment-sdk/aws/cdn"
 	"github.com/nullstone-io/deployment-sdk/aws/s3"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
 )
@@ -16,6 +17,6 @@ var ModuleContractName = types.ModuleContractName{
 
 var Provider = app.Provider{
 	NewPusher:             s3.NewPusher,
-	NewDeployer:           s3.NewDeployer,
-	NewDeployStatusGetter: nil,
+	NewDeployer:           cdn.NewDeployer,
+	NewDeployStatusGetter: cdn.NewDeployStatusGetter,
 }
