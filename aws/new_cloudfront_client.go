@@ -2,10 +2,9 @@ package nsaws
 
 import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
-	caws "gopkg.in/nullstone-io/nullstone.v0/contracts/aws"
 )
 
-func NewCloudfrontClient(user caws.User, region string) *cloudfront.Client {
+func NewCloudfrontClient(user User, region string) *cloudfront.Client {
 	cfg := NewConfig(user, region)
 	opts := cloudfront.Options{
 		Region:        cfg.Region,

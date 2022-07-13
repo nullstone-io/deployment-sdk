@@ -6,7 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
-	"gopkg.in/nullstone-io/nullstone.v0/aws"
+	"github.com/nullstone-io/deployment-sdk/aws"
 	"sort"
 )
 

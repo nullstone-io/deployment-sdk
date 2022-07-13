@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/nullstone-io/deployment-sdk/app"
+	"github.com/nullstone-io/deployment-sdk/aws"
 	"github.com/nullstone-io/deployment-sdk/docker"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
-	"gopkg.in/nullstone-io/nullstone.v0/contracts/aws"
 	"log"
 )
 
@@ -16,9 +16,9 @@ type Outputs struct {
 	ServiceName       string          `ns:"service_name"`
 	TaskArn           string          `ns:"task_arn"`
 	ImageRepoUrl      docker.ImageUrl `ns:"image_repo_url,optional"`
-	ImagePusher       aws.User        `ns:"image_pusher,optional"`
+	ImagePusher       nsaws.User      `ns:"image_pusher,optional"`
 	MainContainerName string          `ns:"main_container_name,optional"`
-	Deployer          aws.User        `ns:"deployer,optional"`
+	Deployer          nsaws.User      `ns:"deployer,optional"`
 
 	Cluster ClusterOutputs `ns:",connectionContract=cluster/aws/ecs:*"`
 }

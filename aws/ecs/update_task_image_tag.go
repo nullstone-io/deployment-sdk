@@ -6,8 +6,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
-	nsaws "gopkg.in/nullstone-io/nullstone.v0/aws"
-	"gopkg.in/nullstone-io/nullstone.v0/docker"
+	"github.com/nullstone-io/deployment-sdk/aws"
+	"github.com/nullstone-io/deployment-sdk/docker"
 )
 
 func UpdateTaskImageTag(ctx context.Context, infra Outputs, taskDefinition *ecstypes.TaskDefinition, imageTag string) (*ecstypes.TaskDefinition, error) {
