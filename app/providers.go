@@ -1,35 +1,35 @@
 package app
 
 import (
+	"github.com/nullstone-io/deployment-sdk/logging"
 	"gopkg.in/nullstone-io/go-api-client.v0"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
-	"log"
 )
 
 type Providers map[types.ModuleContractName]Provider
 
-func (s Providers) FindPusher(logger *log.Logger, nsConfig api.Config, appDetails Details) (Pusher, error) {
+func (s Providers) FindPusher(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (Pusher, error) {
 	factory := s.FindFactory(*appDetails.Module)
 	if factory == nil {
 		return nil, nil
 	}
-	return factory.NewPusher(logger, nsConfig, appDetails)
+	return factory.NewPusher(osWriters, nsConfig, appDetails)
 }
 
-func (s Providers) FindDeployer(logger *log.Logger, nsConfig api.Config, appDetails Details) (Deployer, error) {
+func (s Providers) FindDeployer(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (Deployer, error) {
 	factory := s.FindFactory(*appDetails.Module)
 	if factory == nil {
 		return nil, nil
 	}
-	return factory.NewDeployer(logger, nsConfig, appDetails)
+	return factory.NewDeployer(osWriters, nsConfig, appDetails)
 }
 
-func (s Providers) FindDeployStatusGetter(logger *log.Logger, nsConfig api.Config, appDetails Details) (DeployStatusGetter, error) {
+func (s Providers) FindDeployStatusGetter(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (DeployStatusGetter, error) {
 	factory := s.FindFactory(*appDetails.Module)
 	if factory == nil {
 		return nil, nil
 	}
-	return factory.NewDeployStatusGetter(logger, nsConfig, appDetails)
+	return factory.NewDeployStatusGetter(osWriters, nsConfig, appDetails)
 }
 
 func (s Providers) FindFactory(curModule types.Module) *Provider {

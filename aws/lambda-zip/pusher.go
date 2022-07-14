@@ -4,31 +4,33 @@ import (
 	"context"
 	"fmt"
 	"github.com/nullstone-io/deployment-sdk/app"
+	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
-	"log"
 	"os"
 )
 
-func NewPusher(logger *log.Logger, nsConfig api.Config, appDetails app.Details) (app.Pusher, error) {
+func NewPusher(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.Pusher, error) {
 	outs, err := outputs.Retrieve[Outputs](nsConfig, appDetails.Workspace)
 	if err != nil {
 		return nil, err
 	}
 	return &Pusher{
-		Logger:   logger,
-		NsConfig: nsConfig,
-		Infra:    outs,
+		OsWriters: osWriters,
+		NsConfig:  nsConfig,
+		Infra:     outs,
 	}, nil
 }
 
 type Pusher struct {
-	Logger   *log.Logger
-	NsConfig api.Config
-	Infra    Outputs
+	OsWriters logging.OsWriters
+	NsConfig  api.Config
+	Infra     Outputs
 }
 
 func (p Pusher) Push(ctx context.Context, source, version string) error {
+	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
+
 	if source == "" {
 		return fmt.Errorf("--source is required to upload artifact")
 	}
@@ -44,11 +46,11 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 	}
 	defer file.Close()
 
-	p.Logger.Printf("Uploading %s to artifacts bucket\n", p.Infra.ArtifactsKey(version))
+	fmt.Fprintf(stdout, "Uploading %s to artifacts bucket\n", p.Infra.ArtifactsKey(version))
 	if err := UploadArtifact(ctx, p.Infra, file, version); err != nil {
 		return fmt.Errorf("error uploading artifact: %w", err)
 	}
 
-	p.Logger.Printf("Upload complete")
+	fmt.Fprintf(stdout, "Upload complete")
 	return nil
 }

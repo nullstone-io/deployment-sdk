@@ -4,36 +4,37 @@ import (
 	"context"
 	"fmt"
 	"github.com/nullstone-io/deployment-sdk/app"
+	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
-	"log"
 )
 
-func NewDeployer(logger *log.Logger, nsConfig api.Config, appDetails app.Details) (app.Deployer, error) {
+func NewDeployer(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.Deployer, error) {
 	outs, err := outputs.Retrieve[Outputs](nsConfig, appDetails.Workspace)
 	if err != nil {
 		return nil, err
 	}
 
 	return Deployer{
-		Logger:   logger,
-		NsConfig: nsConfig,
-		Details:  appDetails,
-		Infra:    outs,
+		OsWriters: osWriters,
+		NsConfig:  nsConfig,
+		Details:   appDetails,
+		Infra:     outs,
 	}, nil
 }
 
 type Deployer struct {
-	Logger   *log.Logger
-	NsConfig api.Config
-	Details  app.Details
-	Infra    Outputs
+	OsWriters logging.OsWriters
+	NsConfig  api.Config
+	Details   app.Details
+	Infra     Outputs
 }
 
 func (d Deployer) Print() {
-	d.Logger.Printf("ecs cluster: %q\n", d.Infra.Cluster.ClusterArn)
-	d.Logger.Printf("ecs service: %q\n", d.Infra.ServiceName)
-	d.Logger.Printf("repository image url: %q\n", d.Infra.ImageRepoUrl)
+	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
+	fmt.Fprintf(stdout, "ecs cluster: %q\n", d.Infra.Cluster.ClusterArn)
+	fmt.Fprintf(stdout, "ecs service: %q\n", d.Infra.ServiceName)
+	fmt.Fprintf(stdout, "repository image url: %q\n", d.Infra.ImageRepoUrl)
 }
 
 // Deploy takes the following steps to deploy an AWS ECS service
@@ -43,13 +44,14 @@ func (d Deployer) Print() {
 //   Deregister old task definition
 //   Update ECS Service (This always causes deployment)
 func (d Deployer) Deploy(ctx context.Context, version string) (string, error) {
+	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 	d.Print()
 
 	if version == "" {
 		return "", fmt.Errorf("no version specified, version is required to deploy")
 	}
 
-	d.Logger.Printf("Deploying app %q\n", d.Details.App.Name)
+	fmt.Fprintf(stdout, "Deploying app %q\n", d.Details.App.Name)
 
 	taskDef, err := GetTaskDefinition(ctx, d.Infra)
 	if err != nil {
@@ -58,7 +60,7 @@ func (d Deployer) Deploy(ctx context.Context, version string) (string, error) {
 		return "", fmt.Errorf("could not find task definition")
 	}
 
-	d.Logger.Printf("Updating image tag to %q\n", version)
+	fmt.Fprintf(stdout, "Updating image tag to %q\n", version)
 	newTaskDef, err := UpdateTaskImageTag(ctx, d.Infra, taskDef, version)
 	if err != nil {
 		return "", fmt.Errorf("error updating task with new image tag: %w", err)
@@ -66,7 +68,7 @@ func (d Deployer) Deploy(ctx context.Context, version string) (string, error) {
 	newTaskDefArn := *newTaskDef.TaskDefinitionArn
 
 	if d.Infra.ServiceName == "" {
-		d.Logger.Printf("No service name in outputs. Skipping update service.\n")
+		fmt.Fprintf(stdout, "No service name in outputs. Skipping update service.\n")
 		return "", nil
 	}
 
@@ -74,9 +76,9 @@ func (d Deployer) Deploy(ctx context.Context, version string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error deploying service: %w", err)
 	} else if deployment == nil {
-		d.Logger.Printf("Updated service, but could not find a deployment.\n")
+		fmt.Fprintf(stdout, "Updated service, but could not find a deployment.\n")
 		return "", nil
 	}
-	d.Logger.Printf("Deployed app %q\n", d.Details.App.Name)
+	fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
 	return *deployment.Id, nil
 }

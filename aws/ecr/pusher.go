@@ -7,11 +7,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/nullstone-io/deployment-sdk/app"
-	nsaws "github.com/nullstone-io/deployment-sdk/aws"
+	"github.com/nullstone-io/deployment-sdk/aws"
 	"github.com/nullstone-io/deployment-sdk/docker"
+	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
-	"log"
 	"strings"
 )
 
@@ -21,25 +21,26 @@ type Outputs struct {
 	ImagePusher  nsaws.User      `ns:"image_pusher,optional"`
 }
 
-func NewPusher(logger *log.Logger, nsConfig api.Config, appDetails app.Details) (app.Pusher, error) {
+func NewPusher(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.Pusher, error) {
 	outs, err := outputs.Retrieve[Outputs](nsConfig, appDetails.Workspace)
 	if err != nil {
 		return nil, err
 	}
 	return &Pusher{
-		Logger:   logger,
-		NsConfig: nsConfig,
-		Infra:    outs,
+		OsWriters: osWriters,
+		NsConfig:  nsConfig,
+		Infra:     outs,
 	}, nil
 }
 
 type Pusher struct {
-	Logger   *log.Logger
-	NsConfig api.Config
-	Infra    Outputs
+	OsWriters logging.OsWriters
+	NsConfig  api.Config
+	Infra     Outputs
 }
 
 func (p Pusher) Push(ctx context.Context, source, version string) error {
+	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
 	// TODO: Log information to logger
 
 	sourceUrl := docker.ParseImageUrl(source)
@@ -55,12 +56,12 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 		return fmt.Errorf("error retrieving image registry credentials: %w", err)
 	}
 
-	p.Logger.Printf("Retagging %s => %s\n", sourceUrl.String(), targetUrl.String())
+	fmt.Fprintf(stdout, "Retagging %s => %s\n", sourceUrl.String(), targetUrl.String())
 	if err := p.retagImage(ctx, sourceUrl, targetUrl); err != nil {
 		return fmt.Errorf("error retagging image: %w", err)
 	}
 
-	p.Logger.Printf("Pushing %s\n", targetUrl.String())
+	fmt.Fprintf(stdout, "Pushing %s\n", targetUrl.String())
 	if err := docker.PushImage(ctx, targetUrl, targetAuth); err != nil {
 		return fmt.Errorf("error pushing image: %w", err)
 	}
