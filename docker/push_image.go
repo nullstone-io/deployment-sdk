@@ -3,13 +3,12 @@ package docker
 import (
 	"context"
 	"fmt"
-	"github.com/docker/cli/cli/streams"
+	"github.com/docker/cli/cli/command"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/jsonmessage"
-	"github.com/moby/term"
 )
 
-func PushImage(ctx context.Context, targetUrl ImageUrl, targetAuth types.AuthConfig) error {
+func PushImage(ctx context.Context, dockerCli *command.DockerCli, targetUrl ImageUrl, targetAuth types.AuthConfig) error {
 	encodedAuth, err := EncodeAuthToBase64(targetAuth)
 	if err != nil {
 		return fmt.Errorf("error encoding remote auth configuration: %w", err)
@@ -19,15 +18,10 @@ func PushImage(ctx context.Context, targetUrl ImageUrl, targetAuth types.AuthCon
 		RegistryAuth: encodedAuth,
 	}
 
-	dockerClient, err := DiscoverDockerClient()
-	if err != nil {
-		return fmt.Errorf("error creating docker client: %w", err)
-	}
-	responseBody, err := dockerClient.ImagePush(ctx, targetUrl.String(), options)
+	responseBody, err := dockerCli.Client().ImagePush(ctx, targetUrl.String(), options)
 	if err != nil {
 		return err
 	}
 
-	_, stdout, _ := term.StdStreams()
-	return jsonmessage.DisplayJSONMessagesToStream(responseBody, streams.NewOut(stdout), nil)
+	return jsonmessage.DisplayJSONMessagesToStream(responseBody, dockerCli.Out(), nil)
 }
