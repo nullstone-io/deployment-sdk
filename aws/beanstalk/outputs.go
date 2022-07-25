@@ -1,4 +1,4 @@
-package lambda_zip
+package beanstalk
 
 import (
 	"github.com/nullstone-io/deployment-sdk/aws"
@@ -12,7 +12,8 @@ const (
 type Outputs struct {
 	Region               string     `ns:"region"`
 	Deployer             nsaws.User `ns:"deployer"`
-	LambdaName           string     `ns:"lambda_name"`
+	BeanstalkName        string     `ns:"beanstalk_name"`
+	EnvironmentId        string     `ns:"environment_id"`
 	ArtifactsBucketName  string     `ns:"artifacts_bucket_name"`
 	ArtifactsKeyTemplate string     `ns:"artifacts_key_template"`
 }

@@ -1,4 +1,4 @@
-package lambda_zip
+package beanstalk
 
 import (
 	"context"
@@ -35,11 +35,11 @@ func (d Deployer) Deploy(ctx context.Context, version string) (string, error) {
 		return "", fmt.Errorf("--version is required to deploy app")
 	}
 
-	fmt.Fprintf(stdout, "Updating lambda to %q\n", version)
-	if err := UpdateLambdaVersion(ctx, d.Infra, version); err != nil {
-		return "", fmt.Errorf("error updating lambda version: %w", err)
+	fmt.Fprintf(stdout, "Updating application environment %q...\n", version)
+	if err := UpdateEnvironment(ctx, d.Infra, version); err != nil {
+		return "", fmt.Errorf("error updating application environment: %w", err)
 	}
 
 	fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
-	return "", nil
+	return version, nil
 }

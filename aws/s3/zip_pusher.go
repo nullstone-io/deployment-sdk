@@ -1,4 +1,4 @@
-package lambda_zip
+package s3
 
 import (
 	"context"
@@ -10,25 +10,23 @@ import (
 	"os"
 )
 
-func NewPusher(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.Pusher, error) {
+func NewZipPusher(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.Pusher, error) {
 	outs, err := outputs.Retrieve[Outputs](nsConfig, appDetails.Workspace)
 	if err != nil {
 		return nil, err
 	}
-	return &Pusher{
+	return &ZipPusher{
 		OsWriters: osWriters,
-		NsConfig:  nsConfig,
 		Infra:     outs,
 	}, nil
 }
 
-type Pusher struct {
+type ZipPusher struct {
 	OsWriters logging.OsWriters
-	NsConfig  api.Config
 	Infra     Outputs
 }
 
-func (p Pusher) Push(ctx context.Context, source, version string) error {
+func (p ZipPusher) Push(ctx context.Context, source, version string) error {
 	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
 
 	if source == "" {
@@ -47,7 +45,7 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 	defer file.Close()
 
 	fmt.Fprintf(stdout, "Uploading %s to artifacts bucket\n", p.Infra.ArtifactsKey(version))
-	if err := UploadArtifact(ctx, p.Infra, file, version); err != nil {
+	if err := UploadZipArtifact(ctx, p.Infra, file, version); err != nil {
 		return fmt.Errorf("error uploading artifact: %w", err)
 	}
 

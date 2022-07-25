@@ -1,4 +1,4 @@
-package lambda_zip
+package s3
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"io"
 )
 
-func UploadArtifact(ctx context.Context, infra Outputs, content io.ReadSeeker, version string) error {
+func UploadZipArtifact(ctx context.Context, infra Outputs, content io.ReadSeeker, version string) error {
 	s3Client := s3.NewFromConfig(nsaws.NewConfig(infra.Deployer, infra.Region))
 
 	// Calculate md5 content to add as header (necessary for s3 buckets that have object lock enabled)
