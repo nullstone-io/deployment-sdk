@@ -17,14 +17,12 @@ func NewZipPusher(osWriters logging.OsWriters, nsConfig api.Config, appDetails a
 	}
 	return &ZipPusher{
 		OsWriters: osWriters,
-		NsConfig:  nsConfig,
 		Infra:     outs,
 	}, nil
 }
 
 type ZipPusher struct {
 	OsWriters logging.OsWriters
-	NsConfig  api.Config
 	Infra     Outputs
 }
 

@@ -28,14 +28,12 @@ func NewPusher(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.
 	}
 	return &Pusher{
 		OsWriters: osWriters,
-		NsConfig:  nsConfig,
 		Infra:     outs,
 	}, nil
 }
 
 type Pusher struct {
 	OsWriters logging.OsWriters
-	NsConfig  api.Config
 	Infra     Outputs
 }
 
