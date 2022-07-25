@@ -8,11 +8,13 @@ import (
 	"os"
 )
 
-func UploadArtifact(ctx context.Context, infra Outputs, source string, filepaths []string, version string) error {
+func UploadDirArtifact(ctx context.Context, infra Outputs, source string, filepaths []string, version string) error {
+	objDir := infra.ArtifactsKey(version)
+
 	logger := log.New(os.Stderr, "", 0)
 	uploader := nsaws.S3Uploader{
-		BucketName:      infra.BucketName,
-		ObjectDirectory: version,
+		BucketName:      infra.ArtifactsBucketName,
+		ObjectDirectory: objDir,
 		OnObjectUpload: func(objectKey string) {
 			logger.Println(fmt.Sprintf("Uploaded %s", objectKey))
 		},

@@ -10,25 +10,25 @@ import (
 	"gopkg.in/nullstone-io/go-api-client.v0"
 )
 
-func NewPusher(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.Pusher, error) {
+func NewDirPusher(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.Pusher, error) {
 	outs, err := outputs.Retrieve[Outputs](nsConfig, appDetails.Workspace)
 	if err != nil {
 		return nil, err
 	}
-	return &Pusher{
+	return &DirPusher{
 		OsWriters: osWriters,
 		NsConfig:  nsConfig,
 		Infra:     outs,
 	}, nil
 }
 
-type Pusher struct {
+type DirPusher struct {
 	OsWriters logging.OsWriters
 	NsConfig  api.Config
 	Infra     Outputs
 }
 
-func (p Pusher) Push(ctx context.Context, source, version string) error {
+func (p DirPusher) Push(ctx context.Context, source, version string) error {
 	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
 
 	if source == "" {
@@ -43,8 +43,8 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 		return fmt.Errorf("error scanning source: %w", err)
 	}
 
-	fmt.Fprintf(stdout, "Uploading %s to s3 bucket %s...\n", source, p.Infra.BucketName)
-	if err := UploadArtifact(ctx, p.Infra, source, filepaths, version); err != nil {
+	fmt.Fprintf(stdout, "Uploading %s to s3 bucket %s...\n", source, p.Infra.ArtifactsBucketName)
+	if err := UploadDirArtifact(ctx, p.Infra, source, filepaths, version); err != nil {
 		return fmt.Errorf("error uploading artifact: %w", err)
 	}
 
