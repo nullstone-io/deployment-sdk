@@ -17,7 +17,6 @@ func NewDeployer(osWriters logging.OsWriters, nsConfig api.Config, appDetails ap
 
 	return Deployer{
 		OsWriters: osWriters,
-		NsConfig:  nsConfig,
 		Details:   appDetails,
 		Infra:     outs,
 	}, nil
@@ -25,7 +24,6 @@ func NewDeployer(osWriters logging.OsWriters, nsConfig api.Config, appDetails ap
 
 type Deployer struct {
 	OsWriters logging.OsWriters
-	NsConfig  api.Config
 	Details   app.Details
 	Infra     Outputs
 }
@@ -43,5 +41,5 @@ func (d Deployer) Deploy(ctx context.Context, version string) (string, error) {
 	}
 
 	fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
-	return "", nil
+	return version, nil
 }

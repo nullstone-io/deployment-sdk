@@ -18,7 +18,6 @@ func NewDeployStatusGetter(osWriters logging.OsWriters, nsConfig api.Config, app
 
 	return DeployStatusGetter{
 		OsWriters: osWriters,
-		NsConfig:  nsConfig,
 		Details:   appDetails,
 		Infra:     outs,
 	}, nil
@@ -26,7 +25,6 @@ func NewDeployStatusGetter(osWriters logging.OsWriters, nsConfig api.Config, app
 
 type DeployStatusGetter struct {
 	OsWriters logging.OsWriters
-	NsConfig  api.Config
 	Details   app.Details
 	Infra     Outputs
 }
