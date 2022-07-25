@@ -39,23 +39,36 @@ func (d DeployStatusGetter) GetDeployStatus(ctx context.Context, reference strin
 	}
 	rolloutStatus := d.mapRolloutStatus(env)
 	// TODO: Is there additional information to log?
-	// TODO: Check env.Health for LB health checks?
 	return rolloutStatus, nil
 }
 
 func (d DeployStatusGetter) mapRolloutStatus(env *ebtypes.EnvironmentDescription) app.RolloutStatus {
 	switch env.Status {
-	case "Launching":
+	case ebtypes.EnvironmentStatusLaunching:
 		return app.RolloutStatusInProgress
-	case "Updating":
+	case ebtypes.EnvironmentStatusUpdating:
+	case ebtypes.EnvironmentStatusLinkingTo:
+	case ebtypes.EnvironmentStatusLinkingFrom:
 		return app.RolloutStatusInProgress
-	case "Ready":
-		return app.RolloutStatusComplete
-	case "Terminating":
+	case ebtypes.EnvironmentStatusTerminating:
 		return app.RolloutStatusFailed
-	case "Terminated":
+	case ebtypes.EnvironmentStatusTerminated:
 		return app.RolloutStatusFailed
 	default:
 		return app.RolloutStatusUnknown
+	case ebtypes.EnvironmentStatusReady:
+		// fall through to check health status
 	}
+
+	switch env.Health {
+	case ebtypes.EnvironmentHealthGreen:
+		return app.RolloutStatusComplete
+	case ebtypes.EnvironmentHealthYellow:
+		return app.RolloutStatusInProgress
+	case ebtypes.EnvironmentHealthRed:
+		return app.RolloutStatusFailed
+	case ebtypes.EnvironmentHealthGrey:
+		return app.RolloutStatusFailed
+	}
+	return app.RolloutStatusUnknown
 }
