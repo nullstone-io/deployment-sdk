@@ -17,5 +17,5 @@ var ModuleContractName = types.ModuleContractName{
 var Provider = app.Provider{
 	NewPusher:             beanstalk.NewPusher,
 	NewDeployer:           beanstalk.NewDeployer,
-	NewDeployStatusGetter: nil,
+	NewDeployStatusGetter: beanstalk.NewDeployStatusGetter,
 }
