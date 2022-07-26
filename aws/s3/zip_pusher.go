@@ -49,6 +49,6 @@ func (p ZipPusher) Push(ctx context.Context, source, version string) error {
 		return fmt.Errorf("error uploading artifact: %w", err)
 	}
 
-	fmt.Fprintf(stdout, "Upload complete")
+	fmt.Fprintln(stdout, "Upload complete")
 	return nil
 }
