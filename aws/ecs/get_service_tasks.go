@@ -9,15 +9,14 @@ import (
 	"github.com/nullstone-io/deployment-sdk/aws"
 )
 
-func GetDeploymentTasks(ctx context.Context, infra Outputs, deploymentId string) ([]ecstypes.Task, error) {
+func GetServiceTasks(ctx context.Context, infra Outputs) ([]ecstypes.Task, error) {
 	ecsClient := ecs.NewFromConfig(nsaws.NewConfig(infra.Deployer, infra.Region))
 	tasks, err := ecsClient.ListTasks(ctx, &ecs.ListTasksInput{
 		Cluster:     aws.String(infra.Cluster.ClusterArn),
 		ServiceName: aws.String(infra.ServiceName),
-		// StartedBy: aws.String(deploymentId),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("unable to get tasks associated with deployment (%s): %w", deploymentId, err)
+		return nil, fmt.Errorf("unable to get tasks associated with service (%s): %w", infra.ServiceName, err)
 	}
 
 	// if there aren't any tasks returned, we can't fetch any task descriptions

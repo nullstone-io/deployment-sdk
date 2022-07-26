@@ -40,7 +40,7 @@ func (d DeployStatusGetter) GetDeployStatus(ctx context.Context, reference strin
 		return app.RolloutStatusUnknown, err
 	}
 	rolloutStatus := d.mapRolloutStatus(deployment)
-	tasks, err := GetDeploymentTasks(ctx, d.Infra, reference)
+	tasks, err := GetServiceTasks(ctx, d.Infra)
 	if err != nil {
 		return app.RolloutStatusUnknown, err
 	}
