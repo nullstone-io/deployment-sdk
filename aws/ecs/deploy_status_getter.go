@@ -61,11 +61,11 @@ func (d DeployStatusGetter) logTasks(reference string, tasks []ecstypes.Task) {
 	}
 
 	for _, task := range currentTasks {
-		fmt.Fprintf(stdout, "\t\tTask %s %s", derefString(task.TaskArn), strings.ToLower(derefString(task.LastStatus)))
+		fmt.Fprintf(stdout, "\t\tTask %s %s\n", derefString(task.TaskArn), strings.ToLower(derefString(task.LastStatus)))
 	}
-	fmt.Fprintf(stdout, "\t%d existing tasks to shutdown.", len(previousTasks))
+	fmt.Fprintf(stdout, "\t%d existing tasks to shutdown.\n", len(previousTasks))
 	for _, task := range previousTasks {
-		fmt.Fprintf(stdout, "\t\tTask %s from deployment %s %s", derefString(task.TaskArn), derefString(task.StartedBy), strings.ToLower(derefString(task.LastStatus)))
+		fmt.Fprintf(stdout, "\t\tTask %s from deployment %s %s\n", derefString(task.TaskArn), derefString(task.StartedBy), strings.ToLower(derefString(task.LastStatus)))
 	}
 }
 
