@@ -5,7 +5,6 @@ import (
 	"github.com/nullstone-io/deployment-sdk/app/container/aws-ecs-ec2"
 	"github.com/nullstone-io/deployment-sdk/app/container/aws-ecs-fargate"
 	"github.com/nullstone-io/deployment-sdk/app/server/aws-beanstalk"
-	"github.com/nullstone-io/deployment-sdk/app/server/aws-ec2"
 	"github.com/nullstone-io/deployment-sdk/app/serverless/aws-lambda-container"
 	"github.com/nullstone-io/deployment-sdk/app/serverless/aws-lambda-zip"
 	"github.com/nullstone-io/deployment-sdk/app/static-site/aws-s3"
@@ -18,7 +17,6 @@ var (
 		aws_s3.ModuleContractName:               aws_s3.Provider,
 		aws_lambda_zip.ModuleContractName:       aws_lambda_zip.Provider,
 		aws_lambda_container.ModuleContractName: aws_lambda_container.Provider,
-		aws_ec2.ModuleContractName:              aws_ec2.Provider,
 		aws_beanstalk.ModuleContractName:        aws_beanstalk.Provider,
 	}
 )
