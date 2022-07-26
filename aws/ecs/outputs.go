@@ -14,7 +14,7 @@ type Outputs struct {
 	MainContainerName string          `ns:"main_container_name,optional"`
 	Deployer          nsaws.User      `ns:"deployer,optional"`
 
-	Cluster ClusterOutputs `ns:",connectionContract=cluster/aws/ecs:*"`
+	Cluster ClusterOutputs `ns:",connectionContract:cluster/aws/ecs:*"`
 }
 
 type ClusterOutputs struct {
