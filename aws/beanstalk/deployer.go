@@ -3,10 +3,12 @@ package beanstalk
 import (
 	"context"
 	"fmt"
+	ebtypes "github.com/aws/aws-sdk-go-v2/service/elasticbeanstalk/types"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
+	"time"
 )
 
 func NewDeployer(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.Deployer, error) {
@@ -33,6 +35,24 @@ func (d Deployer) Deploy(ctx context.Context, version string) (string, error) {
 	fmt.Fprintf(stdout, "Deploying app %q\n", d.Details.App.Name)
 	if version == "" {
 		return "", fmt.Errorf("--version is required to deploy app")
+	}
+
+	fmt.Fprintln(stdout, "Waiting for AWS to process application version...")
+	for i := 0; i < 10; i++ {
+		appVersion, err := GetApplicationVersion(ctx, d.Infra, version)
+		if err != nil {
+			return "", err
+		} else if appVersion == nil {
+			return "", fmt.Errorf("application version does not exist")
+		}
+		if appVersion.Status == ebtypes.ApplicationVersionStatusProcessed {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return "", fmt.Errorf("cancelled")
+		case <-time.After(2 * time.Second):
+		}
 	}
 
 	fmt.Fprintf(stdout, "Updating application environment %q...\n", version)

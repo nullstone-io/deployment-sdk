@@ -16,3 +16,4 @@ func UpdateEnvironment(ctx context.Context, infra Outputs, version string) error
 	})
 	return err
 }
+

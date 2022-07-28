@@ -2,6 +2,7 @@ package beanstalk
 
 import (
 	"context"
+	"fmt"
 	ebtypes "github.com/aws/aws-sdk-go-v2/service/elasticbeanstalk/types"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
@@ -36,6 +37,8 @@ func (d DeployStatusGetter) GetDeployStatus(ctx context.Context, reference strin
 	env, err := GetEnvironmentStatus(ctx, d.Infra, reference)
 	if err != nil {
 		return app.RolloutStatusUnknown, err
+	} else if env == nil {
+		return app.RolloutStatusInProgress, nil
 	}
 	rolloutStatus := d.mapRolloutStatus(env)
 	// TODO: Is there additional information to log?
@@ -43,12 +46,16 @@ func (d DeployStatusGetter) GetDeployStatus(ctx context.Context, reference strin
 }
 
 func (d DeployStatusGetter) mapRolloutStatus(env *ebtypes.EnvironmentDescription) app.RolloutStatus {
+	stdout := d.OsWriters.Stdout()
 	switch env.Status {
 	case ebtypes.EnvironmentStatusLaunching:
-		return app.RolloutStatusInProgress
+		fallthrough
 	case ebtypes.EnvironmentStatusUpdating:
+		fallthrough
 	case ebtypes.EnvironmentStatusLinkingTo:
+		fallthrough
 	case ebtypes.EnvironmentStatusLinkingFrom:
+		fmt.Fprintf(stdout, "Awaiting environment to launch (currently: %s)\n", env.Status)
 		return app.RolloutStatusInProgress
 	case ebtypes.EnvironmentStatusTerminating:
 		return app.RolloutStatusFailed
@@ -60,6 +67,7 @@ func (d DeployStatusGetter) mapRolloutStatus(env *ebtypes.EnvironmentDescription
 		// fall through to check health status
 	}
 
+	fmt.Fprintf(stdout,"Awaiting environment health to become healthy (currently: %s)\n", env.Health)
 	switch env.Health {
 	case ebtypes.EnvironmentHealthGreen:
 		return app.RolloutStatusComplete
