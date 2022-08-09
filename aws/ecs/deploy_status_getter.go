@@ -53,6 +53,13 @@ func (d *DeployStatusGetter) initialize(ctx context.Context, reference string) e
 }
 
 func (d *DeployStatusGetter) GetDeployStatus(ctx context.Context, reference string) (app.RolloutStatus, error) {
+	stdout := d.OsWriters.Stdout()
+
+	if d.Infra.ServiceName == "" {
+		fmt.Fprintf(stdout, "No service name in app module. Skipping check for healthy.\n")
+		return app.RolloutStatusComplete, nil
+	}
+
 	if err := d.initialize(ctx, reference); err != nil {
 		return app.RolloutStatusUnknown, err
 	}
@@ -67,7 +74,7 @@ func (d *DeployStatusGetter) GetDeployStatus(ctx context.Context, reference stri
 	}
 	d.startDeployment.Do(func() {
 		d.numDesired = int(deployment.DesiredCount)
-		fmt.Fprintf(d.OsWriters.Stdout(), "Deploying %d tasks\n", deployment.DesiredCount)
+		fmt.Fprintf(stdout, "Deploying %d tasks\n", deployment.DesiredCount)
 	})
 	rolloutStatus := d.mapRolloutStatus(deployment)
 	if rolloutStatus == app.RolloutStatusUnknown || rolloutStatus == app.RolloutStatusComplete {
@@ -93,7 +100,7 @@ func (d *DeployStatusGetter) GetDeployStatus(ctx context.Context, reference stri
 		return app.RolloutStatusUnknown, err
 	}
 
-	fmt.Fprintf(d.OsWriters.Stdout(), "%d tasks to add (%s)%s %d tasks to remove (%s)\n", d.numDesired, cur, extra, len(d.previousTaskArns), prev)
+	fmt.Fprintf(stdout, "%d tasks to add (%s)%s %d tasks to remove (%s)\n", d.numDesired, cur, extra, len(d.previousTaskArns), prev)
 	return rolloutStatus, nil
 }
 

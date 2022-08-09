@@ -66,7 +66,9 @@ func (d Deployer) Deploy(ctx context.Context, version string) (string, error) {
 	newTaskDefArn := *newTaskDef.TaskDefinitionArn
 
 	if d.Infra.ServiceName == "" {
-		fmt.Fprintf(stdout, "No service name in outputs. Skipping update service.\n")
+		fmt.Fprintf(stdout, "No service name in app module. Skipping update service.\n")
+		fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
+		fmt.Fprintln(stdout, "")
 		return "", nil
 	}
 
@@ -78,5 +80,6 @@ func (d Deployer) Deploy(ctx context.Context, version string) (string, error) {
 		return "", nil
 	}
 	fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
+	fmt.Fprintln(stdout, "")
 	return *deployment.Id, nil
 }
