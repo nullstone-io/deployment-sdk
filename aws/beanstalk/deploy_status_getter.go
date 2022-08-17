@@ -67,7 +67,7 @@ func (d DeployStatusGetter) mapRolloutStatus(env *ebtypes.EnvironmentDescription
 		// fall through to check health status
 	}
 
-	fmt.Fprintf(stdout,"Awaiting environment health to become healthy (currently: %s)\n", env.Health)
+	fmt.Fprintf(stdout, "Awaiting environment health to become healthy (currently: %s)\n", env.Health)
 	switch env.Health {
 	case ebtypes.EnvironmentHealthGreen:
 		return app.RolloutStatusComplete
