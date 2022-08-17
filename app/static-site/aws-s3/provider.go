@@ -16,6 +16,7 @@ var ModuleContractName = types.ModuleContractName{
 }
 
 var Provider = app.Provider{
+	CanDeployImmediate:    true,
 	NewPusher:             s3.NewDirPusher,
 	NewDeployer:           cdn.NewDeployer,
 	NewDeployStatusGetter: cdn.NewDeployStatusGetter,

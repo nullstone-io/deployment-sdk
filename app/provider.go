@@ -7,6 +7,7 @@ import (
 )
 
 type Provider struct {
+	CanDeployImmediate    bool
 	NewPusher             NewPusherFunc
 	NewDeployer           NewDeployerFunc
 	NewDeployStatusGetter NewDeployStatusGetterFunc
