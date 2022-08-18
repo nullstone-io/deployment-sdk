@@ -16,6 +16,7 @@ var ModuleContractName = types.ModuleContractName{
 }
 
 var Provider = app.Provider{
+	CanDeployImmediate:    true,
 	NewPusher:             s3.NewZipPusher,
 	NewDeployer:           lambda_zip.NewDeployer,
 	NewDeployStatusGetter: nil,
