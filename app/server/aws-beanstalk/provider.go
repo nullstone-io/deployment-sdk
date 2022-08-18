@@ -15,6 +15,7 @@ var ModuleContractName = types.ModuleContractName{
 }
 
 var Provider = app.Provider{
+	CanDeployImmediate:    false,
 	NewPusher:             beanstalk.NewPusher,
 	NewDeployer:           beanstalk.NewDeployer,
 	NewDeployStatusGetter: beanstalk.NewDeployStatusGetter,
