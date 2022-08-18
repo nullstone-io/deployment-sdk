@@ -10,7 +10,7 @@ type Providers map[types.ModuleContractName]Provider
 
 func (s Providers) FindPusher(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (Pusher, error) {
 	factory := s.FindFactory(*appDetails.Module)
-	if factory == nil {
+	if factory == nil || factory.NewPusher == nil {
 		return nil, nil
 	}
 	return factory.NewPusher(osWriters, nsConfig, appDetails)
@@ -18,7 +18,7 @@ func (s Providers) FindPusher(osWriters logging.OsWriters, nsConfig api.Config, 
 
 func (s Providers) FindDeployer(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (Deployer, error) {
 	factory := s.FindFactory(*appDetails.Module)
-	if factory == nil {
+	if factory == nil || factory.NewDeployer == nil {
 		return nil, nil
 	}
 	return factory.NewDeployer(osWriters, nsConfig, appDetails)
@@ -26,7 +26,7 @@ func (s Providers) FindDeployer(osWriters logging.OsWriters, nsConfig api.Config
 
 func (s Providers) FindDeployStatusGetter(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (DeployStatusGetter, error) {
 	factory := s.FindFactory(*appDetails.Module)
-	if factory == nil {
+	if factory == nil || factory.NewDeployStatusGetter == nil {
 		return nil, nil
 	}
 	return factory.NewDeployStatusGetter(osWriters, nsConfig, appDetails)
