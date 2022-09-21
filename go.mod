@@ -15,11 +15,12 @@ require (
 	github.com/aws/smithy-go v1.12.0
 	github.com/docker/cli v20.10.9+incompatible
 	github.com/docker/docker v20.10.17+incompatible
+	github.com/google/uuid v1.2.0
 	github.com/nullstone-io/module v0.2.8
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
 	github.com/vmihailenco/tagparser v0.1.2
-	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20220615192849-536330572134
+	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20220921150731-89bf2bdaec43
 )
 
 require (
@@ -48,7 +49,6 @@ require (
 	github.com/fvbommel/sortorder v1.0.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/google/uuid v1.2.0 // indirect
 	github.com/gorilla/mux v1.7.3 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.6.0 // indirect
