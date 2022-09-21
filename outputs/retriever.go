@@ -34,7 +34,7 @@ func (r *Retriever) Retrieve(workspace *types.Workspace, obj interface{}) error 
 	}
 
 	nsClient := api.Client{Config: r.NsConfig}
-	workspaceOutputs, err := nsClient.WorkspaceOutputs().GetLatest(workspace.StackId, workspace.BlockId, workspace.EnvId)
+	workspaceOutputs, err := nsClient.WorkspaceOutputs().GetCurrent(workspace.StackId, workspace.Uid, true)
 	if workspaceOutputs == nil {
 		return fmt.Errorf("this workspace has not yet been successfully launched, no outputs exist yet")
 	}
@@ -82,7 +82,7 @@ func (r *Retriever) Retrieve(workspace *types.Workspace, obj interface{}) error 
 			if err := CheckValidField(obj, fieldType); err != nil {
 				return err
 			}
-			if err := field.SafeSet(obj, *workspaceOutputs); err != nil {
+			if err := field.SafeSet(obj, workspaceOutputs); err != nil {
 				return err
 			}
 		}

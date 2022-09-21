@@ -57,7 +57,7 @@ func (f Field) SafeSet(sourceObj interface{}, outputs types.Outputs) error {
 		return fmt.Errorf("source object must be a pointer to a struct")
 	}
 
-	var item types.OutputItem
+	var item types.Output
 	var ok bool
 	if outputs != nil {
 		item, ok = outputs[f.Name]

@@ -1,6 +1,7 @@
 package outputs
 
 import (
+	"github.com/google/uuid"
 	"github.com/nullstone-io/module/config"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
@@ -21,72 +22,67 @@ type MockDeepOutputs struct {
 
 func TestRetriever_Retrieve(t *testing.T) {
 	flatWorkspace := &types.Workspace{
-		OrgName: "default",
-		StackId: 1,
-		BlockId: 5,
-		EnvId:   15,
-		LastFinishedRun: &types.Run{
-			Apply: &types.RunApply{
-				Outputs: types.Outputs{
-					"output1": types.OutputItem{
-						Type:      "string",
-						Value:     "value1",
-						Sensitive: false,
-					},
-					"output2": types.OutputItem{
-						Type:      "number",
-						Value:     2,
-						Sensitive: false,
-					},
-					"output3": types.OutputItem{
-						Type: "map(string)",
-						Value: map[string]string{
-							"key1": "value1",
-							"key2": "value2",
-							"key3": "value3",
-						},
-						Sensitive: false,
-					},
-				},
+		UidCreatedModel: types.UidCreatedModel{Uid: uuid.New()},
+		OrgName:         "default",
+		StackId:         1,
+		BlockId:         5,
+		EnvId:           15,
+	}
+	flatWorkspaceOutputs := types.Outputs{
+		"output1": types.Output{
+			Type:      "string",
+			Value:     "value1",
+			Sensitive: false,
+		},
+		"output2": types.Output{
+			Type:      "number",
+			Value:     2,
+			Sensitive: false,
+		},
+		"output3": types.Output{
+			Type: "map(string)",
+			Value: map[string]string{
+				"key1": "value1",
+				"key2": "value2",
+				"key3": "value3",
 			},
+			Sensitive: false,
 		},
 	}
 	flat2Workspace := &types.Workspace{
-		OrgName: "default",
-		StackId: 1,
-		BlockId: 7,
-		EnvId:   15,
-		LastFinishedRun: &types.Run{
-			Apply: &types.RunApply{
-				Outputs: types.Outputs{
-					"output1": types.OutputItem{
-						Type:      "string",
-						Value:     "value1",
-						Sensitive: false,
-					},
-					"output2": types.OutputItem{
-						Type:      "number",
-						Value:     2,
-						Sensitive: false,
-					},
-					"output3": types.OutputItem{
-						Type: "map(string)",
-						Value: map[string]string{
-							"key1": "value1",
-							"key2": "value2",
-							"key3": "value3",
-						},
-						Sensitive: false,
-					},
-				},
+		UidCreatedModel: types.UidCreatedModel{Uid: uuid.New()},
+		OrgName:         "default",
+		StackId:         1,
+		BlockId:         7,
+		EnvId:           15,
+	}
+	flat2WorkspaceOutputs := types.Outputs{
+		"output1": types.Output{
+			Type:      "string",
+			Value:     "value1",
+			Sensitive: false,
+		},
+		"output2": types.Output{
+			Type:      "number",
+			Value:     2,
+			Sensitive: false,
+		},
+		"output3": types.Output{
+			Type: "map(string)",
+			Value: map[string]string{
+				"key1": "value1",
+				"key2": "value2",
+				"key3": "value3",
 			},
+			Sensitive: false,
 		},
 	}
 	deepWorkspace := &types.Workspace{
-		OrgName: "default",
-		StackId: 1,
-		BlockId: 6,
-		EnvId:   15,
+		UidCreatedModel: types.UidCreatedModel{Uid: uuid.New()},
+		OrgName:         "default",
+		StackId:         1,
+		BlockId:         6,
+		EnvId:           15,
 		LastFinishedRun: &types.Run{
 			Config: &types.RunConfig{
 				Connections: map[string]types.Connection{
@@ -118,22 +114,28 @@ func TestRetriever_Retrieve(t *testing.T) {
 					},
 				},
 			},
-			Apply: &types.RunApply{
-				Outputs: types.Outputs{
-					"output1": types.OutputItem{
-						Type:      "string",
-						Value:     "test",
-						Sensitive: false,
-					},
-				},
-			},
 		},
+	}
+	deepWorkspaceOutputs := types.Outputs{
+		"output1": types.Output{
+			Type:      "string",
+			Value:     "test",
+			Sensitive: false,
+		},
+	}
+	allWorkspaces := []types.Workspace{
+		*deepWorkspace,
+		*flat2Workspace,
+		*flatWorkspace,
+	}
+	allOutputs := map[string]types.Outputs{
+		flatWorkspace.Uid.String():  flatWorkspaceOutputs,
+		flat2Workspace.Uid.String(): flat2WorkspaceOutputs,
+		deepWorkspace.Uid.String():  deepWorkspaceOutputs,
 	}
 
 	t.Run("should retrieve outputs for single workspace", func(t *testing.T) {
-		server, nsConfig := mockNs([]types.Workspace{
-			*flatWorkspace,
-		})
+		server, nsConfig := mockNs([]types.Workspace{*flatWorkspace}, map[string]types.Outputs{flatWorkspace.Uid.String(): flatWorkspaceOutputs})
 		t.Cleanup(server.Close)
 
 		want := MockFlatOutputs{
@@ -154,11 +156,7 @@ func TestRetriever_Retrieve(t *testing.T) {
 	})
 
 	t.Run("should retrieve outputs for own workspace and connected workspaces", func(t *testing.T) {
-		server, nsConfig := mockNs([]types.Workspace{
-			*deepWorkspace,
-			*flat2Workspace,
-			*flatWorkspace,
-		})
+		server, nsConfig := mockNs(allWorkspaces, allOutputs)
 		t.Cleanup(server.Close)
 
 		want := MockDeepOutputs{

@@ -10,7 +10,7 @@ import (
 	"net/http/httptest"
 )
 
-func mockNs(workspaces []types.Workspace) (*httptest.Server, api.Config) {
+func mockNs(workspaces []types.Workspace, currentOutputs map[string]types.Outputs) (*httptest.Server, api.Config) {
 	mux := http.NewServeMux()
 	for _, workspace := range workspaces {
 		cur := workspace
@@ -20,10 +20,10 @@ func mockNs(workspaces []types.Workspace) (*httptest.Server, api.Config) {
 			raw, _ := json.Marshal(cur)
 			w.Write(raw)
 		}))
-		outputsEndpoint := fmt.Sprintf("/orgs/%s/stacks/%d/blocks/%d/envs/%d/outputs/latest",
-			cur.OrgName, cur.StackId, cur.BlockId, cur.EnvId)
+		outputsEndpoint := fmt.Sprintf("/orgs/%s/stacks/%d/workspaces/%s/current-outputs",
+			cur.OrgName, cur.StackId, cur.Uid)
 		mux.Handle(outputsEndpoint, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			raw, _ := json.Marshal(cur.LastFinishedRun.Apply.Outputs)
+			raw, _ := json.Marshal(currentOutputs[cur.Uid.String()])
 			w.Write(raw)
 		}))
 	}
