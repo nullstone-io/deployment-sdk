@@ -14,6 +14,7 @@ type Outputs struct {
 	Deployer             nsaws.User `ns:"deployer"`
 	ArtifactsBucketName  string     `ns:"artifacts_bucket_name"`
 	ArtifactsKeyTemplate string     `ns:"artifacts_key_template"`
+	CdnIds               []string   `ns:"cdn_ids,optional"`
 }
 
 func (o Outputs) ArtifactsKey(appVersion string) string {

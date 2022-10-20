@@ -23,9 +23,10 @@ func NewDeployer(osWriters logging.OsWriters, nsConfig api.Config, appDetails ap
 }
 
 type Deployer struct {
-	OsWriters logging.OsWriters
-	Details   app.Details
-	Infra     Outputs
+	OsWriters    logging.OsWriters
+	Details      app.Details
+	Infra        Outputs
+	PostUpdateFn func(ctx context.Context, meta app.DeployMetadata) error
 }
 
 func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
@@ -39,6 +40,12 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	fmt.Fprintf(stdout, "Updating CDN version to %q\n", meta.Version)
 	if err := UpdateCdnVersion(ctx, d.Infra, meta.Version); err != nil {
 		return "", fmt.Errorf("error updating CDN version: %w", err)
+	}
+
+	if d.PostUpdateFn != nil {
+		if err := d.PostUpdateFn(ctx, meta); err != nil {
+			return "", err
+		}
 	}
 
 	fmt.Fprintln(stdout, "Invalidating cache in CDNs")
