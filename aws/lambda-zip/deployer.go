@@ -43,7 +43,7 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 		return "", fmt.Errorf("error retrieving lambda configuration: %w", err)
 	}
 	updates := lambda.MapFunctionConfig(config)
-	updates.Environment.Variables = env_vars.Update(updates.Environment.Variables, meta)
+	updates.Environment.Variables = env_vars.UpdateStandard(updates.Environment.Variables, meta)
 	if err := UpdateFunctionConfig(ctx, d.Infra, updates); err != nil {
 		return "", fmt.Errorf("error updating lambda configuration: %w", err)
 	}
