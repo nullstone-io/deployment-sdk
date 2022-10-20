@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/aws/cdn"
+	env_vars "github.com/nullstone-io/deployment-sdk/env-vars"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
@@ -43,6 +44,14 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 }
 
 func (d Deployer) updateEnvVars(ctx context.Context, meta app.DeployMetadata) error {
-	// TODO: Implement
-	return nil
+	if d.Infra.EnvVarsFilename == "" {
+		// If there is no env vars filename, there is nothing to update
+		return nil
+	}
+	envVars, err := GetEnvVars(ctx, d.Infra)
+	if err != nil {
+		return err
+	}
+	envVars = env_vars.UpdateStandard(envVars, meta)
+	return PutEnVars(ctx, d.Infra, envVars)
 }

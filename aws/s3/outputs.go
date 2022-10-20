@@ -15,6 +15,7 @@ type Outputs struct {
 	ArtifactsBucketName  string     `ns:"artifacts_bucket_name"`
 	ArtifactsKeyTemplate string     `ns:"artifacts_key_template"`
 	CdnIds               []string   `ns:"cdn_ids,optional"`
+	EnvVarsFilename      string     `ns:"env_vars_filename,optional"`
 }
 
 func (o Outputs) ArtifactsKey(appVersion string) string {
