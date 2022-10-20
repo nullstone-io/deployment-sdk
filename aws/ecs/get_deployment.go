@@ -2,8 +2,13 @@ package ecs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
+)
+
+var (
+	ErrNoDeployment = errors.New("deployment does not exist")
 )
 
 func GetDeployment(ctx context.Context, infra Outputs, deploymentId string) (*ecstypes.Deployment, error) {
@@ -17,5 +22,5 @@ func GetDeployment(ctx context.Context, infra Outputs, deploymentId string) (*ec
 			return &deployment, nil
 		}
 	}
-	return nil, fmt.Errorf("no deployments returned with an id of %s", deploymentId)
+	return nil, ErrNoDeployment
 }
