@@ -62,6 +62,7 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	if err != nil {
 		return "", fmt.Errorf("error updating container version: %w", err)
 	}
+	updatedTaskDef = ReplaceEnvVars(*updatedTaskDef, meta)
 
 	fmt.Fprintf(stdout, "Updating task definition version and environment variables\n")
 	newTaskDef, err := UpdateTask(ctx, d.Infra, updatedTaskDef, *taskDef.TaskDefinitionArn)
