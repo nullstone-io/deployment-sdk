@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"github.com/nullstone-io/deployment-sdk/app"
 	nsaws "github.com/nullstone-io/deployment-sdk/aws"
+	"github.com/nullstone-io/deployment-sdk/aws/lambda"
 	"github.com/nullstone-io/deployment-sdk/docker"
+	env_vars "github.com/nullstone-io/deployment-sdk/env-vars"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
@@ -43,6 +45,17 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	fmt.Fprintf(stdout, "Deploying app %q\n", d.Details.App.Name)
 	if meta.Version == "" {
 		return "", fmt.Errorf("--version is required to deploy app")
+	}
+
+	fmt.Fprintf(stdout, "Updating lambda environment variables\n")
+	config, err := GetFunctionConfig(ctx, d.Infra)
+	if err != nil {
+		return "", fmt.Errorf("error retrieving lambda configuration: %w", err)
+	}
+	updates := lambda.MapFunctionConfig(config)
+	updates.Environment.Variables = env_vars.Update(updates.Environment.Variables, meta)
+	if err := UpdateFunctionConfig(ctx, d.Infra, updates); err != nil {
+		return "", fmt.Errorf("error updating lambda configuration: %w", err)
 	}
 
 	fmt.Fprintf(stdout, "Updating lambda to %q\n", meta.Version)
