@@ -30,16 +30,16 @@ type Deployer struct {
 	Infra     Outputs
 }
 
-func (d Deployer) Deploy(ctx context.Context, version string) (string, error) {
+func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 	fmt.Fprintf(stdout, "Deploying app %q\n", d.Details.App.Name)
-	if version == "" {
+	if meta.Version == "" {
 		return "", fmt.Errorf("--version is required to deploy app")
 	}
 
 	fmt.Fprintln(stdout, "Waiting for AWS to process application version...")
 	for i := 0; i < 10; i++ {
-		appVersion, err := GetApplicationVersion(ctx, d.Infra, version)
+		appVersion, err := GetApplicationVersion(ctx, d.Infra, meta.Version)
 		if err != nil {
 			return "", err
 		} else if appVersion == nil {
@@ -55,11 +55,11 @@ func (d Deployer) Deploy(ctx context.Context, version string) (string, error) {
 		}
 	}
 
-	fmt.Fprintf(stdout, "Updating application environment %q...\n", version)
-	if err := UpdateEnvironment(ctx, d.Infra, version); err != nil {
+	fmt.Fprintf(stdout, "Updating application environment %q...\n", meta.Version)
+	if err := UpdateEnvironment(ctx, d.Infra, meta.Version); err != nil {
 		return "", fmt.Errorf("error updating application environment: %w", err)
 	}
 
 	fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
-	return version, nil
+	return meta.Version, nil
 }

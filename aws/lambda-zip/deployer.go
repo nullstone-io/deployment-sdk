@@ -28,15 +28,15 @@ type Deployer struct {
 	Infra     Outputs
 }
 
-func (d Deployer) Deploy(ctx context.Context, version string) (string, error) {
+func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 	fmt.Fprintf(stdout, "Deploying app %q\n", d.Details.App.Name)
-	if version == "" {
+	if meta.Version == "" {
 		return "", fmt.Errorf("--version is required to deploy app")
 	}
 
-	fmt.Fprintf(stdout, "Updating lambda to %q\n", version)
-	if err := UpdateLambdaVersion(ctx, d.Infra, version); err != nil {
+	fmt.Fprintf(stdout, "Updating lambda to %q\n", meta.Version)
+	if err := UpdateLambdaVersion(ctx, d.Infra, meta.Version); err != nil {
 		return "", fmt.Errorf("error updating lambda version: %w", err)
 	}
 

@@ -28,16 +28,16 @@ type Deployer struct {
 	Infra     Outputs
 }
 
-func (d Deployer) Deploy(ctx context.Context, version string) (string, error) {
+func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 
 	fmt.Fprintf(stdout, "Deploying app %q\n", d.Details.App.Name)
-	if version == "" {
+	if meta.Version == "" {
 		return "", fmt.Errorf("no version specified, version is required to deploy")
 	}
 
-	fmt.Fprintf(stdout, "Updating CDN version to %q\n", version)
-	if err := UpdateCdnVersion(ctx, d.Infra, version); err != nil {
+	fmt.Fprintf(stdout, "Updating CDN version to %q\n", meta.Version)
+	if err := UpdateCdnVersion(ctx, d.Infra, meta.Version); err != nil {
 		return "", fmt.Errorf("error updating CDN version: %w", err)
 	}
 

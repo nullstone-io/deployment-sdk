@@ -41,11 +41,11 @@ func (d Deployer) Print() {
 //   Register new task definition
 //   Deregister old task definition
 //   Update ECS Service (This always causes deployment)
-func (d Deployer) Deploy(ctx context.Context, version string) (string, error) {
+func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 	d.Print()
 
-	if version == "" {
+	if meta.Version == "" {
 		return "", fmt.Errorf("no version specified, version is required to deploy")
 	}
 
@@ -58,8 +58,8 @@ func (d Deployer) Deploy(ctx context.Context, version string) (string, error) {
 		return "", fmt.Errorf("could not find task definition")
 	}
 
-	fmt.Fprintf(stdout, "Updating image tag to %q\n", version)
-	newTaskDef, err := UpdateTaskImageTag(ctx, d.Infra, taskDef, version)
+	fmt.Fprintf(stdout, "Updating image tag to %q\n", meta.Version)
+	newTaskDef, err := UpdateTaskImageTag(ctx, d.Infra, taskDef, meta.Version)
 	if err != nil {
 		return "", fmt.Errorf("error updating task with new image tag: %w", err)
 	}
