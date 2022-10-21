@@ -22,7 +22,7 @@ type Pusher interface {
 }
 
 type Deployer interface {
-	Deploy(ctx context.Context, version string) (string, error)
+	Deploy(ctx context.Context, meta DeployMetadata) (string, error)
 }
 
 type DeployStatusGetter interface {

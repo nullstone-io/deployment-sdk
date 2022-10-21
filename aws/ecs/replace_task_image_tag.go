@@ -1,18 +1,13 @@
 package ecs
 
 import (
-	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
-	"github.com/nullstone-io/deployment-sdk/aws"
 	"github.com/nullstone-io/deployment-sdk/docker"
 )
 
-func UpdateTaskImageTag(ctx context.Context, infra Outputs, taskDefinition *ecstypes.TaskDefinition, imageTag string) (*ecstypes.TaskDefinition, error) {
-	ecsClient := ecs.NewFromConfig(nsaws.NewConfig(infra.Deployer, infra.Region))
-
+func ReplaceTaskImageTag(infra Outputs, taskDefinition ecstypes.TaskDefinition, imageTag string) (*ecstypes.TaskDefinition, error) {
 	defIndex, err := findMainContainerDefinitionIndex(infra.MainContainerName, taskDefinition.ContainerDefinitions)
 	if err != nil {
 		return nil, err
@@ -23,34 +18,7 @@ func UpdateTaskImageTag(ctx context.Context, infra Outputs, taskDefinition *ecst
 	existingImageUrl.Tag = imageTag
 	taskDefinition.ContainerDefinitions[defIndex].Image = aws.String(existingImageUrl.String())
 
-	out, err := ecsClient.RegisterTaskDefinition(ctx, &ecs.RegisterTaskDefinitionInput{
-		ContainerDefinitions:    taskDefinition.ContainerDefinitions,
-		Family:                  taskDefinition.Family,
-		Cpu:                     taskDefinition.Cpu,
-		ExecutionRoleArn:        taskDefinition.ExecutionRoleArn,
-		InferenceAccelerators:   taskDefinition.InferenceAccelerators,
-		IpcMode:                 taskDefinition.IpcMode,
-		Memory:                  taskDefinition.Memory,
-		NetworkMode:             taskDefinition.NetworkMode,
-		PidMode:                 taskDefinition.PidMode,
-		PlacementConstraints:    taskDefinition.PlacementConstraints,
-		ProxyConfiguration:      taskDefinition.ProxyConfiguration,
-		RequiresCompatibilities: taskDefinition.RequiresCompatibilities,
-		TaskRoleArn:             taskDefinition.TaskRoleArn,
-		Volumes:                 taskDefinition.Volumes,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = ecsClient.DeregisterTaskDefinition(ctx, &ecs.DeregisterTaskDefinitionInput{
-		TaskDefinition: taskDefinition.TaskDefinitionArn,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return out.TaskDefinition, nil
+	return &taskDefinition, nil
 }
 
 func findMainContainerDefinitionIndex(mainContainerName string, containerDefs []ecstypes.ContainerDefinition) (int, error) {
