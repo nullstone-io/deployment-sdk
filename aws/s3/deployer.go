@@ -45,12 +45,13 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 }
 
 func (d Deployer) updateEnvVars(ctx context.Context, meta app.DeployMetadata) error {
+	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 	if d.Infra.EnvVarsFilename == "" {
 		// If there is no env vars filename, there is nothing to update
+		fmt.Fprintf(stdout, "Module does not have env_vars_filename. Skipped updating environment variables s3 object\n")
 		return nil
 	}
 
-	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 	fmt.Fprintf(stdout, "Updating environment variables s3 object %q\n", d.Infra.EnvVarsFilename)
 	envVars, err := GetEnvVars(ctx, d.Infra)
 	if err != nil {
