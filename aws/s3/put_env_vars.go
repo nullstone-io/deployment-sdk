@@ -14,9 +14,10 @@ func PutEnVars(ctx context.Context, infra Outputs, envVars map[string]string) er
 
 	s3Client := s3.NewFromConfig(nsaws.NewConfig(infra.Deployer, infra.Region))
 	_, err := s3Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket: aws.String(infra.ArtifactsBucketName),
-		Key:    aws.String(infra.EnvVarsFilename),
-		Body:   bytes.NewBuffer(raw),
+		Bucket:      aws.String(infra.ArtifactsBucketName),
+		Key:         aws.String(infra.EnvVarsFilename),
+		Body:        bytes.NewBuffer(raw),
+		ContentType: aws.String("application/json"),
 	})
 	return err
 }
