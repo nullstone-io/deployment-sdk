@@ -47,6 +47,7 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	if err := UpdateFunctionConfig(ctx, d.Infra, updates); err != nil {
 		return "", fmt.Errorf("error updating lambda configuration: %w", err)
 	}
+	fmt.Fprintf(stdout, "Updated lambda environment variables\n")
 
 	fmt.Fprintf(stdout, "Updating lambda to %q\n", meta.Version)
 	if err := UpdateLambdaVersion(ctx, d.Infra, meta.Version); err != nil {

@@ -69,6 +69,7 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	if err != nil {
 		return "", fmt.Errorf("error updating task with new image tag: %w", err)
 	}
+	fmt.Fprintf(stdout, "Updated task definition version and environment variables\n")
 	newTaskDefArn := *newTaskDef.TaskDefinitionArn
 
 	if d.Infra.ServiceName == "" {

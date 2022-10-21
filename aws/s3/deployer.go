@@ -2,6 +2,7 @@ package s3
 
 import (
 	"context"
+	"fmt"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/aws/cdn"
 	env_vars "github.com/nullstone-io/deployment-sdk/env-vars"
@@ -48,10 +49,17 @@ func (d Deployer) updateEnvVars(ctx context.Context, meta app.DeployMetadata) er
 		// If there is no env vars filename, there is nothing to update
 		return nil
 	}
+
+	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
+	fmt.Fprintf(stdout, "Updating environment variables s3 object %q\n", d.Infra.EnvVarsFilename)
 	envVars, err := GetEnvVars(ctx, d.Infra)
 	if err != nil {
 		return err
 	}
 	envVars = env_vars.UpdateStandard(envVars, meta)
-	return PutEnVars(ctx, d.Infra, envVars)
+	if err := PutEnVars(ctx, d.Infra, envVars); err != nil {
+		return err
+	}
+	fmt.Fprintf(stdout, "Updated environment variables s3 object %q\n", d.Infra.EnvVarsFilename)
+	return nil
 }
