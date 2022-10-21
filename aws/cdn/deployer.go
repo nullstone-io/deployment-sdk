@@ -48,11 +48,6 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 		}
 	}
 
-	if len(d.Infra.CdnIds) < 1 {
-		fmt.Fprintf(stdout, "There are no attached CDNs. Skipping invalidation.\n")
-		fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
-		return "", nil
-	}
 	fmt.Fprintln(stdout, "Invalidating cache in CDNs")
 	invalidationIds, err := InvalidateCdnPaths(ctx, d.Infra, []string{"/*"})
 	if err != nil {
