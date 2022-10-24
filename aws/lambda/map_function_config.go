@@ -34,7 +34,9 @@ func MapFunctionConfig(retrieved *lambda.GetFunctionConfigurationOutput) *lambda
 		}
 	}
 	if retrieved.Environment != nil {
-		config.Environment.Variables = retrieved.Environment.Variables
+		config.Environment = &types.Environment{
+			Variables: retrieved.Environment.Variables,
+		}
 	}
 	for _, layer := range retrieved.Layers {
 		config.Layers = append(config.Layers, *layer.Arn)
