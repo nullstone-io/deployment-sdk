@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
+	"github.com/aws/smithy-go"
 	nsaws "github.com/nullstone-io/deployment-sdk/aws"
 	"log"
 )
@@ -19,11 +20,18 @@ func StandardRetrierFn(options *lambda.Options) {
 }
 
 func NewDeployRetrier(maxAttempts int) aws.Retryer {
+	resourceConflictErr := types.ResourceConflictException{}
+
 	return retry.NewStandard(func(options *retry.StandardOptions) {
 		options.MaxAttempts = maxAttempts
 		options.Retryables = append(options.Retryables, nsaws.AnonRetryable(func(err error) aws.Ternary {
 			var rce types.ResourceConflictException
-			log.Println("checking for retry", errors.Is(err, &rce), err)
+
+			var ae smithy.APIError
+			log.Println("checking for retry", errors.Is(err, &rce), errors.As(err, &ae), err)
+			if errors.As(err, &ae) && ae.ErrorCode() == resourceConflictErr.ErrorCode() {
+				return aws.TrueTernary
+			}
 			if errors.Is(err, &rce) {
 				return aws.TrueTernary
 			}
