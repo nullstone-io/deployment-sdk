@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/aws/lambda"
+	nslambda "github.com/nullstone-io/deployment-sdk/aws/lambda"
 	env_vars "github.com/nullstone-io/deployment-sdk/env-vars"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
@@ -38,13 +39,13 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	}
 
 	fmt.Fprintf(stdout, "Updating lambda environment variables\n")
-	config, err := GetFunctionConfig(ctx, d.Infra)
+	config, err := nslambda.GetFunctionConfig(ctx, d.Infra)
 	if err != nil {
 		return "", fmt.Errorf("error retrieving lambda configuration: %w", err)
 	}
 	updates := lambda.MapFunctionConfig(config)
 	updates.Environment.Variables = env_vars.UpdateStandard(updates.Environment.Variables, meta)
-	if err := UpdateFunctionConfig(ctx, d.Infra, updates); err != nil {
+	if err := nslambda.UpdateFunctionConfig(ctx, d.Infra, updates); err != nil {
 		return "", fmt.Errorf("error updating lambda configuration: %w", err)
 	}
 	fmt.Fprintf(stdout, "Updated lambda environment variables\n")
