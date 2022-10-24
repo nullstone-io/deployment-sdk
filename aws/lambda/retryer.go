@@ -22,12 +22,12 @@ func NewDeployRetrier(maxAttempts int) aws.Retryer {
 	return retry.NewStandard(func(options *retry.StandardOptions) {
 		options.MaxAttempts = maxAttempts
 		options.Retryables = append(options.Retryables, nsaws.AnonRetryable(func(err error) aws.Ternary {
-			log.Println("checking for retry", err)
 			var rce types.ResourceConflictException
+			log.Println("checking for retry", errors.Is(err, &rce), err)
 			if errors.Is(err, &rce) {
 				return aws.TrueTernary
 			}
-			return aws.FalseTernary
+			return aws.UnknownTernary
 		}))
 	})
 }
