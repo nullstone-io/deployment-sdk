@@ -13,7 +13,6 @@ func MapFunctionConfig(retrieved *lambda.GetFunctionConfigurationOutput) *lambda
 		EphemeralStorage:  retrieved.EphemeralStorage,
 		FileSystemConfigs: retrieved.FileSystemConfigs,
 		Handler:           retrieved.Handler,
-		ImageConfig:       retrieved.ImageConfigResponse.ImageConfig,
 		KMSKeyArn:         retrieved.KMSKeyArn,
 		Layers:            make([]string, 0),
 		MemorySize:        retrieved.MemorySize,
@@ -21,13 +20,22 @@ func MapFunctionConfig(retrieved *lambda.GetFunctionConfigurationOutput) *lambda
 		Role:              retrieved.Role,
 		Runtime:           retrieved.Runtime,
 		Timeout:           retrieved.Timeout,
-		TracingConfig:     &types.TracingConfig{Mode: retrieved.TracingConfig.Mode},
-		VpcConfig: &types.VpcConfig{
+	}
+	if retrieved.ImageConfigResponse != nil {
+		config.ImageConfig = retrieved.ImageConfigResponse.ImageConfig
+	}
+	if retrieved.TracingConfig != nil {
+		config.TracingConfig = &types.TracingConfig{Mode: retrieved.TracingConfig.Mode}
+	}
+	if retrieved.VpcConfig != nil {
+		config.VpcConfig = &types.VpcConfig{
 			SecurityGroupIds: retrieved.VpcConfig.SecurityGroupIds,
 			SubnetIds:        retrieved.VpcConfig.SubnetIds,
-		},
+		}
 	}
-	config.Environment.Variables = retrieved.Environment.Variables
+	if retrieved.Environment != nil {
+		config.Environment.Variables = retrieved.Environment.Variables
+	}
 	for _, layer := range retrieved.Layers {
 		config.Layers = append(config.Layers, *layer.Arn)
 	}
