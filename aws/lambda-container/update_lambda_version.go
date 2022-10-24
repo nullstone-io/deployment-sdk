@@ -5,10 +5,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	nsaws "github.com/nullstone-io/deployment-sdk/aws"
+	nslambda "github.com/nullstone-io/deployment-sdk/aws/lambda"
 )
 
 func UpdateLambdaVersion(ctx context.Context, infra Outputs, version string) error {
-	λClient := lambda.NewFromConfig(nsaws.NewConfig(infra.Deployer, infra.Region))
+	λClient := lambda.NewFromConfig(nsaws.NewConfig(infra.Deployer, infra.Region), nslambda.StandardRetrierFn)
 	imageUrl := infra.ImageRepoUrl
 	imageUrl.Digest = ""
 	imageUrl.Tag = version
