@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
 	nsaws "github.com/nullstone-io/deployment-sdk/aws"
+	"log"
 )
 
 // StandardRetrierFn configures a new aws sdk client with a retrier that ensures function code and configuration are updated properly
@@ -21,6 +22,7 @@ func NewDeployRetrier(maxAttempts int) aws.Retryer {
 	return retry.NewStandard(func(options *retry.StandardOptions) {
 		options.MaxAttempts = maxAttempts
 		options.Retryables = append(options.Retryables, nsaws.AnonRetryable(func(err error) aws.Ternary {
+			log.Println("checking for retry", err)
 			var rce types.ResourceConflictException
 			if errors.Is(err, &rce) {
 				return aws.TrueTernary
