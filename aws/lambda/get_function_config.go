@@ -1,15 +1,14 @@
-package lambda_container
+package lambda
 
 import (
 	"context"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
-	nsaws "github.com/nullstone-io/deployment-sdk/aws"
 )
 
 func GetFunctionConfig(ctx context.Context, infra Outputs) (*lambda.GetFunctionConfigurationOutput, error) {
-	λClient := lambda.NewFromConfig(nsaws.NewConfig(infra.Deployer, infra.Region))
+	λClient := lambda.NewFromConfig(infra.DeployerAwsConfig())
 	return λClient.GetFunctionConfiguration(ctx, &lambda.GetFunctionConfigurationInput{
-		FunctionName: aws.String(infra.LambdaName),
+		FunctionName: aws.String(infra.FunctionName()),
 	})
 }
