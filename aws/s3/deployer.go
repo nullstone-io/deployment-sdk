@@ -65,7 +65,7 @@ func (d Deployer) updateEnvVars(ctx context.Context, meta app.DeployMetadata) er
 		return err
 	}
 	envVars = env_vars.UpdateStandard(envVars, meta)
-	if err := PutEnVars(ctx, d.Infra, envVars); err != nil {
+	if err := PutEnvVars(ctx, d.Infra, envVars); err != nil {
 		return err
 	}
 	return nil

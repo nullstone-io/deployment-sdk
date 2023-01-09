@@ -9,7 +9,7 @@ import (
 	nsaws "github.com/nullstone-io/deployment-sdk/aws"
 )
 
-func PutEnVars(ctx context.Context, infra Outputs, envVars map[string]string) error {
+func PutEnvVars(ctx context.Context, infra Outputs, envVars map[string]string) error {
 	raw, _ := json.Marshal(envVars)
 
 	s3Client := s3.NewFromConfig(nsaws.NewConfig(infra.Deployer, infra.Region))
