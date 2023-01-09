@@ -15,9 +15,10 @@ func GetStandard(meta app.DeployMetadata) map[string]string {
 // Essentially, we rely on the Terraform plan to be the source of truth for what env vars are included/excluded
 func UpdateStandard(cur map[string]string, meta app.DeployMetadata) {
 	std := GetStandard(meta)
-	for k := range cur {
-		if val, ok := std[k]; ok {
-			cur[k] = val
+	for k, v := range std {
+		// We don't want to introduce new env vars, only modify existing
+		if _, exists := cur[k]; exists {
+			cur[k] = v
 		}
 	}
 }

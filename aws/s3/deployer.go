@@ -9,6 +9,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
+	"reflect"
 )
 
 func NewDeployer(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.Deployer, error) {
@@ -42,31 +43,37 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 		OsWriters: d.OsWriters,
 		Details:   d.Details,
 		Infra: cdn.Outputs{
-			Region:   d.Infra.Region,
-			Deployer: d.Infra.Deployer,
-			CdnIds:   d.Infra.CdnIds,
+			Region:               d.Infra.Region,
+			Deployer:             d.Infra.Deployer,
+			CdnIds:               d.Infra.CdnIds,
+			ArtifactsKeyTemplate: d.Infra.ArtifactsKeyTemplate,
 		},
 		PostUpdateFn: d.updateEnvVars,
 	}
 	return cdnDeployer.Deploy(ctx, meta)
 }
 
-func (d Deployer) updateEnvVars(ctx context.Context, meta app.DeployMetadata) error {
+func (d Deployer) updateEnvVars(ctx context.Context, meta app.DeployMetadata) (bool, error) {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 	if d.Infra.EnvVarsFilename == "" {
 		// If there is no env vars filename, there is nothing to update
 		fmt.Fprintf(stdout, "The module for this application does not support environment variables. It is missing `env_vars_filename` output. Skipped updating environment variables s3 object.\n")
-		return nil
+		return false, nil
 	}
 
 	fmt.Fprintf(stdout, "Updating environment variables s3 object %q\n", d.Infra.EnvVarsFilename)
-	envVars, err := GetEnvVars(ctx, d.Infra)
+	original, err := GetEnvVars(ctx, d.Infra)
 	if err != nil {
-		return err
+		return false, err
 	}
-	env_vars.UpdateStandard(envVars, meta)
-	if err := PutEnvVars(ctx, d.Infra, envVars); err != nil {
-		return err
+
+	updated := map[string]string{}
+	for k, v := range original {
+		updated[k] = v
 	}
-	return nil
+	env_vars.UpdateStandard(updated, meta)
+	if reflect.DeepEqual(original, updated) {
+		return false, nil
+	}
+	return true, PutEnvVars(ctx, d.Infra, updated)
 }

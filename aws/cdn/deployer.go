@@ -26,7 +26,7 @@ type Deployer struct {
 	OsWriters    logging.OsWriters
 	Details      app.Details
 	Infra        Outputs
-	PostUpdateFn func(ctx context.Context, meta app.DeployMetadata) error
+	PostUpdateFn func(ctx context.Context, meta app.DeployMetadata) (bool, error)
 }
 
 func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
@@ -38,25 +38,31 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	}
 
 	fmt.Fprintf(stdout, "Updating CDN version to %q\n", meta.Version)
-	if err := UpdateCdnVersion(ctx, d.Infra, meta.Version); err != nil {
+	changed, err := UpdateCdnVersion(ctx, d.Infra, meta.Version)
+	if err != nil {
 		return "", fmt.Errorf("error updating CDN version: %w", err)
 	}
 
 	if d.PostUpdateFn != nil {
-		if err := d.PostUpdateFn(ctx, meta); err != nil {
+		hasChanges, err := d.PostUpdateFn(ctx, meta)
+		if err != nil {
 			return "", err
 		}
+		changed = changed || hasChanges
 	}
 
-	fmt.Fprintln(stdout, "Invalidating cache in CDNs")
-	invalidationIds, err := InvalidateCdnPaths(ctx, d.Infra, []string{"/*"})
-	if err != nil {
-		return "", fmt.Errorf("error invalidating /*: %w", err)
-	}
-	// NOTE: We only know how to return a single CDN invalidation ID
-	//       The first iteration of the loop will return the first one
-	for _, invalidationId := range invalidationIds {
-		return invalidationId, nil
+	// We only perform an invalidation if there were changes to the app
+	if changed {
+		fmt.Fprintln(stdout, "Invalidating cache in CDNs")
+		invalidationIds, err := InvalidateCdnPaths(ctx, d.Infra, []string{"/*"})
+		if err != nil {
+			return "", fmt.Errorf("error invalidating /*: %w", err)
+		}
+		// NOTE: We only know how to return a single CDN invalidation ID
+		//       The first iteration of the loop will return the first one
+		for _, invalidationId := range invalidationIds {
+			return invalidationId, nil
+		}
 	}
 	fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
 	return "", nil
