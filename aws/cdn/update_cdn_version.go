@@ -70,21 +70,6 @@ func findDefaultOrigin(cdn *cftypes.Distribution) (int, cftypes.Origin) {
 	return -1, cftypes.Origin{}
 }
 
-func replaceOriginPath(cdn *cloudfront.GetDistributionOutput, newOriginPath string) *cftypes.DistributionConfig {
-	primaryOriginId := getDefaultOriginId(cdn.Distribution)
-	dc := cdn.Distribution.DistributionConfig
-	if primaryOriginId == "" {
-		return dc
-	}
-
-	for i, item := range dc.Origins.Items {
-		if *item.Id == primaryOriginId {
-			dc.Origins.Items[i].OriginPath = aws.String(fmt.Sprintf("/%s", newOriginPath))
-		}
-	}
-	return dc
-}
-
 func getDefaultOriginId(cdn *cftypes.Distribution) string {
 	if cdn == nil || cdn.DistributionConfig == nil || cdn.DistributionConfig.DefaultCacheBehavior == nil {
 		return ""
