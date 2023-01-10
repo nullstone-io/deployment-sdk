@@ -2,7 +2,6 @@ package cdn
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
@@ -24,7 +23,7 @@ func UpdateCdnVersion(ctx context.Context, infra Outputs, version string) (bool,
 	newOriginPath := coerceValidOriginPath(infra.ArtifactsKey(version))
 	cfClient := nsaws.NewCloudfrontClient(infra.Deployer, infra.Region)
 	for _, cdnRes := range cdns {
-		changed, dc := calcDistributionConfig(cdnRes.Distribution, newOriginPath)
+		changed, dc := calcDistributionConfig(ctx, cdnRes.Distribution, newOriginPath)
 		if !changed || dc == nil {
 			// We don't update the distribution if there were no changes or we don't support making changes
 			continue
@@ -36,9 +35,6 @@ func UpdateCdnVersion(ctx context.Context, infra Outputs, version string) (bool,
 			IfMatch:            cdnRes.ETag,
 		})
 		if err != nil {
-			writers := logging.OsWritersFromContext(ctx)
-			raw, _ := json.Marshal(dc)
-			fmt.Fprintf(writers.Stderr(), "distribution config: %s\n", string(raw))
 			return false, fmt.Errorf("error updating distribution %q: %w", *cdnRes.Distribution.Id, err)
 		}
 	}
@@ -55,7 +51,7 @@ func coerceValidOriginPath(artifactsDir string) string {
 // calcDistributionConfig makes changes to the distribution config for a deployment
 // If the distribution does not have a default origin, we return a nil config which signifies that we don't support updates
 // This also returns a bool that indicates whether any changes were made to the distribution config
-func calcDistributionConfig(cdn *cftypes.Distribution, newOriginPath string) (bool, *cftypes.DistributionConfig) {
+func calcDistributionConfig(ctx context.Context, cdn *cftypes.Distribution, newOriginPath string) (bool, *cftypes.DistributionConfig) {
 	index, defaultOrigin := findDefaultOrigin(cdn)
 	if index < 0 {
 		// This only knows how to update the version on the default origin for a CDN
@@ -66,6 +62,9 @@ func calcDistributionConfig(cdn *cftypes.Distribution, newOriginPath string) (bo
 	changed := oldOriginPath != newOriginPath
 	dc := cdn.DistributionConfig
 	dc.Origins.Items[index].OriginPath = aws.String(newOriginPath)
+	if writers := logging.OsWritersFromContext(ctx); writers != nil {
+		fmt.Fprintf(writers.Stdout(), "Updating CDN origin path to %q\n", newOriginPath)
+	}
 	return changed, dc
 }
 
