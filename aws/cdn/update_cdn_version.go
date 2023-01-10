@@ -45,7 +45,8 @@ func UpdateCdnVersion(ctx context.Context, infra Outputs, version string) (bool,
 func coerceValidOriginPath(artifactsDir string) string {
 	// Ensure there is a preceding `/` and no trailing `/`
 	// Coerce value of `/` to empty string (`/` is invalid)
-	return strings.TrimSuffix(strings.TrimPrefix(artifactsDir, "/"), "/")
+	dir := fmt.Sprintf("/%s", strings.TrimPrefix(artifactsDir, "/"))
+	return strings.TrimSuffix(dir, "/")
 }
 
 // calcDistributionConfig makes changes to the distribution config for a deployment
