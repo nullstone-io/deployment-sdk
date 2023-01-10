@@ -62,6 +62,7 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 		// NOTE: We only know how to return a single CDN invalidation ID
 		//       The first iteration of the loop will return the first one
 		for _, invalidationId := range invalidationIds {
+			fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
 			return invalidationId, nil
 		}
 	}
