@@ -62,7 +62,6 @@ func (d Deployer) updateEnvVars(ctx context.Context, meta app.DeployMetadata) (b
 		return false, nil
 	}
 
-	fmt.Fprintf(stdout, "Updating environment variables s3 object %q\n", d.Infra.EnvVarsFilename)
 	original, err := GetEnvVars(ctx, d.Infra)
 	if err != nil {
 		return false, err
@@ -76,5 +75,6 @@ func (d Deployer) updateEnvVars(ctx context.Context, meta app.DeployMetadata) (b
 	if reflect.DeepEqual(original, updated) {
 		return false, nil
 	}
+	fmt.Fprintf(stdout, "Updating environment variables s3 object %q\n", d.Infra.EnvVarsFilename)
 	return true, PutEnvVars(ctx, d.Infra, updated)
 }
