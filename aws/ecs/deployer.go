@@ -36,11 +36,12 @@ func (d Deployer) Print() {
 }
 
 // Deploy takes the following steps to deploy an AWS ECS service
-//   Get task definition
-//   Change image tag in task definition
-//   Register new task definition
-//   Deregister old task definition
-//   Update ECS Service (This always causes deployment)
+//
+//	Get task definition
+//	Change image tag in task definition
+//	Register new task definition
+//	Deregister old task definition
+//	Update ECS Service (This always causes deployment)
 func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 	d.Print()
