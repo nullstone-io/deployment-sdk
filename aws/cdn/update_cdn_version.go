@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	cftypes "github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
 	"github.com/nullstone-io/deployment-sdk/aws"
+	"strings"
 )
 
 // UpdateCdnVersion updates the cloudfront distribution with the appropriate app version
@@ -18,7 +19,7 @@ func UpdateCdnVersion(ctx context.Context, infra Outputs, version string) (bool,
 	}
 
 	hasChanges := false
-	newOriginPath := infra.ArtifactsKey(version)
+	newOriginPath := coerceValidOriginPath(infra.ArtifactsKey(version))
 	cfClient := nsaws.NewCloudfrontClient(infra.Deployer, infra.Region)
 	for _, cdnRes := range cdns {
 		changed, dc := calcDistributionConfig(cdnRes.Distribution, newOriginPath)
@@ -38,6 +39,12 @@ func UpdateCdnVersion(ctx context.Context, infra Outputs, version string) (bool,
 	}
 
 	return hasChanges, err
+}
+
+func coerceValidOriginPath(artifactsDir string) string {
+	// Ensure there is a preceding `/` and no trailing `/`
+	// Coerce value of `/` to empty string (`/` is invalid)
+	return strings.TrimSuffix(strings.TrimPrefix(artifactsDir, "/"), "/")
 }
 
 // calcDistributionConfig makes changes to the distribution config for a deployment
