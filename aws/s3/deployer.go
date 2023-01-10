@@ -32,6 +32,7 @@ type Deployer struct {
 }
 
 func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
+	ctx = logging.ContextWithOsWriters(ctx, d.OsWriters)
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 
 	if len(d.Infra.CdnIds) < 1 {

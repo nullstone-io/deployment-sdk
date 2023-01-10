@@ -52,6 +52,8 @@ func coerceValidOriginPath(artifactsDir string) string {
 // If the distribution does not have a default origin, we return a nil config which signifies that we don't support updates
 // This also returns a bool that indicates whether any changes were made to the distribution config
 func calcDistributionConfig(ctx context.Context, cdn *cftypes.Distribution, newOriginPath string) (bool, *cftypes.DistributionConfig) {
+	stdout := logging.OsWritersFromContext(ctx).Stdout()
+
 	index, defaultOrigin := findDefaultOrigin(cdn)
 	if index < 0 {
 		// This only knows how to update the version on the default origin for a CDN
@@ -62,9 +64,7 @@ func calcDistributionConfig(ctx context.Context, cdn *cftypes.Distribution, newO
 	changed := oldOriginPath != newOriginPath
 	dc := cdn.DistributionConfig
 	dc.Origins.Items[index].OriginPath = aws.String(newOriginPath)
-	if writers := logging.OsWritersFromContext(ctx); writers != nil {
-		fmt.Fprintf(writers.Stdout(), "Updating CDN origin path to %q\n", newOriginPath)
-	}
+	fmt.Fprintf(stdout, "Updating CDN origin path to %q\n", newOriginPath)
 	return changed, dc
 }
 
