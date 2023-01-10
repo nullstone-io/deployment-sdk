@@ -2,11 +2,13 @@ package cdn
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	cftypes "github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
 	"github.com/nullstone-io/deployment-sdk/aws"
+	"github.com/nullstone-io/deployment-sdk/logging"
 	"strings"
 )
 
@@ -34,6 +36,9 @@ func UpdateCdnVersion(ctx context.Context, infra Outputs, version string) (bool,
 			IfMatch:            cdnRes.ETag,
 		})
 		if err != nil {
+			writers := logging.OsWritersFromContext(ctx)
+			raw, _ := json.Marshal(dc)
+			fmt.Fprintf(writers.Stderr(), "distribution config: %s\n", string(raw))
 			return false, fmt.Errorf("error updating distribution %q: %w", *cdnRes.Distribution.Id, err)
 		}
 	}
