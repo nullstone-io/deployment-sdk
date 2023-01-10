@@ -21,22 +21,24 @@ Field is a representation of a struct tag that is specific to nullstone outputs
 You can define an output mapping directly to a workspace or to outputs through a connection in that workspace
 
 Examples:
-type Outputs struct {
-  Output1        string            `ns:"output1"`
-  OptionalOutput string            `ns:"optional_output,optional"`
-  MapOutput      map[string]string `ns:"map_output"`
 
-  Dependency DependencyOutputs `ns:",connectionType:some-dependency"`
-}
+	type Outputs struct {
+	  Output1        string            `ns:"output1"`
+	  OptionalOutput string            `ns:"optional_output,optional"`
+	  MapOutput      map[string]string `ns:"map_output"`
 
-type DependencyOutputs struct {
-  Output2 string `ns:"output2"`
-}
+	  Dependency DependencyOutputs `ns:",connectionType:some-dependency"`
+	}
+
+	type DependencyOutputs struct {
+	  Output2 string `ns:"output2"`
+	}
 
 Notes:
-  All fields that that map connections must be a well-defined struct
-  If you want to ignore a member in the struct, use `ns:"-"`
-  If you want to make a field/connection optional, add `ns:"output,optional"`
+
+	All fields that that map connections must be a well-defined struct
+	If you want to ignore a member in the struct, use `ns:"-"`
+	If you want to make a field/connection optional, add `ns:"output,optional"`
 */
 type Field struct {
 	Field              reflect.StructField
