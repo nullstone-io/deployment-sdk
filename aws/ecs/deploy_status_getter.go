@@ -71,7 +71,7 @@ func (d *DeployStatusGetter) GetDeployStatus(ctx context.Context, reference stri
 	deployment, err := GetDeployment(ctx, d.Infra, reference)
 	if err != nil {
 		if err == ErrNoDeployment {
-			fmt.Fprintf(stdout, "Deployment %s does not exist", reference)
+			fmt.Fprintf(stdout, "Deployment %s does not exist\n", reference)
 			return app.RolloutStatusFailed, nil
 		}
 		return app.RolloutStatusUnknown, err

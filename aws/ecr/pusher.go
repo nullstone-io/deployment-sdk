@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
+	ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/aws"
@@ -94,7 +96,11 @@ func (p Pusher) validate(targetUrl docker.ImageUrl) error {
 }
 
 func (p Pusher) getEcrLoginAuth(ctx context.Context) (dockertypes.AuthConfig, error) {
-	ecrClient := ecr.NewFromConfig(nsaws.NewConfig(p.Infra.ImagePusher, p.Infra.Region))
+	retryOpts := func(options *ecr.Options) {
+		options.Retryer = retry.AddWithErrorCodes(retry.NewStandard(),
+			(*ecstypes.AccessDeniedException)(nil).ErrorCode())
+	}
+	ecrClient := ecr.NewFromConfig(nsaws.NewConfig(p.Infra.ImagePusher, p.Infra.Region), retryOpts)
 	out, err := ecrClient.GetAuthorizationToken(ctx, &ecr.GetAuthorizationTokenInput{})
 	if err != nil {
 		return dockertypes.AuthConfig{}, err
