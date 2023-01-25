@@ -35,16 +35,16 @@ func (r *Retriever) Retrieve(workspace *types.Workspace, obj interface{}) error 
 
 	nsClient := api.Client{Config: r.NsConfig}
 	workspaceOutputs, err := nsClient.WorkspaceOutputs().GetCurrent(workspace.StackId, workspace.Uid, true)
-	if workspaceOutputs == nil {
-		return fmt.Errorf("this workspace has not yet been successfully launched, no outputs exist yet")
-	}
 	if err != nil {
 		wt := types.WorkspaceTarget{
 			StackId: workspace.StackId,
 			BlockId: workspace.BlockId,
 			EnvId:   workspace.EnvId,
 		}
-		return fmt.Errorf("unable to fetch the outputs for %s/%s", workspace.OrgName, wt.Id())
+		return fmt.Errorf("unable to fetch the outputs for %s/%s: %w", workspace.OrgName, wt.Id(), err)
+	}
+	if workspaceOutputs == nil {
+		return fmt.Errorf("this workspace has not yet been successfully launched, no outputs exist yet")
 	}
 
 	fields := GetFields(reflect.TypeOf(obj).Elem())
