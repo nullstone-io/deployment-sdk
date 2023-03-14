@@ -15,6 +15,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
 	"strings"
+	"time"
 )
 
 type Outputs struct {
@@ -97,8 +98,13 @@ func (p Pusher) validate(targetUrl docker.ImageUrl) error {
 
 func (p Pusher) getEcrLoginAuth(ctx context.Context) (dockertypes.AuthConfig, error) {
 	retryOpts := func(options *ecr.Options) {
-		options.Retryer = retry.AddWithErrorCodes(retry.NewStandard(),
-			(*ecstypes.AccessDeniedException)(nil).ErrorCode())
+		// Set retryer to backoff 0s-20s with max attempts of 5s
+		// This has a retry window of 0s-100s
+		retryer := retry.NewStandard(func(options *retry.StandardOptions) {
+			options.MaxAttempts = 5
+			options.MaxBackoff = 20 * time.Second
+		})
+		options.Retryer = retry.AddWithErrorCodes(retryer, (*ecstypes.AccessDeniedException)(nil).ErrorCode())
 	}
 	ecrClient := ecr.NewFromConfig(nsaws.NewConfig(p.Infra.ImagePusher, p.Infra.Region), retryOpts)
 	out, err := ecrClient.GetAuthorizationToken(ctx, &ecr.GetAuthorizationTokenInput{})
