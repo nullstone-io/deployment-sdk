@@ -57,6 +57,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
+	github.com/googleapis/gnostic v0.4.1 // indirect
 	github.com/gorilla/mux v1.7.3 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.6.0 // indirect
