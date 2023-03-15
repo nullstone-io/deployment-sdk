@@ -4,6 +4,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/app/container/aws-ecs-ec2"
 	"github.com/nullstone-io/deployment-sdk/app/container/aws-ecs-fargate"
+	gcp_gke_service "github.com/nullstone-io/deployment-sdk/app/container/gcp-gke-service"
 	"github.com/nullstone-io/deployment-sdk/app/server/aws-beanstalk"
 	"github.com/nullstone-io/deployment-sdk/app/serverless/aws-lambda-container"
 	"github.com/nullstone-io/deployment-sdk/app/serverless/aws-lambda-zip"
@@ -18,5 +19,6 @@ var (
 		aws_lambda_zip.ModuleContractName:       aws_lambda_zip.Provider,
 		aws_lambda_container.ModuleContractName: aws_lambda_container.Provider,
 		aws_beanstalk.ModuleContractName:        aws_beanstalk.Provider,
+		gcp_gke_service.ModuleContractName:      gcp_gke_service.Provider,
 	}
 )

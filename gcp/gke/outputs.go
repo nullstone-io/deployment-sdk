@@ -14,7 +14,7 @@ type Outputs struct {
 	MainContainerName string             `ns:"main_container_name,optional"`
 	Deployer          gcp.ServiceAccount `ns:"deployer,optional"`
 
-	Cluster ClusterOutputs `ns:",connectionContract:cluster/gcp/gke:*"`
+	Cluster ClusterOutputs `ns:",connectionContract:cluster/gcp/k8s:gke"`
 }
 
 type ClusterOutputs struct {
