@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/nullstone-io/deployment-sdk/app"
+	env_vars "github.com/nullstone-io/deployment-sdk/env-vars"
 	"github.com/nullstone-io/deployment-sdk/k8s"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
@@ -68,6 +69,8 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	if podSpec, err = k8s.SetContainerImageTag(podSpec, d.Infra.MainContainerName, meta.Version); err != nil {
 		return "", fmt.Errorf("error updating pod spec with new image tag: %w", err)
 	}
+	std := env_vars.GetStandard(meta)
+	podSpec = k8s.ReplaceEnvVars(podSpec, std)
 
 	deployment.Spec.Template.Spec = podSpec
 	updated, err := kubeClient.AppsV1().Deployments(d.Infra.ServiceNamespace).Update(ctx, deployment, meta_v1.UpdateOptions{})
