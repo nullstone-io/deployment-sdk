@@ -39,7 +39,7 @@ func (d Deployer) Print() {
 }
 
 func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
-	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
+	stdout, stderr := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 	d.Print()
 
 	if meta.Version == "" {
@@ -78,7 +78,14 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 		return "", fmt.Errorf("error deploying app: %w", err)
 	}
 
+	revision := "-1"
+	if revisionNum, err := k8s.Revision(updated); err != nil {
+		fmt.Fprintln(stderr, "Unable to find deployment revision. Relying on latest deployment revision to track rollout.")
+	} else {
+		revision = fmt.Sprintf("%d", revisionNum)
+	}
+
 	fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
 	fmt.Fprintln(stdout, "")
-	return fmt.Sprintf("%s", updated.UID), nil
+	return revision, nil
 }
