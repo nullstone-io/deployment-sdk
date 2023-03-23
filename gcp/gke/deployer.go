@@ -13,8 +13,7 @@ import (
 )
 
 const (
-	DeployReferenceLatest = "latest-revision"
-	DeployReferenceNoop   = "no-updated-revision"
+	DeployReferenceNoop = "no-updated-revision"
 )
 
 func NewDeployer(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.Deployer, error) {
@@ -44,7 +43,7 @@ func (d Deployer) Print() {
 }
 
 func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
-	stdout, stderr := d.OsWriters.Stdout(), d.OsWriters.Stderr()
+	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 	d.Print()
 
 	if meta.Version == "" {
@@ -89,14 +88,12 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	}
 
 	revision := ""
-	if updatedRevision, err := k8s.Revision(updated); err != nil {
-		revision = "(latest)"
-		fmt.Fprintln(stderr, "Unable to find deployment revision. Relying on latest deployment revision to track rollout.")
-	} else if updatedRevision == curRevision {
-		revision = "(noop)"
+	updatedRevNum := updated.Generation
+	if updatedRevNum == curRevision {
+		revision = DeployReferenceNoop
 		fmt.Fprintln(stdout, "No changes made to deployment.")
 	} else {
-		revision = fmt.Sprintf("%d", updatedRevision)
+		revision = fmt.Sprintf("%d", updatedRevNum)
 		fmt.Fprintf(stdout, "Created new deployment revision %s.\n", revision)
 	}
 
