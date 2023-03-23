@@ -80,7 +80,6 @@ func (d *DeployStatusGetter) GetDeployStatus(ctx context.Context, reference stri
 			fmt.Fprintln(stderr, err.Error())
 			return app.RolloutStatusFailed, nil
 		}
-	case DeployReferenceLatest:
 	}
 
 	rolloutStatus, err := k8s.MapRolloutStatus(*deployment)
