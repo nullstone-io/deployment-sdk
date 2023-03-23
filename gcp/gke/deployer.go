@@ -68,6 +68,7 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	if err != nil {
 		return "", err
 	}
+	curRevisionNum := deployment.Generation
 
 	podSpec := deployment.Spec.Template.Spec
 	if podSpec, err = k8s.SetContainerImageTag(podSpec, d.Infra.MainContainerName, meta.Version); err != nil {
@@ -82,14 +83,9 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 		return "", fmt.Errorf("error deploying app: %w", err)
 	}
 
-	curRevision, err := k8s.Revision(deployment)
-	if err != nil {
-		curRevision = 1
-	}
-
 	revision := ""
 	updatedRevNum := updated.Generation
-	if updatedRevNum == curRevision {
+	if updatedRevNum == curRevisionNum {
 		revision = DeployReferenceNoop
 		fmt.Fprintln(stdout, "No changes made to deployment.")
 	} else {
