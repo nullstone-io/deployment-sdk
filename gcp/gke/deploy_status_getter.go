@@ -64,8 +64,11 @@ func (d *DeployStatusGetter) GetDeployStatus(ctx context.Context, reference stri
 		return app.RolloutStatusUnknown, err
 	}
 	d.startDeployment.Do(func() {
-		d.numDesired = int(deployment.Status.Replicas)
-		fmt.Fprintf(stdout, "Deploying %d replicas\n", deployment.Status.Replicas)
+		d.numDesired = 1
+		if deployment.Spec.Replicas != nil {
+			d.numDesired = int(*deployment.Spec.Replicas)
+		}
+		fmt.Fprintf(stdout, "Deploying %d replicas\n", d.numDesired)
 	})
 
 	switch reference {
@@ -89,11 +92,6 @@ func (d *DeployStatusGetter) GetDeployStatus(ctx context.Context, reference stri
 		return rolloutStatus, nil
 	}
 
-	desired := 1
-	if deployment.Spec.Replicas != nil {
-		desired = int(*deployment.Spec.Replicas)
-	}
-
 	summaries := make([]string, 0)
 	status := deployment.Status
 	summaries = append(summaries, fmt.Sprintf("%d ready", status.AvailableReplicas))
@@ -104,7 +102,7 @@ func (d *DeployStatusGetter) GetDeployStatus(ctx context.Context, reference stri
 		summaries = append(summaries, fmt.Sprintf("%d available", status.AvailableReplicas))
 	}
 
-	fmt.Fprintf(stdout, "%d replicas to rollout (%s)\n", desired, strings.Join(summaries, ", "))
+	fmt.Fprintf(stdout, "%d replicas to rollout (%s)\n", d.numDesired, strings.Join(summaries, ", "))
 	return rolloutStatus, nil
 }
 

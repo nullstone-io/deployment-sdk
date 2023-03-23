@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	DeployReferenceLatest = "(latest)"
-	DeployReferenceNoop   = "(noop)"
+	DeployReferenceLatest = "latest-revision"
+	DeployReferenceNoop   = "no-updated-revision"
 )
 
 func NewDeployer(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.Deployer, error) {
