@@ -8,6 +8,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
+	v1 "k8s.io/api/apps/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 	"sync"
@@ -67,17 +68,16 @@ func (d *DeployStatusGetter) GetDeployStatus(ctx context.Context, reference stri
 		fmt.Fprintf(stdout, "Deploying %d replicas\n", deployment.Status.Replicas)
 	})
 
-	// `reference` of -1 indicates that we didn't capture a deployment revision during deployment
-	if reference != "-1" {
-		// Since we found a deployment revision, let's verify that the latest deployment matches
-		// If not, we assume that another deployment has invalidated this revision and fail this process
-		latestRevision, err := k8s.Revision(deployment)
-		if err != nil {
-			fmt.Fprintf(stderr, "Unable to identify revision on the kubernetes deployment: %s\n", err)
-		} else if fmt.Sprintf("%d", latestRevision) != reference {
-			fmt.Fprintf(stderr, "A new deployment was triggered which invalidates this deployment.")
+	switch reference {
+	case DeployReferenceNoop:
+		fmt.Fprintln(stdout, "Deployment was not changed. Skipping.")
+		return app.RolloutStatusComplete, nil
+	default:
+		if err := d.verifyRevision(deployment, reference); err != nil {
+			fmt.Fprintln(stderr, err.Error())
 			return app.RolloutStatusFailed, nil
 		}
+	case DeployReferenceLatest:
 	}
 
 	rolloutStatus, err := k8s.MapRolloutStatus(*deployment)
@@ -106,4 +106,16 @@ func (d *DeployStatusGetter) GetDeployStatus(ctx context.Context, reference stri
 
 	fmt.Fprintf(stdout, "%d replicas to rollout (%s)\n", desired, strings.Join(summaries, ", "))
 	return rolloutStatus, nil
+}
+
+func (d *DeployStatusGetter) verifyRevision(deployment *v1.Deployment, expectedRevision string) error {
+	// Since we found a deployment revision, let's verify that the latest deployment matches
+	// If not, we assume that another deployment has invalidated this revision and fail this process
+	latestRevision, err := k8s.Revision(deployment)
+	if err != nil {
+		return fmt.Errorf("Unable to identify revision on the kubernetes deployment: %s\n", err)
+	} else if fmt.Sprintf("%d", latestRevision) != expectedRevision {
+		return fmt.Errorf("A new deployment (revision = %d) was triggered which invalidates this deployment.", latestRevision)
+	}
+	return nil
 }

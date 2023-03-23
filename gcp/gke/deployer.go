@@ -12,6 +12,11 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	DeployReferenceLatest = "(latest)"
+	DeployReferenceNoop   = "(noop)"
+)
+
 func NewDeployer(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.Deployer, error) {
 	outs, err := outputs.Retrieve[Outputs](nsConfig, appDetails.Workspace)
 	if err != nil {
@@ -78,11 +83,21 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 		return "", fmt.Errorf("error deploying app: %w", err)
 	}
 
-	revision := "-1"
-	if revisionNum, err := k8s.Revision(updated); err != nil {
+	curRevision, err := k8s.Revision(deployment)
+	if err != nil {
+		curRevision = 1
+	}
+
+	revision := ""
+	if updatedRevision, err := k8s.Revision(updated); err != nil {
+		revision = "(latest)"
 		fmt.Fprintln(stderr, "Unable to find deployment revision. Relying on latest deployment revision to track rollout.")
+	} else if updatedRevision == curRevision {
+		revision = "(noop)"
+		fmt.Fprintln(stdout, "No changes made to deployment.")
 	} else {
-		revision = fmt.Sprintf("%d", revisionNum)
+		revision = fmt.Sprintf("%d", updatedRevision)
+		fmt.Fprintf(stdout, "Created new deployment revision %s.\n", revision)
 	}
 
 	fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
