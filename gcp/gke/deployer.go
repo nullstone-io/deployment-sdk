@@ -70,14 +70,16 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	}
 	curRevisionNum := deployment.Generation
 
-	podSpec := deployment.Spec.Template.Spec
-	if podSpec, err = k8s.SetContainerImageTag(podSpec, d.Infra.MainContainerName, meta.Version); err != nil {
-		return "", fmt.Errorf("error updating pod spec with new image tag: %w", err)
-	}
-	std := env_vars.GetStandard(meta)
-	podSpec = k8s.ReplaceEnvVars(podSpec, std)
+	k8s.UpdateVersionLabel(deployment, meta.Version)
 
-	deployment.Spec.Template.Spec = podSpec
+	mainContainerIndex, mainContainer := k8s.GetContainerByName(*deployment, d.Infra.MainContainerName)
+	if mainContainerIndex < 0 {
+		return "", fmt.Errorf("cannot find main container %q in spec", d.Infra.MainContainerName)
+	}
+	k8s.SetContainerImageTag(mainContainer, meta.Version)
+	k8s.ReplaceEnvVars(mainContainer, env_vars.GetStandard(meta))
+	deployment.Spec.Template.Spec.Containers[mainContainerIndex] = *mainContainer
+
 	updated, err := kubeClient.AppsV1().Deployments(d.Infra.ServiceNamespace).Update(ctx, deployment, meta_v1.UpdateOptions{})
 	if err != nil {
 		return "", fmt.Errorf("error deploying app: %w", err)
