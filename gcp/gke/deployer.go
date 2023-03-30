@@ -37,7 +37,7 @@ type Deployer struct {
 
 func (d Deployer) Print() {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
-	fmt.Fprintf(stdout, "gke cluster: %q\n", d.Infra.Cluster.ClusterId)
+	fmt.Fprintf(stdout, "gke cluster: %q\n", d.Infra.ClusterNamespace.ClusterId)
 	fmt.Fprintf(stdout, "gke service: %q\n", d.Infra.ServiceName)
 	fmt.Fprintf(stdout, "repository image url: %q\n", d.Infra.ImageRepoUrl)
 }
@@ -59,7 +59,7 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 		return "", nil
 	}
 
-	kubeClient, err := CreateKubeClient(ctx, d.Infra.Deployer, d.Infra.Cluster)
+	kubeClient, err := CreateKubeClient(ctx, d.Infra.Deployer, d.Infra.ClusterNamespace.ClusterOutputs)
 	if err != nil {
 		return "", err
 	}
