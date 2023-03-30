@@ -18,7 +18,7 @@ var GcpScopes = []string{
 	"https://www.googleapis.com/auth/userinfo.email",
 }
 
-func CreateKubeClient(ctx context.Context, serviceAccount gcp.ServiceAccount, cluster ClusterOutputs) (*kubernetes.Clientset, error) {
+func CreateKubeClient(ctx context.Context, serviceAccount gcp.ServiceAccount, cluster k8s.ClusterInfoer) (*kubernetes.Clientset, error) {
 	configCreator := &k8s.ConfigCreator{
 		TokenSourcer:  serviceAccount,
 		ClusterInfoer: cluster,

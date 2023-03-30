@@ -54,7 +54,7 @@ func (d *DeployStatusGetter) GetDeployStatus(ctx context.Context, reference stri
 		return app.RolloutStatusComplete, nil
 	}
 
-	kubeClient, err := CreateKubeClient(ctx, d.Infra.Deployer, d.Infra.ClusterNamespace.ClusterOutputs)
+	kubeClient, err := CreateKubeClient(ctx, d.Infra.Deployer, d.Infra.ClusterNamespace)
 	if err != nil {
 		return "", err
 	}

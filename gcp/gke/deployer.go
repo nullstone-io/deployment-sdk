@@ -59,7 +59,7 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 		return "", nil
 	}
 
-	kubeClient, err := CreateKubeClient(ctx, d.Infra.Deployer, d.Infra.ClusterNamespace.ClusterOutputs)
+	kubeClient, err := CreateKubeClient(ctx, d.Infra.Deployer, d.Infra.ClusterNamespace)
 	if err != nil {
 		return "", err
 	}
