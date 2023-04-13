@@ -30,7 +30,7 @@ type Deployer struct {
 
 func (d Deployer) Print() {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
-	fmt.Fprintf(stdout, "ecs cluster: %q\n", d.Infra.Cluster.ClusterArn)
+	fmt.Fprintf(stdout, "ecs cluster: %q\n", d.Infra.ClusterArn())
 	fmt.Fprintf(stdout, "ecs service: %q\n", d.Infra.ServiceName)
 	fmt.Fprintf(stdout, "repository image url: %q\n", d.Infra.ImageRepoUrl)
 }

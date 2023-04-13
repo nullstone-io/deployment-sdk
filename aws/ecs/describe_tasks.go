@@ -16,7 +16,7 @@ func DescribeTasks(ctx context.Context, infra Outputs, taskArns []string) ([]ecs
 
 	ecsClient := ecs.NewFromConfig(nsaws.NewConfig(infra.Deployer, infra.Region))
 	out, err := ecsClient.DescribeTasks(ctx, &ecs.DescribeTasksInput{
-		Cluster: aws.String(infra.Cluster.ClusterArn),
+		Cluster: aws.String(infra.ClusterArn()),
 		Tasks:   taskArns,
 	})
 	if err != nil {

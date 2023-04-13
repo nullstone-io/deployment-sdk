@@ -12,7 +12,7 @@ import (
 func GetServiceTasks(ctx context.Context, infra Outputs) ([]ecstypes.Task, error) {
 	ecsClient := ecs.NewFromConfig(nsaws.NewConfig(infra.Deployer, infra.Region))
 	tasks, err := ecsClient.ListTasks(ctx, &ecs.ListTasksInput{
-		Cluster:     aws.String(infra.Cluster.ClusterArn),
+		Cluster:     aws.String(infra.ClusterArn()),
 		ServiceName: aws.String(infra.ServiceName),
 	})
 	if err != nil {
@@ -25,7 +25,7 @@ func GetServiceTasks(ctx context.Context, infra Outputs) ([]ecstypes.Task, error
 	}
 
 	out, err := ecsClient.DescribeTasks(ctx, &ecs.DescribeTasksInput{
-		Cluster: aws.String(infra.Cluster.ClusterArn),
+		Cluster: aws.String(infra.ClusterArn()),
 		Tasks:   tasks.TaskArns,
 	})
 	if err != nil {
