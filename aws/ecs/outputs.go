@@ -15,7 +15,7 @@ type Outputs struct {
 	Deployer          nsaws.User      `ns:"deployer,optional"`
 
 	Cluster          ClusterOutputs          `ns:",connectionContract:cluster/aws/ecs:*,optional"`
-	ClusterNamespace ClusterNamespaceOutputs `ns:"connectionContract:cluster/aws/ecs:*,optional"`
+	ClusterNamespace ClusterNamespaceOutputs `ns:",connectionContract:cluster-namespace/aws/ecs:*,optional"`
 }
 
 func (o Outputs) ClusterArn() string {
