@@ -19,7 +19,6 @@ type ClusterInfoer interface {
 }
 
 type ClusterInfo struct {
-	ID            string
 	Endpoint      string
 	CACertificate string
 }

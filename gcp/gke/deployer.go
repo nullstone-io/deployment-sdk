@@ -37,7 +37,7 @@ type Deployer struct {
 
 func (d Deployer) Print() {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
-	fmt.Fprintf(stdout, "gke cluster: %q\n", d.Infra.ClusterNamespace.ClusterId)
+	fmt.Fprintf(stdout, "gke endpoint: %q\n", d.Infra.ClusterNamespace.ClusterEndpoint)
 	fmt.Fprintf(stdout, "gke service: %q\n", d.Infra.ServiceName)
 	fmt.Fprintf(stdout, "repository image url: %q\n", d.Infra.ImageRepoUrl)
 }

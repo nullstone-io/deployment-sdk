@@ -18,28 +18,24 @@ type Outputs struct {
 }
 
 type ClusterNamespaceOutputs struct {
-	ClusterId            string `ns:"cluster_id"`
 	ClusterEndpoint      string `ns:"cluster_endpoint"`
 	ClusterCACertificate string `ns:"cluster_ca_certificate"`
 }
 
 func (o ClusterNamespaceOutputs) ClusterInfo() k8s.ClusterInfo {
 	return k8s.ClusterInfo{
-		ID:            o.ClusterId,
 		Endpoint:      o.ClusterEndpoint,
 		CACertificate: o.ClusterCACertificate,
 	}
 }
 
 type ClusterOutputs struct {
-	ClusterId            string `ns:"cluster_id"`
 	ClusterEndpoint      string `ns:"cluster_endpoint"`
 	ClusterCACertificate string `ns:"cluster_ca_certificate"`
 }
 
 func (o ClusterOutputs) ClusterInfo() k8s.ClusterInfo {
 	return k8s.ClusterInfo{
-		ID:            o.ClusterId,
 		Endpoint:      o.ClusterEndpoint,
 		CACertificate: o.ClusterCACertificate,
 	}
