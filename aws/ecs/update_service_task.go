@@ -15,7 +15,7 @@ func UpdateServiceTask(ctx context.Context, infra Outputs, newTaskDefArn string)
 
 	out, err := ecsClient.UpdateService(ctx, &ecs.UpdateServiceInput{
 		Service:            aws.String(infra.ServiceName),
-		Cluster:            aws.String(infra.Cluster.ClusterArn),
+		Cluster:            aws.String(infra.ClusterArn()),
 		ForceNewDeployment: true,
 		TaskDefinition:     aws.String(newTaskDefArn),
 	})
