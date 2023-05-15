@@ -84,7 +84,8 @@ func (d *DeployStatusGetter) GetDeployStatus(ctx context.Context, reference stri
 
 	rolloutStatus, err := k8s.MapRolloutStatus(*deployment)
 	if err != nil {
-		return rolloutStatus, err
+		fmt.Fprintln(stderr, err.Error())
+		return rolloutStatus, nil
 	}
 	if rolloutStatus == app.RolloutStatusUnknown || rolloutStatus == app.RolloutStatusComplete {
 		// We don't want to spit out information about replicas if the rollout is completed or unknown
