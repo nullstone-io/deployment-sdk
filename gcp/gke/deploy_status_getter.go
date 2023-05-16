@@ -8,8 +8,10 @@ import (
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
+	"io"
 	v1 "k8s.io/api/apps/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -76,9 +78,8 @@ func (d *DeployStatusGetter) GetDeployStatus(ctx context.Context, reference stri
 		fmt.Fprintln(stdout, "Deployment was not changed. Skipping.")
 		return app.RolloutStatusComplete, nil
 	default:
-		if err := d.verifyRevision(deployment, reference); err != nil {
-			fmt.Fprintln(stderr, err.Error())
-			return app.RolloutStatusFailed, nil
+		if ok, status := d.verifyRevision(deployment, reference, stdout); !ok {
+			return status, nil
 		}
 	}
 
@@ -106,14 +107,28 @@ func (d *DeployStatusGetter) GetDeployStatus(ctx context.Context, reference stri
 	return rolloutStatus, nil
 }
 
-func (d *DeployStatusGetter) verifyRevision(deployment *v1.Deployment, expectedRevision string) error {
-	// Since we found a deployment revision, let's verify that the latest deployment matches
-	// If not, we assume that another deployment has invalidated this revision and fail this process
+func (d *DeployStatusGetter) verifyRevision(deployment *v1.Deployment, reference string, stdout io.Writer) (bool, app.RolloutStatus) {
 	latestRevision, err := k8s.Revision(deployment)
 	if err != nil {
-		return fmt.Errorf("Unable to identify revision on the kubernetes deployment: %s\n", err)
-	} else if fmt.Sprintf("%d", latestRevision) != expectedRevision {
-		return fmt.Errorf("A new deployment (revision = %d) was triggered which invalidates this deployment.", latestRevision)
+		fmt.Fprintf(stdout, "Unable to identify revision on the kubernetes deployment: %s\n", err)
+		return false, app.RolloutStatusFailed
 	}
-	return nil
+
+	expectedRevision, err := strconv.ParseInt(reference, 10, 64)
+	if err != nil {
+		fmt.Fprintln(stdout, "Invalid deployment reference. Expected a deployment revision number.")
+		return false, app.RolloutStatusFailed
+	}
+
+	if latestRevision < expectedRevision {
+		// If the deployment has a revision smaller than the expected, it must not be in the k8s cluster yet
+		fmt.Fprintln(stdout, "Waiting for deployment to start.")
+		return false, app.RolloutStatusInProgress
+	} else if latestRevision > expectedRevision {
+		// If the deployment has a revision larger than the expected, there must be a new deployment that invalidates this one
+		fmt.Fprintf(stdout, "A new deployment (revision = %d) was triggered which invalidates this deployment.\n", latestRevision)
+		return false, app.RolloutStatusFailed
+	}
+
+	return true, app.RolloutStatusInProgress
 }
