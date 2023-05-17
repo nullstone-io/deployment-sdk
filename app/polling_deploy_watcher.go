@@ -27,7 +27,8 @@ var _ DeployWatcher = &PollingDeployWatcher{}
 type PollingDeployWatcher struct {
 	StatusGetter DeployStatusGetter
 	OsWriters    logging.OsWriters
-	Details      Details
+	Delay        time.Duration
+	Timeout      time.Duration
 }
 
 // NewPollingDeployWatcher wraps a DeployStatusGetter to provide polling support for watching a deployment
@@ -40,7 +41,6 @@ func NewPollingDeployWatcher(statusGetterFn NewDeployStatusGetterFunc) NewDeploy
 		return &PollingDeployWatcher{
 			StatusGetter: statusGetter,
 			OsWriters:    osWriters,
-			Details:      appDetails,
 		}, nil
 	}
 }
@@ -62,6 +62,12 @@ func (s *PollingDeployWatcher) Watch(ctx context.Context, reference string) erro
 	}
 
 	delay, timeout := watchDefaultDelay, watchDefaultTimeout
+	if s.Delay != 0 {
+		delay = s.Delay
+	}
+	if s.Timeout != 0 {
+		timeout = s.Timeout
+	}
 	t1 := time.After(timeout)
 	for {
 		status, err := s.StatusGetter.GetDeployStatus(ctx, reference)

@@ -85,6 +85,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/cobra v1.2.1 // indirect
+	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/theupdateframework/notary v0.7.0 // indirect
 	github.com/tmccombs/hcl2json v0.3.2-0.20201111174327-c96737926b76 // indirect
 	github.com/zclconf/go-cty v1.6.1 // indirect
