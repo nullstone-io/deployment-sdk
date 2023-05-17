@@ -24,12 +24,12 @@ func (s Providers) FindDeployer(osWriters logging.OsWriters, nsConfig api.Config
 	return factory.NewDeployer(osWriters, nsConfig, appDetails)
 }
 
-func (s Providers) FindDeployStatusGetter(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (DeployStatusGetter, error) {
+func (s Providers) FindDeployWatcher(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (DeployWatcher, error) {
 	factory := s.FindFactory(*appDetails.Module)
-	if factory == nil || factory.NewDeployStatusGetter == nil {
+	if factory == nil || factory.NewDeployWatcher == nil {
 		return nil, nil
 	}
-	return factory.NewDeployStatusGetter(osWriters, nsConfig, appDetails)
+	return factory.NewDeployWatcher(osWriters, nsConfig, appDetails)
 }
 
 func (s Providers) FindFactory(curModule types.Module) *Provider {

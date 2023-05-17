@@ -16,8 +16,8 @@ var ModuleContractName = types.ModuleContractName{
 }
 
 var Provider = app.Provider{
-	CanDeployImmediate:    false,
-	NewPusher:             gcr.NewPusher,
-	NewDeployer:           gke.NewDeployer,
-	NewDeployStatusGetter: gke.NewDeployStatusGetter,
+	CanDeployImmediate: false,
+	NewPusher:          gcr.NewPusher,
+	NewDeployer:        gke.NewDeployer,
+	NewDeployWatcher:   app.NewPollingDeployWatcher(gke.NewDeployStatusGetter),
 }
