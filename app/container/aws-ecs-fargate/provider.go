@@ -16,8 +16,8 @@ var ModuleContractName = types.ModuleContractName{
 }
 
 var Provider = app.Provider{
-	CanDeployImmediate:    false,
-	NewPusher:             ecr.NewPusher,
-	NewDeployer:           ecs.NewDeployer,
-	NewDeployStatusGetter: ecs.NewDeployStatusGetter,
+	CanDeployImmediate: false,
+	NewPusher:          ecr.NewPusher,
+	NewDeployer:        ecs.NewDeployer,
+	NewDeployWatcher:   app.NewPollingDeployWatcher(ecs.NewDeployStatusGetter),
 }

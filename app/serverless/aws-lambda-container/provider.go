@@ -16,8 +16,8 @@ var ModuleContractName = types.ModuleContractName{
 }
 
 var Provider = app.Provider{
-	CanDeployImmediate:    true,
-	NewPusher:             ecr.NewPusher,
-	NewDeployer:           lambda_container.NewDeployer,
-	NewDeployStatusGetter: nil,
+	CanDeployImmediate: true,
+	NewPusher:          ecr.NewPusher,
+	NewDeployer:        lambda_container.NewDeployer,
+	NewDeployWatcher:   nil,
 }
