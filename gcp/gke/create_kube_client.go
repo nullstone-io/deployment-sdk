@@ -7,14 +7,19 @@ import (
 	"github.com/nullstone-io/deployment-sdk/k8s"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/rest"
 )
 
-func CreateKubeClient(ctx context.Context, serviceAccount gcp.ServiceAccount, cluster k8s.ClusterInfoer) (*kubernetes.Clientset, error) {
+func CreateKubeConfig(ctx context.Context, cluster k8s.ClusterInfoer, serviceAccount gcp.ServiceAccount) (*rest.Config, error) {
 	configCreator := &k8s.ConfigCreator{
 		ClusterInfoer: cluster,
 		AuthInfoer:    ServiceAccountAuth{ServiceAccount: serviceAccount},
 	}
-	cfg, err := configCreator.Create(ctx)
+	return configCreator.Create(ctx)
+}
+
+func CreateKubeClient(ctx context.Context, cluster k8s.ClusterInfoer, serviceAccount gcp.ServiceAccount) (*kubernetes.Clientset, error) {
+	cfg, err := CreateKubeConfig(ctx, cluster, serviceAccount)
 	if err != nil {
 		return nil, fmt.Errorf("error creating kube config: %w", err)
 	}
