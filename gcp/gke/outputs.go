@@ -30,7 +30,7 @@ type ClusterNamespaceOutputs struct {
 var _ k8s.ClusterInfoer = ClusterNamespaceOutputs{}
 
 func (o ClusterNamespaceOutputs) ClusterInfo() (clientcmdapi.Cluster, error) {
-	return getClusterInfo(o.ClusterEndpoint, o.ClusterCACertificate)
+	return GetClusterInfo(o.ClusterEndpoint, o.ClusterCACertificate)
 }
 
 type ClusterOutputs struct {
@@ -39,10 +39,10 @@ type ClusterOutputs struct {
 }
 
 func (o ClusterOutputs) ClusterInfo() (clientcmdapi.Cluster, error) {
-	return getClusterInfo(o.ClusterEndpoint, o.ClusterCACertificate)
+	return GetClusterInfo(o.ClusterEndpoint, o.ClusterCACertificate)
 }
 
-func getClusterInfo(endpoint string, caCertificate string) (clientcmdapi.Cluster, error) {
+func GetClusterInfo(endpoint string, caCertificate string) (clientcmdapi.Cluster, error) {
 	decodedCACert, err := base64.StdEncoding.DecodeString(caCertificate)
 	if err != nil {
 		return clientcmdapi.Cluster{}, fmt.Errorf("invalid cluster CA certificate: %w", err)
