@@ -2,6 +2,8 @@ package k8s
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -30,6 +32,16 @@ func (f *ConfigCreator) Create(ctx context.Context) (*rest.Config, error) {
 	if overrides.AuthInfo, err = f.AuthInfoer.AuthInfo(ctx); err != nil {
 		return nil, err
 	}
+
 	cc := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{}, overrides)
-	return cc.ClientConfig()
+	cfg, err := cc.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	cfg.APIPath = "/api"
+	cfg.GroupVersion = &schema.GroupVersion{Group: "", Version: "v1"}
+	cfg.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
+	rest.SetKubernetesDefaults(cfg)
+	return cfg, nil
 }
