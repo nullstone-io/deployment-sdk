@@ -16,6 +16,7 @@ require (
 	github.com/docker/cli v20.10.9+incompatible
 	github.com/docker/docker v20.10.17+incompatible
 	github.com/google/uuid v1.2.0
+	github.com/mattn/go-colorable v0.0.9
 	github.com/nullstone-io/module v0.2.8
 	github.com/sethvargo/go-retry v0.2.3
 	github.com/spf13/pflag v1.0.5
@@ -65,6 +66,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.11 // indirect
+	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/miekg/pkcs11 v1.0.3 // indirect
 	github.com/mitchellh/go-wordwrap v0.0.0-20150314170334-ad45545899c7 // indirect
