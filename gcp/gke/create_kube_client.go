@@ -7,23 +7,19 @@ import (
 	"github.com/nullstone-io/deployment-sdk/k8s"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/rest"
 )
 
-var GcpScopes = []string{
-	"https://www.googleapis.com/auth/compute",
-	"https://www.googleapis.com/auth/cloud-platform",
-	"https://www.googleapis.com/auth/cloud-identity",
-	"https://www.googleapis.com/auth/ndev.clouddns.readwrite",
-	"https://www.googleapis.com/auth/devstorage.full_control",
-	"https://www.googleapis.com/auth/userinfo.email",
+func CreateKubeConfig(ctx context.Context, cluster k8s.ClusterInfoer, serviceAccount gcp.ServiceAccount) (*rest.Config, error) {
+	configCreator := &k8s.ConfigCreator{
+		ClusterInfoer: cluster,
+		AuthInfoer:    ServiceAccountAuth{ServiceAccount: serviceAccount},
+	}
+	return configCreator.Create(ctx)
 }
 
-func CreateKubeClient(ctx context.Context, serviceAccount gcp.ServiceAccount, cluster k8s.ClusterInfoer) (*kubernetes.Clientset, error) {
-	configCreator := &k8s.ConfigCreator{
-		TokenSourcer:  serviceAccount,
-		ClusterInfoer: cluster,
-	}
-	cfg, err := configCreator.Create(ctx, GcpScopes...)
+func CreateKubeClient(ctx context.Context, cluster k8s.ClusterInfoer, serviceAccount gcp.ServiceAccount) (*kubernetes.Clientset, error) {
+	cfg, err := CreateKubeConfig(ctx, cluster, serviceAccount)
 	if err != nil {
 		return nil, fmt.Errorf("error creating kube config: %w", err)
 	}

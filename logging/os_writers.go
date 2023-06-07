@@ -2,6 +2,7 @@ package logging
 
 import (
 	"context"
+	"github.com/mattn/go-colorable"
 	"io"
 	"os"
 )
@@ -29,5 +30,5 @@ var _ OsWriters = StandardOsWriters{}
 
 type StandardOsWriters struct{}
 
-func (w StandardOsWriters) Stdout() io.Writer { return os.Stdout }
-func (w StandardOsWriters) Stderr() io.Writer { return os.Stderr }
+func (w StandardOsWriters) Stdout() io.Writer { return colorable.NewColorable(os.Stdout) }
+func (w StandardOsWriters) Stderr() io.Writer { return colorable.NewColorable(os.Stderr) }
