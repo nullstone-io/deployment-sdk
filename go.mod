@@ -2,6 +2,8 @@ module github.com/nullstone-io/deployment-sdk
 
 go 1.18
 
+replace gopkg.in/nullstone-io/go-api-client.v0 => ../go-api-client
+
 require (
 	github.com/aws/aws-sdk-go-v2 v1.17.3
 	github.com/aws/aws-sdk-go-v2/credentials v1.4.3
@@ -46,6 +48,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.13.8 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
+	github.com/cristalhq/jwt/v3 v3.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.6.4 // indirect

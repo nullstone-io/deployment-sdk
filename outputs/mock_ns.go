@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"gopkg.in/nullstone-io/go-api-client.v0"
+	"gopkg.in/nullstone-io/go-api-client.v0/auth"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
 	"log"
 	"net/http"
@@ -34,9 +35,9 @@ func mockNs(workspaces []types.Workspace, currentOutputs map[string]types.Output
 
 	server := httptest.NewServer(mux)
 	return server, api.Config{
-		BaseAddress:    server.URL,
-		ApiKey:         "invalid-api-key",
-		IsTraceEnabled: false,
-		OrgName:        "default",
+		BaseAddress:       server.URL,
+		AccessTokenSource: auth.RawAccessTokenSource{AccessToken: "invalid-api-key"},
+		IsTraceEnabled:    false,
+		OrgName:           "default",
 	}
 }

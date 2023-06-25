@@ -309,6 +309,8 @@ github.com/creack/pty v1.1.7/go.mod h1:lj5s0c3V2DBrqTV7llrYr5NG6My20zk30Fl46Y7Do
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/creack/pty v1.1.11 h1:07n33Z8lZxZ2qwegKbObQohDhXDQxiMMz1NOUGYlesw=
 github.com/creack/pty v1.1.11/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
+github.com/cristalhq/jwt/v3 v3.1.0 h1:iLeL9VzB0SCtjCy9Kg53rMwTcrNm+GHyVcz2eUujz6s=
+github.com/cristalhq/jwt/v3 v3.1.0/go.mod h1:XOnIXst8ozq/esy5N1XOlSyQqBd+84fxJ99FK+1jgL8=
 github.com/cyphar/filepath-securejoin v0.2.2/go.mod h1:FpkQEhXnPnOthhzymB7CGsFk2G9VLXONKD9G7QGMM+4=
 github.com/d2g/dhcp4 v0.0.0-20170904100407-a1d1b6c41b1c/go.mod h1:Ct2BUK8SB0YC1SMSibvLzxjeJLnrYEVLULFNiHY9YfQ=
 github.com/d2g/dhcp4client v1.0.0/go.mod h1:j0hNfjhrt2SxUOw55nL0ATM/z4Yt3t2Kd1mW34z5W5s=
@@ -1354,8 +1356,6 @@ gopkg.in/inf.v0 v0.9.1/go.mod h1:cWUDdTG/fYaXco+Dcufb5Vnc6Gp2YChqWtbxRZE0mXw=
 gopkg.in/ini.v1 v1.62.0 h1:duBzk771uxoUuOlyRLkHsygud9+5lrlGjdFBb4mSKDU=
 gopkg.in/ini.v1 v1.62.0/go.mod h1:pNLf8WUiyNEtQjuu5G5vTm06TEv9tsIgeAvK8hOrP4k=
 gopkg.in/natefinch/lumberjack.v2 v2.0.0/go.mod h1:l0ndWWf7gzL7RNwBG7wST/UCcT4T24xpD6X8LsfU/+k=
-gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20220921150731-89bf2bdaec43 h1:reGI8diZLPLSNmwVrnqfNn1y5wWYlNeb7PSK+S7IQyc=
-gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20220921150731-89bf2bdaec43/go.mod h1:2zMwhz2lArnK8cPNYLStJoAtOPQMq01GPguwwpqH7I8=
 gopkg.in/resty.v1 v1.12.0/go.mod h1:mDo4pnntr5jdWRML875a/NmxYqAlA73dVijT2AXvQQo=
 gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.1 h1:d4KQkxAaAiRY2h5Zqis161Pv91A37uZyJOx73duwUwM=
 gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.1/go.mod h1:WbjuEoo1oadwzQ4apSDU+JTvmllEHtsNHS6y7vFc7iw=
