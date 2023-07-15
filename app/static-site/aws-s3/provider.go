@@ -20,4 +20,5 @@ var Provider = app.Provider{
 	NewPusher:          s3.NewDirPusher,
 	NewDeployer:        s3.NewDeployer,
 	NewDeployWatcher:   app.NewPollingDeployWatcher(cdn.NewDeployStatusGetter),
+	NewStatuser:        nil,
 }

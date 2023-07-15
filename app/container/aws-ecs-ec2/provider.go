@@ -20,4 +20,5 @@ var Provider = app.Provider{
 	NewPusher:          ecr.NewPusher,
 	NewDeployer:        ecs.NewDeployer,
 	NewDeployWatcher:   app.NewPollingDeployWatcher(ecs.NewDeployStatusGetter),
+	NewStatuser:        nil,
 }

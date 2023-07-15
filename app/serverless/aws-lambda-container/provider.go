@@ -20,4 +20,5 @@ var Provider = app.Provider{
 	NewPusher:          ecr.NewPusher,
 	NewDeployer:        lambda_container.NewDeployer,
 	NewDeployWatcher:   nil,
+	NewStatuser:        nil,
 }

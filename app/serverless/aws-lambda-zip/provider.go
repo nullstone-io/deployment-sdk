@@ -20,4 +20,5 @@ var Provider = app.Provider{
 	NewPusher:          s3.NewZipPusher,
 	NewDeployer:        lambda_zip.NewDeployer,
 	NewDeployWatcher:   nil,
+	NewStatuser:        nil,
 }
