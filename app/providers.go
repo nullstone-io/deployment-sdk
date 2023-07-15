@@ -32,6 +32,14 @@ func (s Providers) FindDeployWatcher(osWriters logging.OsWriters, nsConfig api.C
 	return factory.NewDeployWatcher(osWriters, nsConfig, appDetails)
 }
 
+func (s Providers) FindStatuser(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (Statuser, error) {
+	factory := s.FindFactory(*appDetails.Module)
+	if factory == nil || factory.NewStatuser == nil {
+		return nil, nil
+	}
+	return factory.NewStatuser(osWriters, nsConfig, appDetails)
+}
+
 func (s Providers) FindFactory(curModule types.Module) *Provider {
 	if len(curModule.ProviderTypes) <= 0 {
 		return nil
