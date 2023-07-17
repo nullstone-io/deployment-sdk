@@ -37,5 +37,6 @@ type DeployWatcher interface {
 }
 
 type Statuser interface {
+	StatusOverview(ctx context.Context) (any, error)
 	Status(ctx context.Context) (any, error)
 }

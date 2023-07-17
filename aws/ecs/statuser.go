@@ -31,6 +31,21 @@ const (
 	ExplanationRegisteringLoadBalancer = "Registering with load balancer"
 )
 
+type StatusOverview struct {
+	Deployments []StatusOverviewDeployment `json:"deployments"`
+}
+
+type StatusOverviewDeployment struct {
+	CreatedAt          time.Time `json:"createdAt"`
+	Status             string    `json:"status"`
+	RolloutState       string    `json:"rolloutState"`
+	RolloutStateReason string    `json:"rolloutStateReason"`
+	DesiredCount       int32     `json:"desiredCount"`
+	PendingCount       int32     `json:"pendingCount"`
+	RunningCount       int32     `json:"runningCount"`
+	FailedCount        int32     `json:"failedCount"`
+}
+
 type Status struct {
 	Tasks []StatusTask `json:"tasks"`
 }
@@ -86,6 +101,31 @@ type Statuser struct {
 	OsWriters logging.OsWriters
 	Details   app.Details
 	Infra     Outputs
+}
+
+func (s Statuser) StatusOverview(ctx context.Context) (any, error) {
+	so := StatusOverview{Deployments: make([]StatusOverviewDeployment, 0)}
+
+	svc, err := GetService(ctx, s.Infra)
+	if err != nil {
+		return so, err
+	} else if svc == nil {
+		return so, nil
+	}
+
+	for _, deployment := range svc.Deployments {
+		so.Deployments = append(so.Deployments, StatusOverviewDeployment{
+			CreatedAt:          aws.ToTime(deployment.CreatedAt),
+			Status:             aws.ToString(deployment.Status),
+			RolloutState:       string(deployment.RolloutState),
+			RolloutStateReason: aws.ToString(deployment.RolloutStateReason),
+			DesiredCount:       deployment.DesiredCount,
+			PendingCount:       deployment.PendingCount,
+			RunningCount:       deployment.RunningCount,
+			FailedCount:        deployment.FailedTasks,
+		})
+	}
+	return so, nil
 }
 
 func (s Statuser) Status(ctx context.Context) (any, error) {
