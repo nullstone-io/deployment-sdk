@@ -7,6 +7,10 @@ import (
 	"reflect"
 )
 
+var (
+	ErrNoWorkspaceOutputs = fmt.Errorf("this workspace has not yet been successfully launched, no outputs exist yet")
+)
+
 func Retrieve[T any](nsConfig api.Config, workspace *types.Workspace) (T, error) {
 	var t T
 	r := Retriever{NsConfig: nsConfig}
@@ -44,7 +48,7 @@ func (r *Retriever) Retrieve(workspace *types.Workspace, obj interface{}) error 
 		return fmt.Errorf("unable to fetch the outputs for %s/%s: %w", workspace.OrgName, wt.Id(), err)
 	}
 	if workspaceOutputs == nil {
-		return fmt.Errorf("this workspace has not yet been successfully launched, no outputs exist yet")
+		return ErrNoWorkspaceOutputs
 	}
 
 	fields := GetFields(reflect.TypeOf(obj).Elem())
