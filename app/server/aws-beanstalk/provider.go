@@ -19,4 +19,5 @@ var Provider = app.Provider{
 	NewPusher:          beanstalk.NewPusher,
 	NewDeployer:        beanstalk.NewDeployer,
 	NewDeployWatcher:   app.NewPollingDeployWatcher(beanstalk.NewDeployStatusGetter),
+	NewStatuser:        nil,
 }

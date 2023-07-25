@@ -11,12 +11,14 @@ type Provider struct {
 	NewPusher          NewPusherFunc
 	NewDeployer        NewDeployerFunc
 	NewDeployWatcher   NewDeployWatcherFunc
+	NewStatuser        NewStatuserFunc
 }
 
 type NewPusherFunc func(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (Pusher, error)
 type NewDeployerFunc func(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (Deployer, error)
 type NewDeployStatusGetterFunc func(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (DeployStatusGetter, error)
 type NewDeployWatcherFunc func(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (DeployWatcher, error)
+type NewStatuserFunc func(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (Statuser, error)
 
 type Pusher interface {
 	Push(ctx context.Context, source, version string) error
@@ -32,4 +34,9 @@ type DeployStatusGetter interface {
 
 type DeployWatcher interface {
 	Watch(ctx context.Context, reference string) error
+}
+
+type Statuser interface {
+	StatusOverview(ctx context.Context) (any, error)
+	Status(ctx context.Context) (any, error)
 }
