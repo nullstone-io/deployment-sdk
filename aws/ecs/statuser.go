@@ -8,6 +8,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
+	"log"
 	"time"
 )
 
@@ -132,6 +133,7 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	st := Status{Tasks: make([]StatusTask, 0)}
 	if s.Infra.ServiceName == "" {
 		// TODO: Add support for Nullstone tasks (apps that aren't long-running)
+		log.Printf("WARN: ServiceName is empty, skipping ECS status\n")
 		return st, nil
 	}
 
