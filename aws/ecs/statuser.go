@@ -9,6 +9,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -37,6 +38,7 @@ type StatusOverview struct {
 }
 
 type StatusOverviewDeployment struct {
+	Id                 string    `json:"id"`
 	CreatedAt          time.Time `json:"createdAt"`
 	Status             string    `json:"status"`
 	RolloutState       string    `json:"rolloutState"`
@@ -52,7 +54,7 @@ type Status struct {
 }
 
 type StatusTask struct {
-	TaskId            string                `json:"taskId"`
+	Id                string                `json:"id"`
 	StartedAt         *time.Time            `json:"startedAt"`
 	StoppedAt         *time.Time            `json:"stoppedAt"`
 	StoppedReason     string                `json:"stoppedReason"`
@@ -116,6 +118,7 @@ func (s Statuser) StatusOverview(ctx context.Context) (any, error) {
 
 	for _, deployment := range svc.Deployments {
 		so.Deployments = append(so.Deployments, StatusOverviewDeployment{
+			Id:                 aws.ToString(deployment.Id),
 			CreatedAt:          aws.ToTime(deployment.CreatedAt),
 			Status:             aws.ToString(deployment.Status),
 			RolloutState:       string(deployment.RolloutState),
@@ -151,7 +154,7 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	for _, task := range tasks {
 		log.Printf("DEBUG: Task: %#v\n", task)
 		st.Tasks = append(st.Tasks, StatusTask{
-			TaskId:            "", // TODO: Get TaskId
+			Id:                parseTaskId(task.TaskArn),
 			StartedAt:         task.StartedAt,
 			StoppedAt:         task.StoppedAt,
 			StoppedReason:     aws.ToString(task.StoppedReason),
@@ -163,6 +166,14 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	}
 
 	return st, nil
+}
+
+func parseTaskId(taskArn *string) string {
+	if taskArn == nil {
+		return ""
+	}
+	arn := *taskArn
+	return arn[strings.LastIndex(arn, "/")+1:]
 }
 
 func mapTaskStatusToExplanation(task ecstypes.Task, svcHealth ServiceHealth) string {
