@@ -143,6 +143,7 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	}
 
 	tasks, err := GetServiceTasks(ctx, s.Infra)
+	log.Printf("DEBUG: Found %d tasks\n", len(tasks))
 	if err != nil {
 		return st, err
 	} else if len(tasks) > 0 {
@@ -150,6 +151,7 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	}
 
 	for _, task := range tasks {
+		log.Printf("DEBUG: Task: %#v\n", task)
 		st.Tasks = append(st.Tasks, StatusTask{
 			TaskId:            "", // TODO: Get TaskId
 			StartedAt:         task.StartedAt,
