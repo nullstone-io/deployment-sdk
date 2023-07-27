@@ -136,7 +136,6 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	st := Status{Tasks: make([]StatusTask, 0)}
 	if s.Infra.ServiceName == "" {
 		// TODO: Add support for Nullstone tasks (apps that aren't long-running)
-		log.Printf("WARN: ServiceName is empty, skipping ECS status\n")
 		return st, nil
 	}
 
@@ -146,13 +145,11 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	}
 
 	tasks, err := GetServiceTasks(ctx, s.Infra)
-	log.Printf("DEBUG: Found %d tasks\n", len(tasks))
 	if err != nil {
 		return st, err
 	}
 
 	for _, task := range tasks {
-		log.Printf("DEBUG: Task: %#v\n", task)
 		st.Tasks = append(st.Tasks, StatusTask{
 			Id:                parseTaskId(task.TaskArn),
 			StartedAt:         task.StartedAt,
@@ -206,6 +203,7 @@ func mapTaskContainers(task ecstypes.Task, svcHealth ServiceHealth) []StatusTask
 
 func mapContainerPorts(container ecstypes.Container, svcHealth ServiceHealth) []StatusTaskContainerPort {
 	ports := make([]StatusTaskContainerPort, 0)
+	log.Printf("DEBUG: network_bindings: %#v\n", container.NetworkBindings)
 	for _, nb := range container.NetworkBindings {
 		port := StatusTaskContainerPort{
 			Protocol:      string(nb.Protocol),
