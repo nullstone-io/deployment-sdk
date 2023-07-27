@@ -146,8 +146,6 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	log.Printf("DEBUG: Found %d tasks\n", len(tasks))
 	if err != nil {
 		return st, err
-	} else if len(tasks) > 0 {
-		return st, nil
 	}
 
 	for _, task := range tasks {
