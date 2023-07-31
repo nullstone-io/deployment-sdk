@@ -154,7 +154,7 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	for _, task := range tasks {
 		var taskDef *ecstypes.TaskDefinition
 		if task.TaskDefinitionArn != nil {
-			if def, ok := taskDefs[*task.TaskDefinitionArn]; !ok {
+			if def, ok := taskDefs[*task.TaskDefinitionArn]; ok {
 				taskDef = def
 			} else {
 				def, err := GetTaskDefinition(ctx, s.Infra)
