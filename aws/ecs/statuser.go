@@ -220,19 +220,18 @@ func mapTaskContainers(task ecstypes.Task, taskDef *ecstypes.TaskDefinition, svc
 }
 
 func mapContainerPorts(container ecstypes.Container, taskDef *ecstypes.TaskDefinition, svcHealth ServiceHealth) []StatusTaskContainerPort {
-	// for _, def := range taskDef.ContainerDefinitions {
-	//
-	// }
 	ports := make([]StatusTaskContainerPort, 0)
-	for _, nb := range container.NetworkBindings {
+
+	for _, ni := range container.NetworkInterfaces {
+		def := taskDef.ContainerDefinitions[0]
 		port := StatusTaskContainerPort{
-			Protocol:      string(nb.Protocol),
-			IpAddress:     aws.ToString(nb.BindIP),
-			HostPort:      aws.ToInt32(nb.HostPort),
-			ContainerPort: aws.ToInt32(nb.ContainerPort),
+			Protocol:      string(def.PortMappings[0].Protocol),
+			IpAddress:     aws.ToString(ni.PrivateIpv4Address),
+			HostPort:      aws.ToInt32(def.PortMappings[0].HostPort),
+			ContainerPort: aws.ToInt32(def.PortMappings[0].ContainerPort),
 		}
 
-		tgh := svcHealth.FindByTargetId(aws.ToString(nb.BindIP))
+		tgh := svcHealth.FindByTargetId(aws.ToString(ni.PrivateIpv4Address))
 		if tgh != nil && tgh.TargetHealth != nil {
 			port.HealthStatus = string(tgh.TargetHealth.State)
 			port.HealthReason = string(tgh.TargetHealth.Reason)
