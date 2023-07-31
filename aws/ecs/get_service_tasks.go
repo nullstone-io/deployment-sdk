@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/nullstone-io/deployment-sdk/aws"
-	"log"
 )
 
 func GetServiceTasks(ctx context.Context, infra Outputs) ([]ecstypes.Task, error) {
@@ -20,7 +19,6 @@ func GetServiceTasks(ctx context.Context, infra Outputs) ([]ecstypes.Task, error
 		return nil, fmt.Errorf("unable to get tasks associated with service (%s): %w", infra.ServiceName, err)
 	}
 
-	log.Printf("DEBUG: (cluster_arn: %s, service_name: %s) Found tasks: %#v\n", infra.ClusterArn(), infra.ServiceName, tasks.TaskArns)
 	// if there aren't any tasks returned, we can't fetch any task descriptions
 	if len(tasks.TaskArns) == 0 {
 		return nil, nil
@@ -33,7 +31,6 @@ func GetServiceTasks(ctx context.Context, infra Outputs) ([]ecstypes.Task, error
 	if err != nil {
 		return nil, fmt.Errorf("unable to get task details: %w", err)
 	}
-	log.Printf("DEBUG: (cluster_arn: %s, task_arns: %s) Found task details: %#v\n", infra.ClusterArn(), tasks.TaskArns, out)
 
 	return out.Tasks, nil
 }

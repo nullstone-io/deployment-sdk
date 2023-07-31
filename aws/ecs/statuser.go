@@ -8,6 +8,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
+	"log"
 	"strings"
 	"time"
 )
@@ -223,7 +224,9 @@ func mapContainerPorts(container ecstypes.Container, taskDef *ecstypes.TaskDefin
 	ports := make([]StatusTaskContainerPort, 0)
 
 	for _, ni := range container.NetworkInterfaces {
+		log.Printf("DEBUG: network_interface: %#v", ni)
 		def := taskDef.ContainerDefinitions[0]
+		log.Printf("DEBUG: task_definition: %#v", def)
 		port := StatusTaskContainerPort{
 			Protocol:      string(def.PortMappings[0].Protocol),
 			IpAddress:     aws.ToString(ni.PrivateIpv4Address),
