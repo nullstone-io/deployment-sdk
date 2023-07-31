@@ -239,6 +239,7 @@ func mapContainerPorts(container ecstypes.Container, taskDef *ecstypes.TaskDefin
 			port.HealthStatus = string(tgh.TargetHealth.State)
 			port.HealthReason = string(tgh.TargetHealth.Reason)
 		}
+		log.Printf("DEBUG: port: %#v", port)
 
 		ports = append(ports)
 	}
