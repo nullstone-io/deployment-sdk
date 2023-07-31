@@ -50,7 +50,8 @@ type StatusOverviewDeployment struct {
 }
 
 type Status struct {
-	Tasks []StatusTask `json:"tasks"`
+	Tasks         []StatusTask            `json:"tasks"`
+	LoadBalancers []ecstypes.LoadBalancer `json:"loadBalancers"`
 }
 
 type StatusTask struct {
