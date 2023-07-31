@@ -8,7 +8,6 @@ import (
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
-	"log"
 	"strings"
 	"time"
 )
@@ -214,12 +213,34 @@ func mapTaskContainers(task ecstypes.Task, taskDef *ecstypes.TaskDefinition, svc
 			Name:   aws.ToString(container.Name),
 			Status: aws.ToString(container.LastStatus),
 			Health: string(container.HealthStatus),
-			Ports:  mapContainerPorts(container, taskDef, svcHealth),
+			Ports:  mapContainerPorts(container, svcHealth),
 		})
 	}
 	return containers
 }
 
+func mapContainerPorts(container ecstypes.Container, svcHealth ServiceHealth) []StatusTaskContainerPort {
+	ports := make([]StatusTaskContainerPort, 0)
+	for _, nb := range container.NetworkBindings {
+		port := StatusTaskContainerPort{
+			Protocol:      string(nb.Protocol),
+			IpAddress:     aws.ToString(nb.BindIP),
+			HostPort:      aws.ToInt32(nb.HostPort),
+			ContainerPort: aws.ToInt32(nb.ContainerPort),
+		}
+
+		tgh := svcHealth.FindByTargetId(aws.ToString(nb.BindIP))
+		if tgh != nil && tgh.TargetHealth != nil {
+			port.HealthStatus = string(tgh.TargetHealth.State)
+			port.HealthReason = string(tgh.TargetHealth.Reason)
+		}
+
+		ports = append(ports, port)
+	}
+	return ports
+}
+
+/*
 func mapContainerPorts(container ecstypes.Container, taskDef *ecstypes.TaskDefinition, svcHealth ServiceHealth) []StatusTaskContainerPort {
 	ports := make([]StatusTaskContainerPort, 0)
 
@@ -241,7 +262,8 @@ func mapContainerPorts(container ecstypes.Container, taskDef *ecstypes.TaskDefin
 		}
 		log.Printf("DEBUG: port: %#v", port)
 
-		ports = append(ports)
+		ports = append(ports, port)
 	}
 	return ports
 }
+*/
