@@ -8,7 +8,6 @@ import (
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
-	"log"
 	"strings"
 	"time"
 )
@@ -50,20 +49,20 @@ type StatusOverviewDeployment struct {
 }
 
 type Status struct {
-	Tasks         []StatusTask                `json:"tasks"`
-	LoadBalancers []ServiceLoadBalancerHealth `json:"loadBalancers"`
+	Tasks []StatusTask `json:"tasks"`
 }
 
 type StatusTask struct {
-	Id                string                `json:"id"`
-	StartedBy         string                `json:"startedBy"`
-	StartedAt         *time.Time            `json:"startedAt"`
-	StoppedAt         *time.Time            `json:"stoppedAt"`
-	StoppedReason     string                `json:"stoppedReason"`
-	Status            string                `json:"status"`
-	StatusExplanation string                `json:"statusExplanation"`
-	Health            string                `json:"health"`
-	Containers        []StatusTaskContainer `json:"containers"`
+	Id                string                   `json:"id"`
+	StartedBy         string                   `json:"startedBy"`
+	StartedAt         *time.Time               `json:"startedAt"`
+	StoppedAt         *time.Time               `json:"stoppedAt"`
+	StoppedReason     string                   `json:"stoppedReason"`
+	Status            string                   `json:"status"`
+	StatusExplanation string                   `json:"statusExplanation"`
+	Health            string                   `json:"health"`
+	Containers        []StatusTaskContainer    `json:"containers"`
+	TaskDefinition    *ecstypes.TaskDefinition `json:"taskDefinition"`
 }
 
 type StatusTaskContainer struct {
@@ -145,15 +144,28 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	if err != nil {
 		return st, err
 	}
-	log.Printf("DEBUG: svcHealth: %#v\n", svcHealth)
-	st.LoadBalancers = svcHealth.LoadBalancers
 
 	tasks, err := GetServiceTasks(ctx, s.Infra)
 	if err != nil {
 		return st, err
 	}
 
+	taskDefs := map[string]*ecstypes.TaskDefinition{}
 	for _, task := range tasks {
+		var taskDef *ecstypes.TaskDefinition
+		if task.TaskDefinitionArn != nil {
+			if def, ok := taskDefs[*task.TaskDefinitionArn]; !ok {
+				taskDef = def
+			} else {
+				def, err := GetTaskDefinition(ctx, s.Infra)
+				if err != nil {
+					return st, err
+				}
+				taskDefs[*task.TaskDefinitionArn] = def
+				taskDef = def
+			}
+		}
+
 		st.Tasks = append(st.Tasks, StatusTask{
 			Id:                parseTaskId(task.TaskArn),
 			StartedBy:         aws.ToString(task.StartedBy),
@@ -163,7 +175,8 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 			Status:            aws.ToString(task.LastStatus),
 			StatusExplanation: mapTaskStatusToExplanation(task, svcHealth),
 			Health:            string(task.HealthStatus),
-			Containers:        mapTaskContainers(task, svcHealth),
+			Containers:        mapTaskContainers(task, taskDef, svcHealth),
+			TaskDefinition:    taskDef,
 		})
 	}
 
@@ -193,23 +206,24 @@ func mapTaskStatusToExplanation(task ecstypes.Task, svcHealth ServiceHealth) str
 	return ""
 }
 
-func mapTaskContainers(task ecstypes.Task, svcHealth ServiceHealth) []StatusTaskContainer {
+func mapTaskContainers(task ecstypes.Task, taskDef *ecstypes.TaskDefinition, svcHealth ServiceHealth) []StatusTaskContainer {
 	containers := make([]StatusTaskContainer, 0)
 	for _, container := range task.Containers {
 		containers = append(containers, StatusTaskContainer{
 			Name:   aws.ToString(container.Name),
 			Status: aws.ToString(container.LastStatus),
 			Health: string(container.HealthStatus),
-			Ports:  mapContainerPorts(container, svcHealth),
+			Ports:  mapContainerPorts(container, taskDef, svcHealth),
 		})
 	}
 	return containers
 }
 
-func mapContainerPorts(container ecstypes.Container, svcHealth ServiceHealth) []StatusTaskContainerPort {
+func mapContainerPorts(container ecstypes.Container, taskDef *ecstypes.TaskDefinition, svcHealth ServiceHealth) []StatusTaskContainerPort {
+	// for _, def := range taskDef.ContainerDefinitions {
+	//
+	// }
 	ports := make([]StatusTaskContainerPort, 0)
-	log.Printf("DEBUG: network_interfaces: %#v\n", container.NetworkInterfaces)
-	log.Printf("DEBUG: network_bindings: %#v\n", container.NetworkBindings)
 	for _, nb := range container.NetworkBindings {
 		port := StatusTaskContainerPort{
 			Protocol:      string(nb.Protocol),
