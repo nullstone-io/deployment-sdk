@@ -144,6 +144,7 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	if err != nil {
 		return st, err
 	}
+	log.Printf("DEBUG: svcHealth: %#v\n", svcHealth)
 
 	tasks, err := GetServiceTasks(ctx, s.Infra)
 	if err != nil {
@@ -205,6 +206,7 @@ func mapTaskContainers(task ecstypes.Task, svcHealth ServiceHealth) []StatusTask
 
 func mapContainerPorts(container ecstypes.Container, svcHealth ServiceHealth) []StatusTaskContainerPort {
 	ports := make([]StatusTaskContainerPort, 0)
+	log.Printf("DEBUG: network_interfaces: %#v\n", container.NetworkInterfaces)
 	log.Printf("DEBUG: network_bindings: %#v\n", container.NetworkBindings)
 	for _, nb := range container.NetworkBindings {
 		port := StatusTaskContainerPort{
