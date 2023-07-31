@@ -50,8 +50,8 @@ type StatusOverviewDeployment struct {
 }
 
 type Status struct {
-	Tasks         []StatusTask            `json:"tasks"`
-	LoadBalancers []ecstypes.LoadBalancer `json:"loadBalancers"`
+	Tasks         []StatusTask                `json:"tasks"`
+	LoadBalancers []ServiceLoadBalancerHealth `json:"loadBalancers"`
 }
 
 type StatusTask struct {
@@ -146,6 +146,7 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 		return st, err
 	}
 	log.Printf("DEBUG: svcHealth: %#v\n", svcHealth)
+	st.LoadBalancers = svcHealth.LoadBalancers
 
 	tasks, err := GetServiceTasks(ctx, s.Infra)
 	if err != nil {
