@@ -8,7 +8,6 @@ import (
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
-	"log"
 	"strings"
 	"time"
 )
@@ -223,15 +222,14 @@ func mapTaskContainers(task ecstypes.Task, taskDef *ecstypes.TaskDefinition, svc
 func mapContainerPorts(container ecstypes.Container, taskDef *ecstypes.TaskDefinition, svcHealth ServiceHealth) []StatusTaskContainerPort {
 	ports := make([]StatusTaskContainerPort, 0)
 
-	for _, ni := range container.NetworkInterfaces {
-		log.Printf("DEBUG: network_interface: %#v", ni)
-		def := taskDef.ContainerDefinitions[0]
-		log.Printf("DEBUG: task_definition: %#v", def)
+	containerDef := findContainerDefinition(container, taskDef)
+	ni := container.NetworkInterfaces[0]
+	for _, mapping := range containerDef.PortMappings {
 		port := StatusTaskContainerPort{
-			Protocol:      string(def.PortMappings[0].Protocol),
+			Protocol:      string(mapping.Protocol),
 			IpAddress:     aws.ToString(ni.PrivateIpv4Address),
-			HostPort:      aws.ToInt32(def.PortMappings[0].HostPort),
-			ContainerPort: aws.ToInt32(def.PortMappings[0].ContainerPort),
+			HostPort:      aws.ToInt32(mapping.HostPort),
+			ContainerPort: aws.ToInt32(mapping.ContainerPort),
 		}
 
 		tgh := svcHealth.FindByTargetId(aws.ToString(ni.PrivateIpv4Address))
@@ -239,9 +237,17 @@ func mapContainerPorts(container ecstypes.Container, taskDef *ecstypes.TaskDefin
 			port.HealthStatus = string(tgh.TargetHealth.State)
 			port.HealthReason = string(tgh.TargetHealth.Reason)
 		}
-		log.Printf("DEBUG: port: %#v", port)
 
 		ports = append(ports, port)
 	}
 	return ports
+}
+
+func findContainerDefinition(container ecstypes.Container, taskDef *ecstypes.TaskDefinition) *ecstypes.ContainerDefinition {
+	for _, def := range taskDef.ContainerDefinitions {
+		if aws.ToString(def.Name) == aws.ToString(container.Name) {
+			return &def
+		}
+	}
+	return nil
 }
