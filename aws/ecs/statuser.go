@@ -38,15 +38,16 @@ type StatusOverview struct {
 }
 
 type StatusOverviewDeployment struct {
-	Id                 string    `json:"id"`
-	CreatedAt          time.Time `json:"createdAt"`
-	Status             string    `json:"status"`
-	RolloutState       string    `json:"rolloutState"`
-	RolloutStateReason string    `json:"rolloutStateReason"`
-	DesiredCount       int32     `json:"desiredCount"`
-	PendingCount       int32     `json:"pendingCount"`
-	RunningCount       int32     `json:"runningCount"`
-	FailedCount        int32     `json:"failedCount"`
+	Id                 string              `json:"id"`
+	CreatedAt          time.Time           `json:"createdAt"`
+	Status             string              `json:"status"`
+	RolloutState       string              `json:"rolloutState"`
+	RolloutStateReason string              `json:"rolloutStateReason"`
+	DesiredCount       int32               `json:"desiredCount"`
+	PendingCount       int32               `json:"pendingCount"`
+	RunningCount       int32               `json:"runningCount"`
+	FailedCount        int32               `json:"failedCount"`
+	Deployment         ecstypes.Deployment `json:"deployment"`
 }
 
 type Status struct {
@@ -129,6 +130,7 @@ func (s Statuser) StatusOverview(ctx context.Context) (any, error) {
 			PendingCount:       deployment.PendingCount,
 			RunningCount:       deployment.RunningCount,
 			FailedCount:        deployment.FailedTasks,
+			Deployment:         deployment,
 		})
 	}
 	return so, nil
