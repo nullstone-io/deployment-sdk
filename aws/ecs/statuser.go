@@ -81,11 +81,11 @@ type StatusTaskContainerPort struct {
 	ContainerPort int32 `json:"containerPort"`
 	// HealthStatus refers to the status for an attached load balancer
 	// This is "" if there is no attached load balancer
-	HealthStatus string `json:"status"`
+	HealthStatus string `json:"healthStatus"`
 	// HealthReason refers to the detailed reason for an attached load balancer
 	// This is "" if there is no attached load balancer
 	// See github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types/TargetHealthReasonEnum
-	HealthReason string `json:"reason"`
+	HealthReason string `json:"healthReason"`
 }
 
 func NewStatuser(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.Statuser, error) {
