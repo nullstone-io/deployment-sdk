@@ -8,7 +8,6 @@ import (
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
-	"log"
 	"strings"
 	"time"
 )
@@ -38,16 +37,15 @@ type StatusOverview struct {
 }
 
 type StatusOverviewDeployment struct {
-	Id                 string              `json:"id"`
-	CreatedAt          time.Time           `json:"createdAt"`
-	Status             string              `json:"status"`
-	RolloutState       string              `json:"rolloutState"`
-	RolloutStateReason string              `json:"rolloutStateReason"`
-	DesiredCount       int32               `json:"desiredCount"`
-	PendingCount       int32               `json:"pendingCount"`
-	RunningCount       int32               `json:"runningCount"`
-	FailedCount        int32               `json:"failedCount"`
-	Deployment         ecstypes.Deployment `json:"deployment"`
+	Id                 string    `json:"id"`
+	CreatedAt          time.Time `json:"createdAt"`
+	Status             string    `json:"status"`
+	RolloutState       string    `json:"rolloutState"`
+	RolloutStateReason string    `json:"rolloutStateReason"`
+	DesiredCount       int32     `json:"desiredCount"`
+	PendingCount       int32     `json:"pendingCount"`
+	RunningCount       int32     `json:"runningCount"`
+	FailedCount        int32     `json:"failedCount"`
 }
 
 type Status struct {
@@ -55,16 +53,15 @@ type Status struct {
 }
 
 type StatusTask struct {
-	Id                string                   `json:"id"`
-	StartedBy         string                   `json:"startedBy"`
-	StartedAt         *time.Time               `json:"startedAt"`
-	StoppedAt         *time.Time               `json:"stoppedAt"`
-	StoppedReason     string                   `json:"stoppedReason"`
-	Status            string                   `json:"status"`
-	StatusExplanation string                   `json:"statusExplanation"`
-	Health            string                   `json:"health"`
-	Containers        []StatusTaskContainer    `json:"containers"`
-	TaskDefinition    *ecstypes.TaskDefinition `json:"taskDefinition"`
+	Id                string                `json:"id"`
+	StartedBy         string                `json:"startedBy"`
+	StartedAt         *time.Time            `json:"startedAt"`
+	StoppedAt         *time.Time            `json:"stoppedAt"`
+	StoppedReason     string                `json:"stoppedReason"`
+	Status            string                `json:"status"`
+	StatusExplanation string                `json:"statusExplanation"`
+	Health            string                `json:"health"`
+	Containers        []StatusTaskContainer `json:"containers"`
 }
 
 type StatusTaskContainer struct {
@@ -130,7 +127,6 @@ func (s Statuser) StatusOverview(ctx context.Context) (any, error) {
 			PendingCount:       deployment.PendingCount,
 			RunningCount:       deployment.RunningCount,
 			FailedCount:        deployment.FailedTasks,
-			Deployment:         deployment,
 		})
 	}
 	return so, nil
@@ -179,7 +175,6 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 			StatusExplanation: mapTaskStatusToExplanation(task, svcHealth),
 			Health:            string(task.HealthStatus),
 			Containers:        mapTaskContainers(task, taskDef, svcHealth),
-			TaskDefinition:    taskDef,
 		})
 	}
 
@@ -226,8 +221,6 @@ func mapContainerPorts(container ecstypes.Container, taskDef *ecstypes.TaskDefin
 	ports := make([]StatusTaskContainerPort, 0)
 
 	containerDef := findContainerDefinition(container, taskDef)
-	log.Printf("DEBUG: container name: %s\n", aws.ToString(container.Name))
-	log.Printf("DEBUG: port_mappings: %#v\n", containerDef.PortMappings)
 	ni := container.NetworkInterfaces[0]
 	for _, mapping := range containerDef.PortMappings {
 		port := StatusTaskContainerPort{
