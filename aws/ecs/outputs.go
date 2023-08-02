@@ -25,6 +25,10 @@ func (o Outputs) ClusterArn() string {
 	return o.Cluster.ClusterArn
 }
 
+func (o Outputs) TaskFamily() string {
+	return o.TaskArn[:len(o.TaskArn)-len(":1")]
+}
+
 type ClusterNamespaceOutputs struct {
 	ClusterArn string `ns:"cluster_arn"`
 }

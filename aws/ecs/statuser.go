@@ -109,7 +109,7 @@ type Statuser struct {
 func (s Statuser) StatusOverview(ctx context.Context) (any, error) {
 	so := StatusOverview{Deployments: make([]StatusOverviewDeployment, 0)}
 	if s.Infra.ServiceName == "" {
-		// TODO: Add support for Nullstone tasks (apps that aren't long-running)
+		// no service name means this is an ecs task and there are no deployments
 		return so, nil
 	}
 
@@ -138,13 +138,12 @@ func (s Statuser) StatusOverview(ctx context.Context) (any, error) {
 
 func (s Statuser) Status(ctx context.Context) (any, error) {
 	st := Status{Tasks: make([]StatusTask, 0)}
-
-	svcHealth, err := GetServiceHealth(ctx, s.Infra)
+	tasks, err := s.getTasks(ctx)
 	if err != nil {
 		return st, err
 	}
 
-	tasks, err := GetServiceTasks(ctx, s.Infra)
+	svcHealth, err := GetServiceHealth(ctx, s.Infra)
 	if err != nil {
 		return st, err
 	}
@@ -179,6 +178,14 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	}
 
 	return st, nil
+}
+
+func (s Statuser) getTasks(ctx context.Context) ([]ecstypes.Task, error) {
+	if s.Infra.ServiceName == "" {
+		return GetTaskFamilyTasks(ctx, s.Infra)
+	} else {
+		return GetServiceTasks(ctx, s.Infra)
+	}
 }
 
 func parseTaskId(taskArn *string) string {
