@@ -225,6 +225,9 @@ func mapContainerPorts(container ecstypes.Container, taskDef *ecstypes.TaskDefin
 	ports := make([]StatusTaskContainerPort, 0)
 
 	containerDef := findContainerDefinition(container, taskDef)
+	if containerDef == nil {
+		return ports
+	}
 	ni := container.NetworkInterfaces[0]
 	for _, mapping := range containerDef.PortMappings {
 		port := StatusTaskContainerPort{
