@@ -108,6 +108,10 @@ type Statuser struct {
 
 func (s Statuser) StatusOverview(ctx context.Context) (any, error) {
 	so := StatusOverview{Deployments: make([]StatusOverviewDeployment, 0)}
+	if s.Infra.ServiceName == "" {
+		// TODO: Add support for Nullstone tasks (apps that aren't long-running)
+		return so, nil
+	}
 
 	svc, err := GetService(ctx, s.Infra)
 	if err != nil {
