@@ -54,6 +54,7 @@ type Status struct {
 
 type StatusTask struct {
 	Id                string                `json:"id"`
+	CreatedAt         *time.Time            `json:"createdAt"`
 	StartedBy         string                `json:"startedBy"`
 	StartedAt         *time.Time            `json:"startedAt"`
 	StoppedAt         *time.Time            `json:"stoppedAt"`
@@ -166,6 +167,7 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 
 		st.Tasks = append(st.Tasks, StatusTask{
 			Id:                parseTaskId(task.TaskArn),
+			CreatedAt:         task.CreatedAt,
 			StartedBy:         aws.ToString(task.StartedBy),
 			StartedAt:         task.StartedAt,
 			StoppedAt:         task.StoppedAt,
