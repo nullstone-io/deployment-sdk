@@ -11,19 +11,29 @@ import (
 
 func GetTaskFamilyTasks(ctx context.Context, infra Outputs) ([]ecstypes.Task, error) {
 	ecsClient := ecs.NewFromConfig(nsaws.NewConfig(infra.Deployer, infra.Region))
-	tasks, err := ecsClient.ListTasks(ctx, &ecs.ListTasksInput{
-		Cluster: aws.String(infra.ClusterArn()),
-		Family:  aws.String(infra.TaskFamily()),
+	maxResults := int32(10)
+	runningTasks, err := ecsClient.ListTasks(ctx, &ecs.ListTasksInput{
+		Cluster:       aws.String(infra.ClusterArn()),
+		Family:        aws.String(infra.TaskFamily()),
+		MaxResults:    &maxResults,
+		DesiredStatus: ecstypes.DesiredStatusRunning,
+	})
+	stoppedTasks, err := ecsClient.ListTasks(ctx, &ecs.ListTasksInput{
+		Cluster:       aws.String(infra.ClusterArn()),
+		Family:        aws.String(infra.TaskFamily()),
+		MaxResults:    &maxResults,
+		DesiredStatus: ecstypes.DesiredStatusStopped,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("unable to get tasks associated with task family (%s): %w", infra.TaskFamily(), err)
 	}
 
 	// if there aren't any tasks returned, we can't fetch any task descriptions
-	if len(tasks.TaskArns) == 0 {
+	tasks := append(runningTasks.TaskArns, stoppedTasks.TaskArns...)
+	if len(tasks) == 0 {
 		return nil, nil
 	}
-	pagedTasks := tasks.TaskArns[:10]
+	pagedTasks := tasks[:maxResults]
 
 	out, err := ecsClient.DescribeTasks(ctx, &ecs.DescribeTasksInput{
 		Cluster: aws.String(infra.ClusterArn()),
