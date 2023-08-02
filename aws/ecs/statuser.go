@@ -257,6 +257,9 @@ func mapContainerPorts(container ecstypes.Container, taskDef *ecstypes.TaskDefin
 }
 
 func findContainerDefinition(container ecstypes.Container, taskDef *ecstypes.TaskDefinition) *ecstypes.ContainerDefinition {
+	if taskDef == nil {
+		return nil
+	}
 	for _, def := range taskDef.ContainerDefinitions {
 		if aws.ToString(def.Name) == aws.ToString(container.Name) {
 			return &def
