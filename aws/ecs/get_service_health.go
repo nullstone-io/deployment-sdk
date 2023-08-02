@@ -18,6 +18,10 @@ type ServiceLoadBalancerHealth struct {
 
 func GetServiceHealth(ctx context.Context, infra Outputs) (ServiceHealth, error) {
 	result := ServiceHealth{LoadBalancers: make([]ServiceLoadBalancerHealth, 0)}
+	if infra.ServiceName == "" {
+		return result, nil
+	}
+
 	svc, err := GetService(ctx, infra)
 	if err != nil {
 		return result, err

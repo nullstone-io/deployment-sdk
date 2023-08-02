@@ -138,10 +138,6 @@ func (s Statuser) StatusOverview(ctx context.Context) (any, error) {
 
 func (s Statuser) Status(ctx context.Context) (any, error) {
 	st := Status{Tasks: make([]StatusTask, 0)}
-	if s.Infra.ServiceName == "" {
-		// TODO: Add support for Nullstone tasks (apps that aren't long-running)
-		return st, nil
-	}
 
 	svcHealth, err := GetServiceHealth(ctx, s.Infra)
 	if err != nil {
