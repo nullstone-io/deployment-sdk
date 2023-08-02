@@ -11,17 +11,14 @@ import (
 
 func GetTaskFamilyTasks(ctx context.Context, infra Outputs) ([]ecstypes.Task, error) {
 	ecsClient := ecs.NewFromConfig(nsaws.NewConfig(infra.Deployer, infra.Region))
-	maxResults := int32(10)
 	runningTasks, err := ecsClient.ListTasks(ctx, &ecs.ListTasksInput{
 		Cluster:       aws.String(infra.ClusterArn()),
 		Family:        aws.String(infra.TaskFamily()),
-		MaxResults:    &maxResults,
 		DesiredStatus: ecstypes.DesiredStatusRunning,
 	})
 	stoppedTasks, err := ecsClient.ListTasks(ctx, &ecs.ListTasksInput{
 		Cluster:       aws.String(infra.ClusterArn()),
 		Family:        aws.String(infra.TaskFamily()),
-		MaxResults:    &maxResults,
 		DesiredStatus: ecstypes.DesiredStatusStopped,
 	})
 	if err != nil {
@@ -33,11 +30,10 @@ func GetTaskFamilyTasks(ctx context.Context, infra Outputs) ([]ecstypes.Task, er
 	if len(tasks) == 0 {
 		return nil, nil
 	}
-	pagedTasks := tasks[:maxResults]
 
 	out, err := ecsClient.DescribeTasks(ctx, &ecs.DescribeTasksInput{
 		Cluster: aws.String(infra.ClusterArn()),
-		Tasks:   pagedTasks,
+		Tasks:   tasks,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("unable to get task details: %w", err)
