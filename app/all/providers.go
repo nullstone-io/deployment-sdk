@@ -4,6 +4,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/app/container/aws-ecs-ec2"
 	"github.com/nullstone-io/deployment-sdk/app/container/aws-ecs-fargate"
+	aws_eks "github.com/nullstone-io/deployment-sdk/app/container/aws-eks"
 	gcp_gke_service "github.com/nullstone-io/deployment-sdk/app/container/gcp-gke-service"
 	"github.com/nullstone-io/deployment-sdk/app/server/aws-beanstalk"
 	"github.com/nullstone-io/deployment-sdk/app/serverless/aws-lambda-container"
@@ -15,6 +16,7 @@ var (
 	Providers = app.Providers{
 		aws_ecs_fargate.ModuleContractName:      aws_ecs_fargate.Provider,
 		aws_ecs_ec2.ModuleContractName:          aws_ecs_ec2.Provider,
+		aws_eks.ModuleContractName:              aws_eks.Provider,
 		aws_s3.ModuleContractName:               aws_s3.Provider,
 		aws_lambda_zip.ModuleContractName:       aws_lambda_zip.Provider,
 		aws_lambda_container.ModuleContractName: aws_lambda_container.Provider,
