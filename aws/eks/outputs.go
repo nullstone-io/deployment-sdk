@@ -46,7 +46,10 @@ func (o ClusterNamespaceOutputs) GetClusterName() string {
 }
 
 func (o ClusterNamespaceOutputs) ClusterInfo() (clientcmdapi.Cluster, error) {
-	endpoint, caCertificate := o.ClusterEndpoint, o.ClusterCACertificate
+	return GetClusterInfo(o.ClusterEndpoint, o.ClusterCACertificate)
+}
+
+func GetClusterInfo(endpoint, caCertificate string) (clientcmdapi.Cluster, error) {
 	decodedCACert, err := base64.StdEncoding.DecodeString(caCertificate)
 	if err != nil {
 		return clientcmdapi.Cluster{}, fmt.Errorf("invalid cluster CA certificate: %w", err)
