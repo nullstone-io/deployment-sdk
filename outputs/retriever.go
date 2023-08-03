@@ -7,10 +7,6 @@ import (
 	"reflect"
 )
 
-var (
-	ErrNoWorkspaceOutputs = fmt.Errorf("this workspace has not yet been successfully launched, no outputs exist yet")
-)
-
 func Retrieve[T any](nsConfig api.Config, workspace *types.Workspace) (T, error) {
 	var t T
 	r := Retriever{NsConfig: nsConfig}
@@ -22,6 +18,16 @@ func Retrieve[T any](nsConfig api.Config, workspace *types.Workspace) (T, error)
 
 type Retriever struct {
 	NsConfig api.Config
+}
+
+var _ error = NoWorkspaceOutputsError{}
+
+type NoWorkspaceOutputsError struct {
+	workspace types.Workspace
+}
+
+func (n NoWorkspaceOutputsError) Error() string {
+	return fmt.Sprintf("No outputs found for workspace %s/%d/%d/%d", n.workspace.OrgName, n.workspace.StackId, n.workspace.BlockId, n.workspace.EnvId)
 }
 
 // Retrieve is capable of retrieving all outputs for a given workspace
@@ -48,7 +54,7 @@ func (r *Retriever) Retrieve(workspace *types.Workspace, obj interface{}) error 
 		return fmt.Errorf("unable to fetch the outputs for %s/%s: %w", workspace.OrgName, wt.Id(), err)
 	}
 	if workspaceOutputs == nil {
-		return ErrNoWorkspaceOutputs
+		return NoWorkspaceOutputsError{workspace: *workspace}
 	}
 
 	fields := GetFields(reflect.TypeOf(obj).Elem())
