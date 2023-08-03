@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"gopkg.in/nullstone-io/go-api-client.v0"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
-	"log"
 	"reflect"
 )
 
@@ -54,8 +53,7 @@ func (r *Retriever) Retrieve(workspace *types.Workspace, obj interface{}) error 
 		}
 		return fmt.Errorf("unable to fetch the outputs for %s/%s: %w", workspace.OrgName, wt.Id(), err)
 	}
-	log.Printf("workspace outputs: %#v", workspaceOutputs)
-	if workspaceOutputs == nil {
+	if len(workspaceOutputs) == 0 {
 		return NoWorkspaceOutputsError{workspace: *workspace}
 	}
 
