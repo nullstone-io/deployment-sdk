@@ -3,6 +3,7 @@ package ecs
 import (
 	"github.com/nullstone-io/deployment-sdk/aws"
 	"github.com/nullstone-io/deployment-sdk/docker"
+	"strings"
 )
 
 type Outputs struct {
@@ -23,6 +24,12 @@ func (o Outputs) ClusterArn() string {
 		return o.ClusterNamespace.ClusterArn
 	}
 	return o.Cluster.ClusterArn
+}
+
+func (o Outputs) TaskFamily() string {
+	temp := strings.Split(o.TaskArn, ":")
+	family := temp[len(temp)-2]
+	return strings.Split(family, "/")[1]
 }
 
 type ClusterNamespaceOutputs struct {

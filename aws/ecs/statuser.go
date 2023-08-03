@@ -8,6 +8,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
+	"strings"
 	"time"
 )
 
@@ -36,6 +37,7 @@ type StatusOverview struct {
 }
 
 type StatusOverviewDeployment struct {
+	Id                 string    `json:"id"`
 	CreatedAt          time.Time `json:"createdAt"`
 	Status             string    `json:"status"`
 	RolloutState       string    `json:"rolloutState"`
@@ -51,7 +53,9 @@ type Status struct {
 }
 
 type StatusTask struct {
-	TaskId            string                `json:"taskId"`
+	Id                string                `json:"id"`
+	CreatedAt         *time.Time            `json:"createdAt"`
+	StartedBy         string                `json:"startedBy"`
 	StartedAt         *time.Time            `json:"startedAt"`
 	StoppedAt         *time.Time            `json:"stoppedAt"`
 	StoppedReason     string                `json:"stoppedReason"`
@@ -77,11 +81,11 @@ type StatusTaskContainerPort struct {
 	ContainerPort int32 `json:"containerPort"`
 	// HealthStatus refers to the status for an attached load balancer
 	// This is "" if there is no attached load balancer
-	HealthStatus string `json:"status"`
+	HealthStatus string `json:"healthStatus"`
 	// HealthReason refers to the detailed reason for an attached load balancer
 	// This is "" if there is no attached load balancer
 	// See github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types/TargetHealthReasonEnum
-	HealthReason string `json:"reason"`
+	HealthReason string `json:"healthReason"`
 }
 
 func NewStatuser(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.Statuser, error) {
@@ -105,6 +109,10 @@ type Statuser struct {
 
 func (s Statuser) StatusOverview(ctx context.Context) (any, error) {
 	so := StatusOverview{Deployments: make([]StatusOverviewDeployment, 0)}
+	if s.Infra.ServiceName == "" {
+		// no service name means this is an ecs task and there are no deployments
+		return so, nil
+	}
 
 	svc, err := GetService(ctx, s.Infra)
 	if err != nil {
@@ -115,6 +123,7 @@ func (s Statuser) StatusOverview(ctx context.Context) (any, error) {
 
 	for _, deployment := range svc.Deployments {
 		so.Deployments = append(so.Deployments, StatusOverviewDeployment{
+			Id:                 aws.ToString(deployment.Id),
 			CreatedAt:          aws.ToTime(deployment.CreatedAt),
 			Status:             aws.ToString(deployment.Status),
 			RolloutState:       string(deployment.RolloutState),
@@ -130,9 +139,9 @@ func (s Statuser) StatusOverview(ctx context.Context) (any, error) {
 
 func (s Statuser) Status(ctx context.Context) (any, error) {
 	st := Status{Tasks: make([]StatusTask, 0)}
-	if s.Infra.ServiceName == "" {
-		// TODO: Add support for Nullstone tasks (apps that aren't long-running)
-		return st, nil
+	tasks, err := s.getTasks(ctx)
+	if err != nil {
+		return st, err
 	}
 
 	svcHealth, err := GetServiceHealth(ctx, s.Infra)
@@ -140,27 +149,53 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 		return st, err
 	}
 
-	tasks, err := GetServiceTasks(ctx, s.Infra)
-	if err != nil {
-		return st, err
-	} else if len(tasks) > 0 {
-		return st, nil
-	}
-
+	taskDefs := map[string]*ecstypes.TaskDefinition{}
 	for _, task := range tasks {
+		var taskDef *ecstypes.TaskDefinition
+		if task.TaskDefinitionArn != nil {
+			if def, ok := taskDefs[*task.TaskDefinitionArn]; ok {
+				taskDef = def
+			} else {
+				def, err := GetTaskDefinition(ctx, s.Infra)
+				if err != nil {
+					return st, err
+				}
+				taskDefs[*task.TaskDefinitionArn] = def
+				taskDef = def
+			}
+		}
+
 		st.Tasks = append(st.Tasks, StatusTask{
-			TaskId:            "", // TODO: Get TaskId
+			Id:                parseTaskId(task.TaskArn),
+			CreatedAt:         task.CreatedAt,
+			StartedBy:         aws.ToString(task.StartedBy),
 			StartedAt:         task.StartedAt,
 			StoppedAt:         task.StoppedAt,
 			StoppedReason:     aws.ToString(task.StoppedReason),
 			Status:            aws.ToString(task.LastStatus),
 			StatusExplanation: mapTaskStatusToExplanation(task, svcHealth),
 			Health:            string(task.HealthStatus),
-			Containers:        mapTaskContainers(task, svcHealth),
+			Containers:        mapTaskContainers(task, taskDef, svcHealth),
 		})
 	}
 
 	return st, nil
+}
+
+func (s Statuser) getTasks(ctx context.Context) ([]ecstypes.Task, error) {
+	if s.Infra.ServiceName == "" {
+		return GetTaskFamilyTasks(ctx, s.Infra)
+	} else {
+		return GetServiceTasks(ctx, s.Infra)
+	}
+}
+
+func parseTaskId(taskArn *string) string {
+	if taskArn == nil {
+		return ""
+	}
+	arn := *taskArn
+	return arn[strings.LastIndex(arn, "/")+1:]
 }
 
 func mapTaskStatusToExplanation(task ecstypes.Task, svcHealth ServiceHealth) string {
@@ -178,36 +213,57 @@ func mapTaskStatusToExplanation(task ecstypes.Task, svcHealth ServiceHealth) str
 	return ""
 }
 
-func mapTaskContainers(task ecstypes.Task, svcHealth ServiceHealth) []StatusTaskContainer {
+func mapTaskContainers(task ecstypes.Task, taskDef *ecstypes.TaskDefinition, svcHealth ServiceHealth) []StatusTaskContainer {
 	containers := make([]StatusTaskContainer, 0)
 	for _, container := range task.Containers {
 		containers = append(containers, StatusTaskContainer{
 			Name:   aws.ToString(container.Name),
 			Status: aws.ToString(container.LastStatus),
 			Health: string(container.HealthStatus),
-			Ports:  mapContainerPorts(container, svcHealth),
+			Ports:  mapContainerPorts(container, taskDef, svcHealth),
 		})
 	}
 	return containers
 }
 
-func mapContainerPorts(container ecstypes.Container, svcHealth ServiceHealth) []StatusTaskContainerPort {
+func mapContainerPorts(container ecstypes.Container, taskDef *ecstypes.TaskDefinition, svcHealth ServiceHealth) []StatusTaskContainerPort {
 	ports := make([]StatusTaskContainerPort, 0)
-	for _, nb := range container.NetworkBindings {
+
+	containerDef := findContainerDefinition(container, taskDef)
+	if containerDef == nil {
+		return ports
+	}
+	ipAddress := ""
+	if len(container.NetworkInterfaces) > 0 {
+		ipAddress = aws.ToString(container.NetworkInterfaces[0].PrivateIpv4Address)
+	}
+	for _, mapping := range containerDef.PortMappings {
 		port := StatusTaskContainerPort{
-			Protocol:      string(nb.Protocol),
-			IpAddress:     aws.ToString(nb.BindIP),
-			HostPort:      aws.ToInt32(nb.HostPort),
-			ContainerPort: aws.ToInt32(nb.ContainerPort),
+			Protocol:      string(mapping.Protocol),
+			IpAddress:     ipAddress,
+			HostPort:      aws.ToInt32(mapping.HostPort),
+			ContainerPort: aws.ToInt32(mapping.ContainerPort),
 		}
 
-		tgh := svcHealth.FindByTargetId(aws.ToString(nb.BindIP))
+		tgh := svcHealth.FindByTargetId(ipAddress)
 		if tgh != nil && tgh.TargetHealth != nil {
 			port.HealthStatus = string(tgh.TargetHealth.State)
 			port.HealthReason = string(tgh.TargetHealth.Reason)
 		}
 
-		ports = append(ports)
+		ports = append(ports, port)
 	}
 	return ports
+}
+
+func findContainerDefinition(container ecstypes.Container, taskDef *ecstypes.TaskDefinition) *ecstypes.ContainerDefinition {
+	if taskDef == nil {
+		return nil
+	}
+	for _, def := range taskDef.ContainerDefinitions {
+		if aws.ToString(def.Name) == aws.ToString(container.Name) {
+			return &def
+		}
+	}
+	return nil
 }
