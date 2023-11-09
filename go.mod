@@ -24,7 +24,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/vmihailenco/tagparser v0.1.2
 	golang.org/x/oauth2 v0.0.0-20210402161424-2e8d93401602
-	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20230803022234-8b5fed82fe42
+	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20231109204408-47911e567aec
 	k8s.io/api v0.20.6
 	k8s.io/apimachinery v0.20.6
 	k8s.io/client-go v0.20.6
@@ -61,7 +61,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/googleapis/gnostic v0.4.1 // indirect
-	github.com/gorilla/mux v1.7.3 // indirect
+	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.6.0 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
