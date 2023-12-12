@@ -3,6 +3,7 @@ package aws_beanstalk
 import (
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/aws/beanstalk"
+	"github.com/nullstone-io/deployment-sdk/aws/cloudwatch"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
 )
 
@@ -20,4 +21,5 @@ var Provider = app.Provider{
 	NewDeployer:        beanstalk.NewDeployer,
 	NewDeployWatcher:   app.NewPollingDeployWatcher(beanstalk.NewDeployStatusGetter),
 	NewStatuser:        nil,
+	NewLogStreamer:     cloudwatch.NewLogStreamer,
 }
