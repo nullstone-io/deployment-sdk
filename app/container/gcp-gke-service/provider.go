@@ -21,4 +21,5 @@ var Provider = app.Provider{
 	NewDeployer:        gke.NewDeployer,
 	NewDeployWatcher:   app.NewPollingDeployWatcher(gke.NewDeployStatusGetter),
 	NewStatuser:        nil,
+	NewLogStreamer:     gke.NewLogStreamer,
 }

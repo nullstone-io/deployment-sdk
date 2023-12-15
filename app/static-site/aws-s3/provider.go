@@ -3,6 +3,7 @@ package aws_s3
 import (
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/aws/cdn"
+	"github.com/nullstone-io/deployment-sdk/aws/cloudwatch"
 	"github.com/nullstone-io/deployment-sdk/aws/s3"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
 )
@@ -21,4 +22,5 @@ var Provider = app.Provider{
 	NewDeployer:        s3.NewDeployer,
 	NewDeployWatcher:   app.NewPollingDeployWatcher(cdn.NewDeployStatusGetter),
 	NewStatuser:        nil,
+	NewLogStreamer:     cloudwatch.NewLogStreamer,
 }
