@@ -21,7 +21,7 @@ type LogMessage struct {
 
 	// Source is where the logs are stored
 	// Cloudwatch: Cloudwatch Log Group
-	// Kubernetes: <empty>
+	// Kubernetes: `appNamespace/appName`
 	Source string `json:"source"`
 
 	// Stream refers to the name of the log stream

@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func LogMessageFromLine(podName, containerName, line string) app.LogMessage {
+func LogMessageFromLine(appNamespace, appName, podName, containerName, line string) app.LogMessage {
 	var ts time.Time
 	timestamp, remaining := cutTimestampPrefix(line)
 	if timestamp != nil {
@@ -16,7 +16,7 @@ func LogMessageFromLine(podName, containerName, line string) app.LogMessage {
 
 	return app.LogMessage{
 		SourceType: "k8s",
-		Source:     "",
+		Source:     fmt.Sprintf("%s/%s", appNamespace, appName),
 		Stream:     fmt.Sprintf("%s/%s", podName, containerName),
 		Timestamp:  ts,
 		Message:    remaining,

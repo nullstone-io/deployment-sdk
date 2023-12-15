@@ -116,7 +116,7 @@ func (l LogStreamer) writeRequest(ctx context.Context, emitter app.LogEmitter, r
 		for {
 			str, readErr := r.ReadString('\n')
 			if str != "" {
-				emitter(LogMessageFromLine(podName, containerName, str))
+				emitter(LogMessageFromLine(l.AppNamespace, l.AppName, podName, containerName, str))
 			}
 			if readErr != nil {
 				if readErr == io.EOF {
