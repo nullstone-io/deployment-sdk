@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go/compute v1.32.0
 	cloud.google.com/go/logging v1.13.0
 	cloud.google.com/go/storage v1.47.0
+	github.com/aws/aws-sdk-go v1.44.332
 	github.com/aws/aws-sdk-go-v2 v1.26.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.16.16
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.15.13
