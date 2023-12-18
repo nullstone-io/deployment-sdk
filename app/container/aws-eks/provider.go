@@ -21,4 +21,5 @@ var Provider = app.Provider{
 	NewDeployer:        eks.NewDeployer,
 	NewDeployWatcher:   app.NewPollingDeployWatcher(eks.NewDeployStatusGetter),
 	NewStatuser:        nil,
+	NewLogStreamer:     eks.NewLogStreamer,
 }
