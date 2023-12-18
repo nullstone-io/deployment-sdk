@@ -42,7 +42,7 @@ func (d *DeployStatusGetter) initialize(ctx context.Context, reference string) e
 	return nil
 }
 
-// GetDeployStatus resolves the current status of the gke deployment
+// GetDeployStatus resolves the current status of the eks deployment
 // A Kubernetes Deployment allows for declarative updates for Pods and ReplicaSets
 // A Deployment is a desired state and is not versioned
 // However, a Deployment has a revision which we will track
