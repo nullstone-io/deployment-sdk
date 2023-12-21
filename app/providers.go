@@ -42,7 +42,7 @@ func (s Providers) FindStatuser(osWriters logging.OsWriters, nsConfig api.Config
 
 func (s Providers) FindLogStreamer(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (LogStreamer, error) {
 	factory := s.FindFactory(*appDetails.Module)
-	if factory == nil || factory.NewStatuser == nil {
+	if factory == nil || factory.NewLogStreamer == nil {
 		return nil, nil
 	}
 	return factory.NewLogStreamer(osWriters, nsConfig, appDetails)
