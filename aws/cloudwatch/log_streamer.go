@@ -56,7 +56,6 @@ func (l LogStreamer) Stream(ctx context.Context, options app.LogStreamOptions) e
 	}
 	logger.Println("Querying the following log groups:")
 	logger.Printf("\t%s\n", strings.Join(logGroupNames, "\n\t"))
-	logger.Println()
 
 	g, ctx := errgroup.WithContext(ctx)
 	for _, logGroupName := range logGroupNames {
