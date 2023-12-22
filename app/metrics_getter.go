@@ -19,41 +19,70 @@ type MetricsGetterOptions struct {
 
 func NewMetricsData() *MetricsData {
 	return &MetricsData{
-		Metrics: map[string]*MetricsDataMetric{},
+		Metrics: map[string]*MetricDataset{},
 	}
 }
 
 type MetricsData struct {
-	Metrics map[string]*MetricsDataMetric `json:"metrics"`
+	// Metrics are a collection of named datasets that can contain multiple series
+	// This enables easy translation into UI graphs
+	//   i.e. a dataset represents a single graph, a series is a plot on that graph
+	// Example:
+	//   "cpu" dataset
+	//     "cpu-reserved" series
+	//     "cpu-utilized" series
+	Metrics map[string]*MetricDataset `json:"metrics"`
 }
 
-func (d *MetricsData) Metric(metricName string) *MetricsDataMetric {
+func (d *MetricsData) GetDataset(metricName string) *MetricDataset {
 	if existing, ok := d.Metrics[metricName]; ok {
 		return existing
 	}
 
-	mdm := NewMetricsDataMetric(metricName)
-	d.Metrics[metricName] = mdm
-	return mdm
+	ds := NewMetricDataset(metricName)
+	d.Metrics[metricName] = ds
+	return ds
 }
 
-func NewMetricsDataMetric(metricName string) *MetricsDataMetric {
-	return &MetricsDataMetric{
-		Name:       metricName,
+func NewMetricDataset(metricName string) *MetricDataset {
+	return &MetricDataset{
+		Name:   metricName,
+		Series: map[string]*MetricSeries{},
+	}
+}
+
+type MetricDataset struct {
+	Name   string                   `json:"name"`
+	Series map[string]*MetricSeries `json:"series"`
+}
+
+func (d *MetricDataset) GetSeries(metricId string) *MetricSeries {
+	if existing, ok := d.Series[metricId]; ok {
+		return existing
+	}
+
+	ms := NewMetricSeries(metricId)
+	d.Series[metricId] = ms
+	return ms
+}
+
+func NewMetricSeries(id string) *MetricSeries {
+	return &MetricSeries{
+		Id:         id,
 		MinValue:   math.MaxFloat64,
 		MaxValue:   0,
 		Datapoints: make([]MetricDataPoint, 0),
 	}
 }
 
-type MetricsDataMetric struct {
-	Name       string            `json:"name"`
+type MetricSeries struct {
+	Id         string            `json:"id"`
 	MinValue   float64           `json:"minValue"`
 	MaxValue   float64           `json:"maxValue"`
 	Datapoints []MetricDataPoint `json:"datapoints"`
 }
 
-func (m *MetricsDataMetric) AddPoint(timestamp time.Time, value float64) {
+func (m *MetricSeries) AddPoint(timestamp time.Time, value float64) {
 	if value > m.MaxValue {
 		m.MaxValue = value
 	}

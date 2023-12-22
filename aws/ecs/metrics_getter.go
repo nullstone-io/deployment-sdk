@@ -3,6 +3,7 @@ package ecs
 import (
 	"context"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	cloudwatch2 "github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/nullstone-io/deployment-sdk/app"
 	nsaws "github.com/nullstone-io/deployment-sdk/aws"
@@ -11,8 +12,17 @@ import (
 )
 
 var _ app.MetricsGetter = MetricsGetter{}
-var _ cloudwatch.MetricsQueriesBuilder = MetricsGetter{}
 
+// MetricsGetter retrieves metrics for an ECS container app with the following datasets (filtered by options)
+// cpu
+//
+//	cpu-reserved
+//	cpu-utilized
+//
+// memory
+//
+//	memory-reserved
+//	memory-utilized
 type MetricsGetter struct {
 	OsWriters logging.OsWriters
 	Details   app.Details
@@ -20,11 +30,35 @@ type MetricsGetter struct {
 }
 
 func (g MetricsGetter) Get(ctx context.Context, options app.MetricsGetterOptions) (*app.MetricsData, error) {
-	awsConfig := nsaws.NewConfig(g.Infra.LogReader, g.Infra.Region)
-	return cloudwatch.GetMetrics(ctx, awsConfig, g, options)
+	cwOptions := cloudwatch.GetMetricsOptions{
+		StartTime: options.StartTime,
+		EndTime:   options.EndTime,
+		Queries:   g.BuildMetricQueries(options.Metrics),
+	}
+
+	result := app.NewMetricsData()
+	ingest := func(output *cloudwatch2.GetMetricDataOutput) error {
+		for _, dataResult := range output.MetricDataResults {
+			metricId := *dataResult.Id
+			metricName, ok := MetricDatasetNameFromMetricId[metricId]
+			if !ok {
+				// This shouldn't happen, it means we don't have a mapping from metric id to its dataset
+				// Should we warn?
+				continue
+			}
+			curSeries := result.GetDataset(metricName).GetSeries(metricId)
+			for i := 0; i < len(dataResult.Timestamps); i++ {
+				curSeries.AddPoint(dataResult.Timestamps[i], dataResult.Values[i])
+			}
+		}
+		return nil
+	}
+
+	err := cloudwatch.GetMetrics(ctx, nsaws.NewConfig(g.Infra.LogReader, g.Infra.Region), cwOptions, ingest)
+	return result, err
 }
 
-func (g MetricsGetter) Build(metrics []string) []types.MetricDataQuery {
+func (g MetricsGetter) BuildMetricQueries(metrics []string) []types.MetricDataQuery {
 	accountId := g.Infra.AccountId()
 	periodSec := int32(5 * 60) // 5 minutes
 	dims := []types.Dimension{
@@ -40,72 +74,9 @@ func (g MetricsGetter) Build(metrics []string) []types.MetricDataQuery {
 
 	queries := make([]types.MetricDataQuery, 0)
 	for _, metric := range metrics {
-		cur := g.buildMetricQuery(metric, accountId, periodSec, dims)
-		if cur != nil {
-			queries = append(queries, *cur)
+		if fn, ok := MetricQueries[metric]; ok {
+			queries = append(queries, fn(accountId, periodSec, dims)...)
 		}
 	}
 	return queries
-}
-
-func (g MetricsGetter) buildMetricQuery(metric string, accountId string, periodSec int32, ecsServiceDims []types.Dimension) *types.MetricDataQuery {
-	switch metric {
-	case "memory-utilized":
-		return &types.MetricDataQuery{
-			Id:        aws.String(metric),
-			AccountId: aws.String(accountId),
-			MetricStat: &types.MetricStat{
-				Period: aws.Int32(periodSec),
-				Stat:   aws.String("Sum"),
-				Metric: &types.Metric{
-					Namespace:  aws.String("ECS/ContainerInsights"),
-					MetricName: aws.String("MemoryUtilized"),
-					Dimensions: ecsServiceDims,
-				},
-			},
-		}
-	case "memory-reserved":
-		return &types.MetricDataQuery{
-			Id:        aws.String(metric),
-			AccountId: aws.String(accountId),
-			MetricStat: &types.MetricStat{
-				Period: aws.Int32(periodSec),
-				Stat:   aws.String("Sum"),
-				Metric: &types.Metric{
-					Namespace:  aws.String("ECS/ContainerInsights"),
-					MetricName: aws.String("MemoryReserved"),
-					Dimensions: ecsServiceDims,
-				},
-			},
-		}
-	case "cpu-utilized":
-		return &types.MetricDataQuery{
-			Id:        aws.String(metric),
-			AccountId: aws.String(accountId),
-			MetricStat: &types.MetricStat{
-				Period: aws.Int32(periodSec),
-				Stat:   aws.String("Sum"),
-				Metric: &types.Metric{
-					Namespace:  aws.String("ECS/ContainerInsights"),
-					MetricName: aws.String("CpuUtilized"),
-					Dimensions: ecsServiceDims,
-				},
-			},
-		}
-	case "cpu-reserved":
-		return &types.MetricDataQuery{
-			Id:        aws.String(metric),
-			AccountId: aws.String(accountId),
-			MetricStat: &types.MetricStat{
-				Period: aws.Int32(periodSec),
-				Stat:   aws.String("Sum"),
-				Metric: &types.Metric{
-					Namespace:  aws.String("ECS/ContainerInsights"),
-					MetricName: aws.String("CpuReserved"),
-					Dimensions: ecsServiceDims,
-				},
-			},
-		}
-	}
-	return nil
 }

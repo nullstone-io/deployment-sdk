@@ -6,19 +6,20 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
-	"github.com/nullstone-io/deployment-sdk/app"
+	"time"
 )
 
-type MetricsQueriesBuilder interface {
-	Build(metrics []string) []types.MetricDataQuery
+type IngestMetricPageFunc func(output *cloudwatch.GetMetricDataOutput) error
+
+type GetMetricsOptions struct {
+	StartTime *time.Time
+	EndTime   *time.Time
+	Queries   []types.MetricDataQuery
 }
 
-func GetMetrics(ctx context.Context, awsConfig aws.Config, builder MetricsQueriesBuilder, options app.MetricsGetterOptions) (*app.MetricsData, error) {
+func GetMetrics(ctx context.Context, awsConfig aws.Config, options GetMetricsOptions, ingestFn IngestMetricPageFunc) error {
 	cwClient := cloudwatch.NewFromConfig(awsConfig)
 
-	result := app.NewMetricsData()
-
-	queries := builder.Build(options.Metrics)
 	var nextToken *string
 	for {
 		input := &cloudwatch.GetMetricDataInput{
@@ -27,19 +28,14 @@ func GetMetrics(ctx context.Context, awsConfig aws.Config, builder MetricsQuerie
 			LabelOptions:      &types.LabelOptions{Timezone: aws.String("+0000")}, // UTC
 			ScanBy:            types.ScanByTimestampAscending,
 			NextToken:         nextToken,
-			MetricDataQueries: queries,
+			MetricDataQueries: options.Queries,
 		}
 		out, err := cwClient.GetMetricData(ctx, input)
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving metrics data: %w", err)
+			return fmt.Errorf("error retrieving metrics data: %w", err)
 		}
-
-		for _, dataResult := range out.MetricDataResults {
-			curMetric := result.Metric(*dataResult.Id)
-			for i := 0; i < len(dataResult.Timestamps); i++ {
-				curMetric.AddPoint(dataResult.Timestamps[i], dataResult.Values[i])
-
-			}
+		if err := ingestFn(out); err != nil {
+			return err
 		}
 
 		nextToken = out.NextToken
@@ -48,5 +44,5 @@ func GetMetrics(ctx context.Context, awsConfig aws.Config, builder MetricsQuerie
 		}
 	}
 
-	return result, nil
+	return nil
 }
