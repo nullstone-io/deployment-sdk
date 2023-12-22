@@ -26,7 +26,7 @@ type MetricsGetter struct {
 	Infra     Outputs
 }
 
-func (g MetricsGetter) Get(ctx context.Context, options app.MetricsGetterOptions) (*app.MetricsData, error) {
+func (g MetricsGetter) GetMetrics(ctx context.Context, options app.MetricsGetterOptions) (*app.MetricsData, error) {
 	cwOptions := cloudwatch.GetMetricsOptions{
 		StartTime: options.StartTime,
 		EndTime:   options.EndTime,

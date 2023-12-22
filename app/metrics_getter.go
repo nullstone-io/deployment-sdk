@@ -7,7 +7,7 @@ import (
 )
 
 type MetricsGetter interface {
-	Get(ctx context.Context, options MetricsGetterOptions) (*MetricsData, error)
+	GetMetrics(ctx context.Context, options MetricsGetterOptions) (*MetricsData, error)
 }
 
 type MetricsGetterOptions struct {
