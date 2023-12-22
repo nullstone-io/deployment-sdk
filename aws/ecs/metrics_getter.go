@@ -52,6 +52,7 @@ func (g MetricsGetter) GetMetrics(ctx context.Context, options app.MetricsGetter
 	}
 
 	err := cloudwatch.GetMetrics(ctx, nsaws.NewConfig(g.Infra.LogReader, g.Infra.Region), cwOptions, ingest)
+	// TODO: Normalize series to have the same number of datapoints and ordered the same
 	return result, err
 }
 
