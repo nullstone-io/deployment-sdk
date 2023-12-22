@@ -10,6 +10,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/aws/cloudwatch"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
+	"gopkg.in/nullstone-io/go-api-client.v0"
 )
 
 var _ app.MetricsGetter = MetricsGetter{}
