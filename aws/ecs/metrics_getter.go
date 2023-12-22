@@ -9,9 +9,23 @@ import (
 	nsaws "github.com/nullstone-io/deployment-sdk/aws"
 	"github.com/nullstone-io/deployment-sdk/aws/cloudwatch"
 	"github.com/nullstone-io/deployment-sdk/logging"
+	"github.com/nullstone-io/deployment-sdk/outputs"
 )
 
 var _ app.MetricsGetter = MetricsGetter{}
+
+func NewMetricsGetter(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.MetricsGetter, error) {
+	outs, err := outputs.Retrieve[Outputs](nsConfig, appDetails.Workspace)
+	if err != nil {
+		return nil, err
+	}
+
+	return MetricsGetter{
+		OsWriters: osWriters,
+		Details:   appDetails,
+		Infra:     outs,
+	}, nil
+}
 
 // MetricsGetter retrieves metrics for an ECS container app with the following datasets (filtered by options)
 // cpu
