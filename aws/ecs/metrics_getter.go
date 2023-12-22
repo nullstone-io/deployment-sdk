@@ -15,14 +15,11 @@ var _ app.MetricsGetter = MetricsGetter{}
 
 // MetricsGetter retrieves metrics for an ECS container app with the following datasets (filtered by options)
 // cpu
-//
-//	cpu-reserved
-//	cpu-utilized
-//
+// - cpu-reserved
+// - cpu-utilized
 // memory
-//
-//	memory-reserved
-//	memory-utilized
+// - memory-reserved
+// - memory-utilized
 type MetricsGetter struct {
 	OsWriters logging.OsWriters
 	Details   app.Details
