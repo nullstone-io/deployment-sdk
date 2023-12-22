@@ -12,7 +12,7 @@ var (
 		"cpu": func(accountId string, periodSec int32, ecsServiceDims []types.Dimension) []types.MetricDataQuery {
 			return []types.MetricDataQuery{
 				{
-					Id:        aws.String("cpu-reserved"),
+					Id:        aws.String("cpu_reserved"),
 					AccountId: aws.String(accountId),
 					MetricStat: &types.MetricStat{
 						Period: aws.Int32(periodSec),
@@ -25,7 +25,7 @@ var (
 					},
 				},
 				{
-					Id:        aws.String("cpu-utilized"),
+					Id:        aws.String("cpu_utilized"),
 					AccountId: aws.String(accountId),
 					MetricStat: &types.MetricStat{
 						Period: aws.Int32(periodSec),
@@ -42,7 +42,7 @@ var (
 		"memory": func(accountId string, periodSec int32, ecsServiceDims []types.Dimension) []types.MetricDataQuery {
 			return []types.MetricDataQuery{
 				{
-					Id:        aws.String("memory-reserved"),
+					Id:        aws.String("memory_reserved"),
 					AccountId: aws.String(accountId),
 					MetricStat: &types.MetricStat{
 						Period: aws.Int32(periodSec),
@@ -55,7 +55,7 @@ var (
 					},
 				},
 				{
-					Id:        aws.String("memory-utilized"),
+					Id:        aws.String("memory_utilized"),
 					AccountId: aws.String(accountId),
 					MetricStat: &types.MetricStat{
 						Period: aws.Int32(periodSec),
@@ -71,9 +71,9 @@ var (
 		},
 	}
 	MetricDatasetNameFromMetricId = map[string]string{
-		"cpu-reserved":    "cpu",
-		"cpu-utilized":    "cpu",
-		"memory-reserved": "memory",
-		"memory-utilized": "memory",
+		"cpu_reserved":    "cpu",
+		"cpu_utilized":    "cpu",
+		"memory_reserved": "memory",
+		"memory_utilized": "memory",
 	}
 )

@@ -30,11 +30,11 @@ func NewMetricsGetter(osWriters logging.OsWriters, nsConfig api.Config, appDetai
 
 // MetricsGetter retrieves metrics for an ECS container app with the following datasets (filtered by options)
 // cpu
-// - cpu-reserved
-// - cpu-utilized
+// - cpu_reserved
+// - cpu_utilized
 // memory
-// - memory-reserved
-// - memory-utilized
+// - memory_reserved
+// - memory_utilized
 type MetricsGetter struct {
 	OsWriters logging.OsWriters
 	Details   app.Details
