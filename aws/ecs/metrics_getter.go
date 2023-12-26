@@ -11,6 +11,8 @@ import (
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
+	"math"
+	"time"
 )
 
 var _ app.MetricsGetter = MetricsGetter{}
@@ -33,8 +35,10 @@ func NewMetricsGetter(osWriters logging.OsWriters, nsConfig api.Config, appDetai
 // - cpu_reserved
 // - cpu_utilized
 // memory
-// - memory_reserved
-// - memory_utilized
+// - memory_reserved (MB)
+// - memory_utilized (MB)
+// ECS Container Insights: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Container-Insights-metrics-ECS.html
+// Default metric resolution is 1 minute
 type MetricsGetter struct {
 	OsWriters logging.OsWriters
 	Details   app.Details
@@ -45,7 +49,7 @@ func (g MetricsGetter) GetMetrics(ctx context.Context, options app.MetricsGetter
 	cwOptions := cloudwatch.GetMetricsOptions{
 		StartTime: options.StartTime,
 		EndTime:   options.EndTime,
-		Queries:   g.BuildMetricQueries(options.Metrics),
+		Queries:   g.BuildMetricQueries(options.Metrics, options.StartTime, options.EndTime),
 	}
 
 	result := app.NewMetricsData()
@@ -71,9 +75,9 @@ func (g MetricsGetter) GetMetrics(ctx context.Context, options app.MetricsGetter
 	return result, err
 }
 
-func (g MetricsGetter) BuildMetricQueries(metrics []string) []types.MetricDataQuery {
+func (g MetricsGetter) BuildMetricQueries(metrics []string, start, end *time.Time) []types.MetricDataQuery {
 	accountId := g.Infra.AccountId()
-	periodSec := int32(5 * 60) // 5 minutes
+	periodSec := calcPeriod(start, end)
 	dims := []types.Dimension{
 		{
 			Name:  aws.String("ClusterName"),
@@ -92,4 +96,22 @@ func (g MetricsGetter) BuildMetricQueries(metrics []string) []types.MetricDataQu
 		}
 	}
 	return queries
+}
+
+// calcPeriod determines how much time between datapoints
+// This result is in number of seconds that can be used against the AWS API GetMetricData
+// If period is small, we collect too much data and impair performance (retrieval and render)
+// Since this offers no meaningful benefit to the user, we calculate period based on the time window (end - start)
+// We are aiming for 60 datapoints total (e.g. 1m period : 1h window)
+// If time window results in a decimal period, we round (resulting in more than 60 datapoints, at most 29)
+func calcPeriod(start *time.Time, end *time.Time) int32 {
+	s, e := time.Now().Add(-time.Hour), time.Now()
+	if start != nil {
+		s = *start
+	}
+	if end != nil {
+		e = *end
+	}
+	window := e.Sub(s)
+	return int32(math.Round(window.Hours()) * 60)
 }
