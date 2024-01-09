@@ -32,11 +32,15 @@ func NewMetricsGetter(osWriters logging.OsWriters, nsConfig api.Config, appDetai
 
 // MetricsGetter retrieves metrics for an ECS container app with the following datasets (filtered by options)
 // cpu
-// - cpu_reserved
-// - cpu_utilized
+// - cpu_reserved (vCPU)
+// - cpu_average (vCPU)
+// - cpu_min (vCPU)
+// - cpu_max (vCPU)
 // memory
-// - memory_reserved (MB)
-// - memory_utilized (MB)
+// - memory_reserved (MiB)
+// - memory_average (MiB)
+// - memory_min (MiB)
+// - memory_max (MiB)
 // ECS Container Insights: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Container-Insights-metrics-ECS.html
 // Default metric resolution is 1 minute
 type MetricsGetter struct {
