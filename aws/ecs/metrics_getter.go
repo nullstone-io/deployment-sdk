@@ -11,7 +11,6 @@ import (
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
-	"time"
 )
 
 var _ app.MetricsGetter = MetricsGetter{}
@@ -49,22 +48,38 @@ type MetricsGetter struct {
 }
 
 func (g MetricsGetter) GetMetrics(ctx context.Context, options app.MetricsGetterOptions) (*app.MetricsData, error) {
+	mappingCtx := cloudwatch.MappingContext{
+		AccountId: g.Infra.AccountId(),
+		PeriodSec: nsaws.CalcPeriod(options.StartTime, options.EndTime),
+		Dimensions: []types.Dimension{
+			{
+				Name:  aws.String("ClusterName"),
+				Value: aws.String(g.Infra.ClusterName()),
+			},
+			{
+				Name:  aws.String("ServiceName"),
+				Value: aws.String(g.Infra.ServiceName),
+			},
+		},
+	}
+
 	cwOptions := cloudwatch.GetMetricsOptions{
 		StartTime: options.StartTime,
 		EndTime:   options.EndTime,
-		Queries:   g.BuildMetricQueries(options.Metrics, options.StartTime, options.EndTime),
+		Queries:   MetricMappings.BuildMetricQueries(options.Metrics, mappingCtx),
 	}
 
 	result := app.NewMetricsData()
 	ingest := func(output *cloudwatch2.GetMetricDataOutput) error {
 		for _, dataResult := range output.MetricDataResults {
 			metricId := *dataResult.Id
-			metricName, ok := MetricDatasetNameFromMetricId[metricId]
-			if !ok {
+			metricName := MetricMappings.FindGroupByMetricId(metricId)
+			if metricName == "" {
 				// This shouldn't happen, it means we don't have a mapping from metric id to its dataset
 				// Should we warn?
 				continue
 			}
+
 			curSeries := result.GetDataset(metricName).GetSeries(metricId)
 			for i := 0; i < len(dataResult.Timestamps); i++ {
 				curSeries.AddPoint(dataResult.Timestamps[i], dataResult.Values[i])
@@ -76,27 +91,4 @@ func (g MetricsGetter) GetMetrics(ctx context.Context, options app.MetricsGetter
 	err := cloudwatch.GetMetrics(ctx, nsaws.NewConfig(g.Infra.LogReader, g.Infra.Region), cwOptions, ingest)
 	// TODO: Normalize series to have the same number of datapoints and ordered the same
 	return result, err
-}
-
-func (g MetricsGetter) BuildMetricQueries(metrics []string, start, end *time.Time) []types.MetricDataQuery {
-	accountId := g.Infra.AccountId()
-	periodSec := nsaws.CalcPeriod(start, end)
-	dims := []types.Dimension{
-		{
-			Name:  aws.String("ClusterName"),
-			Value: aws.String(g.Infra.ClusterName()),
-		},
-		{
-			Name:  aws.String("ServiceName"),
-			Value: aws.String(g.Infra.ServiceName),
-		},
-	}
-
-	queries := make([]types.MetricDataQuery, 0)
-	for _, metric := range metrics {
-		if fn, ok := MetricQueries[metric]; ok {
-			queries = append(queries, fn(accountId, periodSec, dims)...)
-		}
-	}
-	return queries
 }
