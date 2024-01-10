@@ -7,10 +7,15 @@ import (
 var (
 	MetricMappings = cloudwatch.MetricMappingGroup{
 		"invocations": {
-			"invocations": {
+			"invocations_total": {
 				Stat:      "Sum",
 				Namespace: "AWS/Lambda",
 				Name:      "Invocations",
+			},
+			"invocations_errors": {
+				Stat:      "Sum",
+				Namespace: "AWS/Lambda",
+				Name:      "Errors",
 			},
 		},
 		"duration": {

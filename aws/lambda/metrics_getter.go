@@ -30,7 +30,8 @@ func NewMetricsGetter(osWriters logging.OsWriters, nsConfig api.Config, appDetai
 
 // MetricsGetter retrieves metrics for a Lambda serverless app with the following datasets (filtered by options)
 // invocations
-// - invocations (no unit)
+// - invocations_total (count)
+// - invocations_errors (errors)
 // duration
 // - duration_average (ms)
 // - duration_min (ms)
