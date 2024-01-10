@@ -11,7 +11,6 @@ import (
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
-	"math"
 	"time"
 )
 
@@ -81,7 +80,7 @@ func (g MetricsGetter) GetMetrics(ctx context.Context, options app.MetricsGetter
 
 func (g MetricsGetter) BuildMetricQueries(metrics []string, start, end *time.Time) []types.MetricDataQuery {
 	accountId := g.Infra.AccountId()
-	periodSec := calcPeriod(start, end)
+	periodSec := nsaws.CalcPeriod(start, end)
 	dims := []types.Dimension{
 		{
 			Name:  aws.String("ClusterName"),
@@ -100,22 +99,4 @@ func (g MetricsGetter) BuildMetricQueries(metrics []string, start, end *time.Tim
 		}
 	}
 	return queries
-}
-
-// calcPeriod determines how much time between datapoints
-// This result is in number of seconds that can be used against the AWS API GetMetricData
-// If period is small, we collect too much data and impair performance (retrieval and render)
-// Since this offers no meaningful benefit to the user, we calculate period based on the time window (end - start)
-// We are aiming for 60 datapoints total (e.g. 1m period : 1h window)
-// If time window results in a decimal period, we round (resulting in more than 60 datapoints, at most 29)
-func calcPeriod(start *time.Time, end *time.Time) int32 {
-	s, e := time.Now().Add(-time.Hour), time.Now()
-	if start != nil {
-		s = *start
-	}
-	if end != nil {
-		e = *end
-	}
-	window := e.Sub(s)
-	return int32(math.Round(window.Hours()) * 60)
 }

@@ -1,4 +1,4 @@
-package ecs
+package nsaws
 
 import (
 	"fmt"
@@ -45,7 +45,7 @@ func TestCalcPeriod(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			gotPeriodSec := calcPeriod(&test.start, &test.end)
+			gotPeriodSec := CalcPeriod(&test.start, &test.end)
 			assert.Equal(t, test.wantPeriodSec, gotPeriodSec)
 		})
 	}
