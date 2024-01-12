@@ -8,12 +8,12 @@ import (
 
 type Providers map[types.ModuleContractName]Provider
 
-func (s Providers) FindMetricsGetter(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (MetricsGetter, error) {
-	factory := s.FindFactory(*appDetails.Module)
+func (s Providers) FindMetricsGetter(osWriters logging.OsWriters, nsConfig api.Config, blockDetails Details) (MetricsGetter, error) {
+	factory := s.FindFactory(*blockDetails.Module)
 	if factory == nil || factory.NewMetricsGetter == nil {
 		return nil, nil
 	}
-	return factory.NewMetricsGetter(osWriters, nsConfig, appDetails)
+	return factory.NewMetricsGetter(osWriters, nsConfig, blockDetails)
 }
 
 func (s Providers) FindFactory(curModule types.Module) *Provider {
