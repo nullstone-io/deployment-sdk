@@ -3,7 +3,6 @@ package aws_lambda_zip
 import (
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/aws/cloudwatch"
-	"github.com/nullstone-io/deployment-sdk/aws/lambda"
 	"github.com/nullstone-io/deployment-sdk/aws/lambda-zip"
 	"github.com/nullstone-io/deployment-sdk/aws/s3"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
@@ -24,5 +23,4 @@ var Provider = app.Provider{
 	NewDeployWatcher:   nil,
 	NewStatuser:        nil,
 	NewLogStreamer:     cloudwatch.NewLogStreamer,
-	NewMetricsGetter:   lambda.NewMetricsGetter,
 }

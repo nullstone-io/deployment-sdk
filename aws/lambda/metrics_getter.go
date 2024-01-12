@@ -5,25 +5,25 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	cloudwatch2 "github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
-	"github.com/nullstone-io/deployment-sdk/app"
 	nsaws "github.com/nullstone-io/deployment-sdk/aws"
 	"github.com/nullstone-io/deployment-sdk/aws/cloudwatch"
+	"github.com/nullstone-io/deployment-sdk/block"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
 )
 
-var _ app.MetricsGetter = MetricsGetter{}
+var _ block.MetricsGetter = MetricsGetter{}
 
-func NewMetricsGetter(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.MetricsGetter, error) {
-	outs, err := outputs.Retrieve[Outputs](nsConfig, appDetails.Workspace)
+func NewMetricsGetter(osWriters logging.OsWriters, nsConfig api.Config, blockDetails block.Details) (block.MetricsGetter, error) {
+	outs, err := outputs.Retrieve[Outputs](nsConfig, blockDetails.Workspace)
 	if err != nil {
 		return nil, err
 	}
 
 	return MetricsGetter{
 		OsWriters: osWriters,
-		Details:   appDetails,
+		Details:   blockDetails,
 		Infra:     outs,
 	}, nil
 }
@@ -38,11 +38,11 @@ func NewMetricsGetter(osWriters logging.OsWriters, nsConfig api.Config, appDetai
 // - duration_max (ms)
 type MetricsGetter struct {
 	OsWriters logging.OsWriters
-	Details   app.Details
+	Details   block.Details
 	Infra     Outputs
 }
 
-func (g MetricsGetter) GetMetrics(ctx context.Context, options app.MetricsGetterOptions) (*app.MetricsData, error) {
+func (g MetricsGetter) GetMetrics(ctx context.Context, options block.MetricsGetterOptions) (*block.MetricsData, error) {
 	mappingCtx := cloudwatch.MappingContext{
 		AccountId: g.Infra.AccountId(),
 		PeriodSec: nsaws.CalcPeriod(options.StartTime, options.EndTime),
@@ -60,7 +60,7 @@ func (g MetricsGetter) GetMetrics(ctx context.Context, options app.MetricsGetter
 		Queries:   MetricMappings.BuildMetricQueries(options.Metrics, mappingCtx),
 	}
 
-	result := app.NewMetricsData()
+	result := block.NewMetricsData()
 	ingest := func(output *cloudwatch2.GetMetricDataOutput) error {
 		for _, dataResult := range output.MetricDataResults {
 			metricId := *dataResult.Id

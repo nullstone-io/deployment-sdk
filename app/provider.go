@@ -13,7 +13,6 @@ type Provider struct {
 	NewDeployWatcher   NewDeployWatcherFunc
 	NewStatuser        NewStatuserFunc
 	NewLogStreamer     NewLogStreamerFunc
-	NewMetricsGetter   NewMetricsGetterFunc
 }
 
 type NewPusherFunc func(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (Pusher, error)
@@ -22,7 +21,6 @@ type NewDeployStatusGetterFunc func(osWriters logging.OsWriters, nsConfig api.Co
 type NewDeployWatcherFunc func(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (DeployWatcher, error)
 type NewStatuserFunc func(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (Statuser, error)
 type NewLogStreamerFunc func(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (LogStreamer, error)
-type NewMetricsGetterFunc func(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (MetricsGetter, error)
 
 type Pusher interface {
 	Push(ctx context.Context, source, version string) error

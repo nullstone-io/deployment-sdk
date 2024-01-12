@@ -48,14 +48,6 @@ func (s Providers) FindLogStreamer(osWriters logging.OsWriters, nsConfig api.Con
 	return factory.NewLogStreamer(osWriters, nsConfig, appDetails)
 }
 
-func (s Providers) FindMetricsGetter(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (MetricsGetter, error) {
-	factory := s.FindFactory(*appDetails.Module)
-	if factory == nil || factory.NewMetricsGetter == nil {
-		return nil, nil
-	}
-	return factory.NewMetricsGetter(osWriters, nsConfig, appDetails)
-}
-
 func (s Providers) FindFactory(curModule types.Module) *Provider {
 	if len(curModule.ProviderTypes) <= 0 {
 		return nil
