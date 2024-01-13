@@ -30,7 +30,7 @@ func GetMetrics(ctx context.Context, mappings MetricMappingGroups, awsConfig aws
 				continue
 			}
 
-			curSeries := result.GetDataset(metricGroup.Name, metricGroup.Type).GetSeries(metricId)
+			curSeries := result.GetDataset(metricGroup.Name, metricGroup.Type, metricGroup.Unit).GetSeries(metricId)
 			for i := 0; i < len(dataResult.Timestamps); i++ {
 				curSeries.AddPoint(dataResult.Timestamps[i], dataResult.Values[i])
 			}

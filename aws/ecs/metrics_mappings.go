@@ -10,6 +10,7 @@ var (
 		{
 			Name: "cpu",
 			Type: block.MetricDatasetTypeUsage,
+			Unit: "vCPU",
 			Mappings: map[string]cloudwatch.MetricMapping{
 				"cpu_reserved": {
 					Stat:      "Average",
@@ -36,6 +37,7 @@ var (
 		{
 			Name: "memory",
 			Type: block.MetricDatasetTypeUsage,
+			Unit: "MiB",
 			Mappings: map[string]cloudwatch.MetricMapping{
 				"cpu_reserved": {
 					Stat:      "Average",

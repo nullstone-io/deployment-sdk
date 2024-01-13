@@ -10,6 +10,7 @@ var (
 		{
 			Name: "invocations",
 			Type: block.MetricDatasetTypeInvocations,
+			Unit: "count",
 			Mappings: map[string]cloudwatch.MetricMapping{
 				"invocations_total": {
 					Stat:      "Sum",
@@ -26,6 +27,7 @@ var (
 		{
 			Name: "duration",
 			Type: block.MetricDatasetTypeDuration,
+			Unit: "milliseconds",
 			Mappings: map[string]cloudwatch.MetricMapping{
 				"duration_average": {
 					Stat:      "Average",

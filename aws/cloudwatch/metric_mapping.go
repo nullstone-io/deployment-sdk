@@ -12,6 +12,7 @@ type MetricMappingGroups []MetricMappingGroup
 type MetricMappingGroup struct {
 	Name     string
 	Type     block.MetricDatasetType
+	Unit     string
 	Mappings map[string]MetricMapping
 }
 
