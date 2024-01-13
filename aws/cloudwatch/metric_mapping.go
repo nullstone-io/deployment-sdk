@@ -3,10 +3,17 @@ package cloudwatch
 import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
+	"github.com/nullstone-io/deployment-sdk/block"
+	"k8s.io/utils/strings/slices"
 )
 
-// .[metric-group] => [metrid-id] => mapping
-type MetricMappingGroup map[string]map[string]MetricMapping
+type MetricMappingGroups []MetricMappingGroup
+
+type MetricMappingGroup struct {
+	Name     string
+	Type     block.MetricDatasetType
+	Mappings map[string]MetricMapping
+}
 
 type MetricMapping struct {
 	Stat      string
@@ -20,11 +27,13 @@ type MappingContext struct {
 	Dimensions []types.Dimension
 }
 
-func (g MetricMappingGroup) BuildMetricQueries(metrics []string, mappingCtx MappingContext) []types.MetricDataQuery {
+func (g MetricMappingGroups) BuildMetricQueries(metrics []string, mappingCtx MappingContext) []types.MetricDataQuery {
 	queries := make([]types.MetricDataQuery, 0)
-	for _, metric := range metrics {
-		if grp, ok := g[metric]; ok {
-			for id, mapping := range grp {
+	for _, grp := range g {
+		if slices.Contains(metrics, grp.Name) {
+			// This Metric Group was specified in the list of requested metrics
+			// Let's build a query and add it
+			for id, mapping := range grp.Mappings {
 				queries = append(queries, types.MetricDataQuery{
 					Id:        aws.String(id),
 					AccountId: aws.String(mappingCtx.AccountId),
@@ -44,11 +53,11 @@ func (g MetricMappingGroup) BuildMetricQueries(metrics []string, mappingCtx Mapp
 	return queries
 }
 
-func (g MetricMappingGroup) FindGroupByMetricId(id string) string {
-	for grp, mappings := range g {
-		if _, ok := mappings[id]; ok {
-			return grp
+func (g MetricMappingGroups) FindGroupByMetricId(id string) *MetricMappingGroup {
+	for _, grp := range g {
+		if _, ok := grp.Mappings[id]; ok {
+			return &grp
 		}
 	}
-	return ""
+	return nil
 }

@@ -3,7 +3,6 @@ package ecs
 import (
 	"context"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	cloudwatch2 "github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	nsaws "github.com/nullstone-io/deployment-sdk/aws"
 	"github.com/nullstone-io/deployment-sdk/aws/cloudwatch"
@@ -69,26 +68,6 @@ func (g MetricsGetter) GetMetrics(ctx context.Context, options block.MetricsGett
 		Queries:   MetricMappings.BuildMetricQueries(options.Metrics, mappingCtx),
 	}
 
-	result := block.NewMetricsData()
-	ingest := func(output *cloudwatch2.GetMetricDataOutput) error {
-		for _, dataResult := range output.MetricDataResults {
-			metricId := *dataResult.Id
-			metricName := MetricMappings.FindGroupByMetricId(metricId)
-			if metricName == "" {
-				// This shouldn't happen, it means we don't have a mapping from metric id to its dataset
-				// Should we warn?
-				continue
-			}
-
-			curSeries := result.GetDataset(metricName).GetSeries(metricId)
-			for i := 0; i < len(dataResult.Timestamps); i++ {
-				curSeries.AddPoint(dataResult.Timestamps[i], dataResult.Values[i])
-			}
-		}
-		return nil
-	}
-
-	err := cloudwatch.GetMetrics(ctx, nsaws.NewConfig(g.Infra.LogReader, g.Infra.Region), cwOptions, ingest)
 	// TODO: Normalize series to have the same number of datapoints and ordered the same
-	return result, err
+	return cloudwatch.GetMetrics(ctx, MetricMappings, nsaws.NewConfig(g.Infra.LogReader, g.Infra.Region), cwOptions)
 }

@@ -34,27 +34,37 @@ type MetricsData struct {
 	Metrics map[string]*MetricDataset `json:"metrics"`
 }
 
-func (d *MetricsData) GetDataset(metricName string) *MetricDataset {
+func (d *MetricsData) GetDataset(metricName string, metricType MetricDatasetType) *MetricDataset {
 	if existing, ok := d.Metrics[metricName]; ok {
 		return existing
 	}
 
-	ds := NewMetricDataset(metricName)
+	ds := NewMetricDataset(metricName, metricType)
 	d.Metrics[metricName] = ds
 	return ds
 }
 
-func NewMetricDataset(metricName string) *MetricDataset {
+func NewMetricDataset(metricName string, metricType MetricDatasetType) *MetricDataset {
 	return &MetricDataset{
 		Name:   metricName,
+		Type:   metricType,
 		Series: map[string]*MetricSeries{},
 	}
 }
 
 type MetricDataset struct {
 	Name   string                   `json:"name"`
+	Type   MetricDatasetType        `json:"type"`
 	Series map[string]*MetricSeries `json:"series"`
 }
+
+type MetricDatasetType string
+
+const (
+	MetricDatasetTypeUsage       = "usage"
+	MetricDatasetTypeInvocations = "invocations"
+	MetricDatasetTypeDuration    = "duration"
+)
 
 func (d *MetricDataset) GetSeries(metricId string) *MetricSeries {
 	if existing, ok := d.Series[metricId]; ok {

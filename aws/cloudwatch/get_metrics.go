@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
+	"github.com/nullstone-io/deployment-sdk/block"
 	"time"
 )
 
@@ -17,7 +18,26 @@ type GetMetricsOptions struct {
 	Queries   []types.MetricDataQuery
 }
 
-func GetMetrics(ctx context.Context, awsConfig aws.Config, options GetMetricsOptions, ingestFn IngestMetricPageFunc) error {
+func GetMetrics(ctx context.Context, mappings MetricMappingGroups, awsConfig aws.Config, options GetMetricsOptions) (*block.MetricsData, error) {
+	result := block.NewMetricsData()
+	ingestFn := func(output *cloudwatch.GetMetricDataOutput) error {
+		for _, dataResult := range output.MetricDataResults {
+			metricId := *dataResult.Id
+			metricGroup := mappings.FindGroupByMetricId(metricId)
+			if metricGroup == nil {
+				// This shouldn't happen, it means we don't have a mapping from metric id to its dataset
+				// Should we warn?
+				continue
+			}
+
+			curSeries := result.GetDataset(metricGroup.Name, metricGroup.Type).GetSeries(metricId)
+			for i := 0; i < len(dataResult.Timestamps); i++ {
+				curSeries.AddPoint(dataResult.Timestamps[i], dataResult.Values[i])
+			}
+		}
+		return nil
+	}
+
 	cwClient := cloudwatch.NewFromConfig(awsConfig)
 
 	input := &cloudwatch.GetMetricDataInput{
@@ -31,12 +51,12 @@ func GetMetrics(ctx context.Context, awsConfig aws.Config, options GetMetricsOpt
 	for paginator.HasMorePages() {
 		out, err := paginator.NextPage(ctx)
 		if err != nil {
-			return fmt.Errorf("error retrieving metrics data: %w", err)
+			return nil, fmt.Errorf("error retrieving metrics data: %w", err)
 		}
 		if err := ingestFn(out); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return result, nil
 }
