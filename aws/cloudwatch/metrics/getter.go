@@ -21,6 +21,8 @@ func NewGetter(osWriters logging.OsWriters, nsConfig api.Config, blockDetails bl
 		return nil, block.MetricsNotSupportedError{InnerErr: err}
 	}
 
+	fmt.Printf("metrics mappings: %+v\n", outs.MetricsMappings)
+
 	return Getter{
 		OsWriters: osWriters,
 		Details:   blockDetails,
