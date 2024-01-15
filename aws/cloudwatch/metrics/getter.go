@@ -21,8 +21,6 @@ func NewGetter(osWriters logging.OsWriters, nsConfig api.Config, blockDetails bl
 		return nil, block.MetricsNotSupportedError{InnerErr: err}
 	}
 
-	fmt.Printf("metrics mappings: %+v\n", outs.MetricsMappings)
-
 	return Getter{
 		OsWriters: osWriters,
 		Details:   blockDetails,
@@ -46,6 +44,7 @@ func (g Getter) GetMetrics(ctx context.Context, options block.MetricsGetterOptio
 		ScanBy:            types.ScanByTimestampAscending,
 		MetricDataQueries: queries,
 	}
+	fmt.Printf("get-metric-data input: %+v\n", input)
 
 	cwClient := cloudwatch.NewFromConfig(g.Infra.AwsConfig())
 	paginator := cloudwatch.NewGetMetricDataPaginator(cwClient, input)
