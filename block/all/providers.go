@@ -1,22 +1,26 @@
 package all
 
 import (
+	cwMetrics "github.com/nullstone-io/deployment-sdk/aws/cloudwatch/metrics"
 	"github.com/nullstone-io/deployment-sdk/block"
-	aws_beanstalk "github.com/nullstone-io/deployment-sdk/block/aws-beanstalk"
-	aws_ecs_ec2 "github.com/nullstone-io/deployment-sdk/block/aws-ecs-ec2"
-	aws_ecs_fargate "github.com/nullstone-io/deployment-sdk/block/aws-ecs-fargate"
-	aws_lambda_container "github.com/nullstone-io/deployment-sdk/block/aws-lambda-container"
-	aws_lambda_zip "github.com/nullstone-io/deployment-sdk/block/aws-lambda-zip"
-	gcp_gke_service "github.com/nullstone-io/deployment-sdk/block/gcp-gke-service"
+	"gopkg.in/nullstone-io/go-api-client.v0/types"
 )
 
 var (
-	Providers = block.Providers{
-		aws_ecs_fargate.ModuleContractName:      aws_ecs_fargate.Provider,
-		aws_ecs_ec2.ModuleContractName:          aws_ecs_ec2.Provider,
-		aws_lambda_zip.ModuleContractName:       aws_lambda_zip.Provider,
-		aws_lambda_container.ModuleContractName: aws_lambda_container.Provider,
-		aws_beanstalk.ModuleContractName:        aws_beanstalk.Provider,
-		gcp_gke_service.ModuleContractName:      gcp_gke_service.Provider,
+	Aws = types.ModuleContractName{
+		Category: "*",
+		Provider: "aws",
+		Platform: "*",
+	}
+	GcpGke = types.ModuleContractName{
+		Category:    string(types.CategoryApp),
+		Subcategory: string(types.SubcategoryAppContainer),
+		Provider:    "gcp",
+		Platform:    "k8s",
+		Subplatform: "gke",
+	}
+	MetricsGetters = block.MetricsGetters{
+		Aws:    cwMetrics.NewGetter,
+		GcpGke: nil,
 	}
 )

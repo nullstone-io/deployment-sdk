@@ -6,19 +6,14 @@ import (
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
 )
 
-type Providers map[types.ModuleContractName]Provider
+type NewMetricsGetterFunc func(osWriters logging.OsWriters, nsConfig api.Config, blockDetails Details) (MetricsGetter, error)
 
-func (s Providers) FindMetricsGetter(osWriters logging.OsWriters, nsConfig api.Config, blockDetails Details) (MetricsGetter, error) {
-	factory := s.FindFactory(*blockDetails.Module)
-	if factory == nil || factory.NewMetricsGetter == nil {
-		return nil, nil
-	}
-	return factory.NewMetricsGetter(osWriters, nsConfig, blockDetails)
-}
+type MetricsGetters map[types.ModuleContractName]NewMetricsGetterFunc
 
-func (s Providers) FindFactory(curModule types.Module) *Provider {
+func (s MetricsGetters) FindMetricsGetter(osWriters logging.OsWriters, nsConfig api.Config, blockDetails Details) (MetricsGetter, error) {
+	curModule := blockDetails.Module
 	if len(curModule.ProviderTypes) <= 0 {
-		return nil
+		return nil, nil
 	}
 
 	// NOTE: We are matching app modules, so category is redundant
@@ -33,9 +28,12 @@ func (s Providers) FindFactory(curModule types.Module) *Provider {
 	}
 	for k, v := range s {
 		if k.Match(curContract) {
-			return &v
+			if v == nil {
+				return nil, nil
+			}
+			return v(osWriters, nsConfig, blockDetails)
 		}
 	}
 
-	return nil
+	return nil, nil
 }
