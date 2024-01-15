@@ -1,7 +1,7 @@
 package aws_ecs_fargate
 
 import (
-	"github.com/nullstone-io/deployment-sdk/aws/ecs"
+	"github.com/nullstone-io/deployment-sdk/aws/cloudwatch/metrics"
 	"github.com/nullstone-io/deployment-sdk/block"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
 )
@@ -15,5 +15,5 @@ var ModuleContractName = types.ModuleContractName{
 }
 
 var Provider = block.Provider{
-	NewMetricsGetter: ecs.NewMetricsGetter,
+	NewMetricsGetter: metrics.NewGetter,
 }

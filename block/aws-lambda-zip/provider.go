@@ -1,7 +1,7 @@
 package aws_lambda_zip
 
 import (
-	"github.com/nullstone-io/deployment-sdk/aws/lambda"
+	"github.com/nullstone-io/deployment-sdk/aws/cloudwatch/metrics"
 	"github.com/nullstone-io/deployment-sdk/block"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
 )
@@ -15,5 +15,5 @@ var ModuleContractName = types.ModuleContractName{
 }
 
 var Provider = block.Provider{
-	NewMetricsGetter: lambda.NewMetricsGetter,
+	NewMetricsGetter: metrics.NewGetter,
 }
