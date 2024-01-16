@@ -7,18 +7,18 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	nsaws "github.com/nullstone-io/deployment-sdk/aws"
-	"github.com/nullstone-io/deployment-sdk/block"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
+	"github.com/nullstone-io/deployment-sdk/workspace"
 	"gopkg.in/nullstone-io/go-api-client.v0"
 )
 
-var _ block.MetricsGetter = Getter{}
+var _ workspace.MetricsGetter = Getter{}
 
-func NewGetter(osWriters logging.OsWriters, nsConfig api.Config, blockDetails block.Details) (block.MetricsGetter, error) {
+func NewGetter(osWriters logging.OsWriters, nsConfig api.Config, blockDetails workspace.Details) (workspace.MetricsGetter, error) {
 	outs, err := outputs.Retrieve[Outputs](nsConfig, blockDetails.Workspace)
 	if err != nil {
-		return nil, block.MetricsNotSupportedError{InnerErr: err}
+		return nil, workspace.MetricsNotSupportedError{InnerErr: err}
 	}
 
 	return Getter{
@@ -30,11 +30,11 @@ func NewGetter(osWriters logging.OsWriters, nsConfig api.Config, blockDetails bl
 
 type Getter struct {
 	OsWriters logging.OsWriters
-	Details   block.Details
+	Details   workspace.Details
 	Infra     Outputs
 }
 
-func (g Getter) GetMetrics(ctx context.Context, options block.MetricsGetterOptions) (*block.MetricsData, error) {
+func (g Getter) GetMetrics(ctx context.Context, options workspace.MetricsGetterOptions) (*workspace.MetricsData, error) {
 	periodSec := nsaws.CalcPeriod(options.StartTime, options.EndTime)
 	queries := g.Infra.MetricsMappings.BuildMetricQueries(options.Metrics, periodSec)
 	input := &cloudwatch.GetMetricDataInput{
@@ -47,7 +47,7 @@ func (g Getter) GetMetrics(ctx context.Context, options block.MetricsGetterOptio
 
 	cwClient := cloudwatch.NewFromConfig(g.Infra.AwsConfig())
 	paginator := cloudwatch.NewGetMetricDataPaginator(cwClient, input)
-	result := block.NewMetricsData()
+	result := workspace.NewMetricsData()
 	for paginator.HasMorePages() {
 		out, err := paginator.NextPage(ctx)
 		if err != nil {
@@ -59,7 +59,7 @@ func (g Getter) GetMetrics(ctx context.Context, options block.MetricsGetterOptio
 	return result, nil
 }
 
-func (g Getter) ingest(output *cloudwatch.GetMetricDataOutput, result *block.MetricsData) {
+func (g Getter) ingest(output *cloudwatch.GetMetricDataOutput, result *workspace.MetricsData) {
 	for _, dataResult := range output.MetricDataResults {
 		metricId := *dataResult.Id
 		metricGroup := g.Infra.MetricsMappings.FindGroupByMetricId(metricId)

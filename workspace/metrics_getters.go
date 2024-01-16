@@ -1,4 +1,4 @@
-package block
+package workspace
 
 import (
 	"github.com/nullstone-io/deployment-sdk/logging"

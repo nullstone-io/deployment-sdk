@@ -1,4 +1,4 @@
-package block
+package workspace
 
 import "gopkg.in/nullstone-io/go-api-client.v0/types"
 

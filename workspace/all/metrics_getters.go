@@ -2,7 +2,7 @@ package all
 
 import (
 	cwMetrics "github.com/nullstone-io/deployment-sdk/aws/cloudwatch/metrics"
-	"github.com/nullstone-io/deployment-sdk/block"
+	"github.com/nullstone-io/deployment-sdk/workspace"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
 )
 
@@ -19,7 +19,7 @@ var (
 		Platform:    "k8s",
 		Subplatform: "gke",
 	}
-	MetricsGetters = block.MetricsGetters{
+	MetricsGetters = workspace.MetricsGetters{
 		Aws:    cwMetrics.NewGetter,
 		GcpGke: nil,
 	}

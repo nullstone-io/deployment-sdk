@@ -3,17 +3,17 @@ package metrics
 import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
-	"github.com/nullstone-io/deployment-sdk/block"
+	"github.com/nullstone-io/deployment-sdk/workspace"
 	"k8s.io/utils/strings/slices"
 )
 
 type MappingGroups []MappingGroup
 
 type MappingGroup struct {
-	Name     string                   `json:"name"`
-	Type     block.MetricDatasetType  `json:"type"`
-	Unit     string                   `json:"unit"`
-	Mappings map[string]MetricMapping `json:"mappings"`
+	Name     string                      `json:"name"`
+	Type     workspace.MetricDatasetType `json:"type"`
+	Unit     string                      `json:"unit"`
+	Mappings map[string]MetricMapping    `json:"mappings"`
 }
 
 type MetricMapping struct {
