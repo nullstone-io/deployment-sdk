@@ -19,6 +19,7 @@ type Outputs struct {
 	ClusterNamespace ClusterNamespaceOutputs `ns:",connectionContract:cluster-namespace/aws/ecs:*,optional"`
 }
 
+// ClusterArn has the following format: arn:aws:ecs:<region>:<account-id>:cluster/<cluster-name>
 func (o Outputs) ClusterArn() string {
 	if o.ClusterNamespace.ClusterArn != "" {
 		return o.ClusterNamespace.ClusterArn
