@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -15,6 +16,14 @@ type MetricsGetterOptions struct {
 	EndTime   *time.Time
 
 	Metrics []string
+}
+
+func IsMetricsNotSupported(err error) (MetricsNotSupportedError, bool) {
+	var mnse MetricsNotSupportedError
+	if errors.As(err, &mnse) {
+		return mnse, true
+	}
+	return mnse, false
 }
 
 var _ error = MetricsNotSupportedError{}
