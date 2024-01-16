@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 	"github.com/nullstone-io/deployment-sdk/logging"
-	"gopkg.in/nullstone-io/go-api-client.v0"
+	"github.com/nullstone-io/deployment-sdk/outputs"
 )
 
 type Provider struct {
@@ -15,12 +15,12 @@ type Provider struct {
 	NewLogStreamer     NewLogStreamerFunc
 }
 
-type NewPusherFunc func(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (Pusher, error)
-type NewDeployerFunc func(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (Deployer, error)
-type NewDeployStatusGetterFunc func(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (DeployStatusGetter, error)
-type NewDeployWatcherFunc func(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (DeployWatcher, error)
-type NewStatuserFunc func(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (Statuser, error)
-type NewLogStreamerFunc func(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (LogStreamer, error)
+type NewPusherFunc func(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (Pusher, error)
+type NewDeployerFunc func(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (Deployer, error)
+type NewDeployStatusGetterFunc func(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (DeployStatusGetter, error)
+type NewDeployWatcherFunc func(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (DeployWatcher, error)
+type NewStatuserFunc func(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (Statuser, error)
+type NewLogStreamerFunc func(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (LogStreamer, error)
 
 type Pusher interface {
 	Push(ctx context.Context, source, version string) error

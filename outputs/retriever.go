@@ -2,14 +2,19 @@ package outputs
 
 import (
 	"fmt"
-	"gopkg.in/nullstone-io/go-api-client.v0"
+	"github.com/google/uuid"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
 	"reflect"
 )
 
-func Retrieve[T any](nsConfig api.Config, workspace *types.Workspace) (T, error) {
+type RetrieverSource interface {
+	GetWorkspace(stackId, blockId, envId int64) (*types.Workspace, error)
+	GetCurrentOutputs(stackId int64, workspaceUid uuid.UUID, showSensitive bool) (types.Outputs, error)
+}
+
+func Retrieve[T any](source RetrieverSource, workspace *types.Workspace) (T, error) {
 	var t T
-	r := Retriever{NsConfig: nsConfig}
+	r := Retriever{Source: source}
 	if err := r.Retrieve(workspace, &t); err != nil {
 		return t, err
 	}
@@ -17,7 +22,7 @@ func Retrieve[T any](nsConfig api.Config, workspace *types.Workspace) (T, error)
 }
 
 type Retriever struct {
-	NsConfig api.Config
+	Source RetrieverSource
 }
 
 var _ error = NoWorkspaceOutputsError{}
@@ -43,8 +48,7 @@ func (r *Retriever) Retrieve(workspace *types.Workspace, obj interface{}) error 
 		return fmt.Errorf("input object must be a pointer to a struct")
 	}
 
-	nsClient := api.Client{Config: r.NsConfig}
-	workspaceOutputs, err := nsClient.WorkspaceOutputs().GetCurrent(workspace.StackId, workspace.Uid, true)
+	workspaceOutputs, err := r.Source.GetCurrentOutputs(workspace.StackId, workspace.Uid, true)
 	if err != nil {
 		wt := types.WorkspaceTarget{
 			StackId: workspace.StackId,
@@ -119,8 +123,7 @@ func (r *Retriever) GetConnectionWorkspace(source *types.Workspace, connectionNa
 	}
 	destTarget := sourceTarget.FindRelativeConnection(*conn.Reference)
 
-	nsClient := api.Client{Config: r.NsConfig}
-	return nsClient.Workspaces().Get(destTarget.StackId, destTarget.BlockId, destTarget.EnvId)
+	return r.Source.GetWorkspace(destTarget.StackId, destTarget.BlockId, destTarget.EnvId)
 }
 
 func findConnection(source *types.Workspace, connectionName, connectionType, connectionContract string) (*types.Connection, error) {

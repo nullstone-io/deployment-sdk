@@ -10,13 +10,12 @@ import (
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"github.com/nullstone-io/deployment-sdk/workspace"
-	"gopkg.in/nullstone-io/go-api-client.v0"
 )
 
 var _ workspace.MetricsGetter = Getter{}
 
-func NewGetter(osWriters logging.OsWriters, nsConfig api.Config, blockDetails workspace.Details) (workspace.MetricsGetter, error) {
-	outs, err := outputs.Retrieve[Outputs](nsConfig, blockDetails.Workspace)
+func NewGetter(osWriters logging.OsWriters, source outputs.RetrieverSource, blockDetails workspace.Details) (workspace.MetricsGetter, error) {
+	outs, err := outputs.Retrieve[Outputs](source, blockDetails.Workspace)
 	if err != nil {
 		return nil, err
 	}

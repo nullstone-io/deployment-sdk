@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/nullstone-io/deployment-sdk/logging"
-	"gopkg.in/nullstone-io/go-api-client.v0"
+	"github.com/nullstone-io/deployment-sdk/outputs"
 	"time"
 )
 
@@ -33,8 +33,8 @@ type PollingDeployWatcher struct {
 
 // NewPollingDeployWatcher wraps a DeployStatusGetter to provide polling support for watching a deployment
 func NewPollingDeployWatcher(statusGetterFn NewDeployStatusGetterFunc) NewDeployWatcherFunc {
-	return func(osWriters logging.OsWriters, nsConfig api.Config, appDetails Details) (DeployWatcher, error) {
-		statusGetter, err := statusGetterFn(osWriters, nsConfig, appDetails)
+	return func(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (DeployWatcher, error) {
+		statusGetter, err := statusGetterFn(osWriters, source, appDetails)
 		if err != nil {
 			return nil, err
 		}

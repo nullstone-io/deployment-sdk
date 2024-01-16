@@ -7,24 +7,23 @@ import (
 	"github.com/nullstone-io/deployment-sdk/artifacts"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
-	"gopkg.in/nullstone-io/go-api-client.v0"
 )
 
-func NewDirPusher(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.Pusher, error) {
-	outs, err := outputs.Retrieve[Outputs](nsConfig, appDetails.Workspace)
+func NewDirPusher(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Pusher, error) {
+	outs, err := outputs.Retrieve[Outputs](source, appDetails.Workspace)
 	if err != nil {
 		return nil, err
 	}
 	return &DirPusher{
 		OsWriters: osWriters,
-		NsConfig:  nsConfig,
+		Source:    source,
 		Infra:     outs,
 	}, nil
 }
 
 type DirPusher struct {
 	OsWriters logging.OsWriters
-	NsConfig  api.Config
+	Source    outputs.RetrieverSource
 	Infra     Outputs
 }
 

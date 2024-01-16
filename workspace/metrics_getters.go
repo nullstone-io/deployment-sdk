@@ -2,15 +2,15 @@ package workspace
 
 import (
 	"github.com/nullstone-io/deployment-sdk/logging"
-	"gopkg.in/nullstone-io/go-api-client.v0"
+	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
 )
 
-type NewMetricsGetterFunc func(osWriters logging.OsWriters, nsConfig api.Config, blockDetails Details) (MetricsGetter, error)
+type NewMetricsGetterFunc func(osWriters logging.OsWriters, source outputs.RetrieverSource, blockDetails Details) (MetricsGetter, error)
 
 type MetricsGetters map[types.ModuleContractName]NewMetricsGetterFunc
 
-func (s MetricsGetters) FindMetricsGetter(osWriters logging.OsWriters, nsConfig api.Config, blockDetails Details) (MetricsGetter, error) {
+func (s MetricsGetters) FindMetricsGetter(osWriters logging.OsWriters, source outputs.RetrieverSource, blockDetails Details) (MetricsGetter, error) {
 	curModule := blockDetails.Module
 	if len(curModule.ProviderTypes) <= 0 {
 		return nil, nil
@@ -26,12 +26,12 @@ func (s MetricsGetters) FindMetricsGetter(osWriters logging.OsWriters, nsConfig 
 		Platform:    curModule.Platform,
 		Subplatform: curModule.Subplatform,
 	}
-	for k, v := range s {
+	for k, fn := range s {
 		if k.Match(curContract) {
-			if v == nil {
+			if fn == nil {
 				return nil, nil
 			}
-			mg, err := v(osWriters, nsConfig, blockDetails)
+			mg, err := fn(osWriters, source, blockDetails)
 			if err != nil {
 				return nil, MetricsNotSupportedError{InnerErr: err}
 			}

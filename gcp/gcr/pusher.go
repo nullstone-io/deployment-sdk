@@ -9,7 +9,6 @@ import (
 	"github.com/nullstone-io/deployment-sdk/gcp"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
-	"gopkg.in/nullstone-io/go-api-client.v0"
 	"strings"
 )
 
@@ -22,8 +21,8 @@ type Outputs struct {
 	ImagePusher  gcp.ServiceAccount `ns:"image_pusher,optional"`
 }
 
-func NewPusher(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.Pusher, error) {
-	outs, err := outputs.Retrieve[Outputs](nsConfig, appDetails.Workspace)
+func NewPusher(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Pusher, error) {
+	outs, err := outputs.Retrieve[Outputs](source, appDetails.Workspace)
 	if err != nil {
 		return nil, err
 	}
