@@ -6,12 +6,11 @@ import (
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
-	"gopkg.in/nullstone-io/go-api-client.v0"
 	"os"
 )
 
-func NewZipPusher(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.Pusher, error) {
-	outs, err := outputs.Retrieve[Outputs](nsConfig, appDetails.Workspace)
+func NewZipPusher(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Pusher, error) {
+	outs, err := outputs.Retrieve[Outputs](source, appDetails.Workspace)
 	if err != nil {
 		return nil, err
 	}
