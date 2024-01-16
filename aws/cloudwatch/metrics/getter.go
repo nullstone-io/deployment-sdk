@@ -71,7 +71,9 @@ func (g Getter) ingest(output *cloudwatch.GetMetricDataOutput, result *block.Met
 			// Should we warn?
 			continue
 		}
-
+		if metricGroup.Mappings[metricId].HideFromResults {
+			continue
+		}
 		curSeries := result.GetDataset(metricGroup.Name, metricGroup.Type, metricGroup.Unit).GetSeries(metricId)
 		for i := 0; i < len(dataResult.Timestamps); i++ {
 			curSeries.AddPoint(dataResult.Timestamps[i], dataResult.Values[i])

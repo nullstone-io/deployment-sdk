@@ -17,11 +17,21 @@ type MappingGroup struct {
 }
 
 type MetricMapping struct {
-	AccountId  string                  `json:"account_id"`
-	Stat       string                  `json:"stat"`
-	Namespace  string                  `json:"namespace"`
-	MetricName string                  `json:"metric_name"`
-	Dimensions MetricMappingDimensions `json:"dimensions"`
+	AccountId       string                  `json:"account_id"`
+	Stat            string                  `json:"stat"`
+	Namespace       string                  `json:"namespace"`
+	MetricName      string                  `json:"metric_name"`
+	Dimensions      MetricMappingDimensions `json:"dimensions"`
+	Expression      string                  `json:"expression"`
+	HideFromResults bool                    `json:"hide_from_results"`
+}
+
+func (m MetricMapping) ExpressionPtr() *string {
+	expr := m.Expression
+	if expr == "" {
+		return nil
+	}
+	return &expr
 }
 
 type MetricMappingDimensions map[string]string
@@ -45,8 +55,9 @@ func (g MappingGroups) BuildMetricQueries(metrics []string, periodSec int32) []t
 			// Let's build a query and add it
 			for id, mapping := range grp.Mappings {
 				queries = append(queries, types.MetricDataQuery{
-					Id:        aws.String(id),
-					AccountId: aws.String(mapping.AccountId),
+					Id:         aws.String(id),
+					AccountId:  aws.String(mapping.AccountId),
+					Expression: mapping.ExpressionPtr(),
 					MetricStat: &types.MetricStat{
 						Period: aws.Int32(periodSec),
 						Stat:   aws.String(mapping.Stat),
