@@ -26,12 +26,25 @@ type MetricMapping struct {
 	HideFromResults bool                    `json:"hide_from_results"`
 }
 
-func (m MetricMapping) ExpressionPtr() *string {
-	expr := m.Expression
-	if expr == "" {
-		return nil
+func (m MetricMapping) ToMetricDateQuery(id string, periodSec int32) types.MetricDataQuery {
+	query := types.MetricDataQuery{
+		Id:        aws.String(id),
+		AccountId: aws.String(m.AccountId),
 	}
-	return &expr
+	if m.Expression != "" {
+		query.Expression = aws.String(m.Expression)
+	} else {
+		query.MetricStat = &types.MetricStat{
+			Period: aws.Int32(periodSec),
+			Stat:   aws.String(m.Stat),
+			Metric: &types.Metric{
+				Namespace:  aws.String(m.Namespace),
+				MetricName: aws.String(m.MetricName),
+				Dimensions: m.Dimensions.ToAws(),
+			},
+		}
+	}
+	return query
 }
 
 type MetricMappingDimensions map[string]string
@@ -54,20 +67,7 @@ func (g MappingGroups) BuildMetricQueries(metrics []string, periodSec int32) []t
 			// This Metric Group was specified in the list of requested metrics
 			// Let's build a query and add it
 			for id, mapping := range grp.Mappings {
-				queries = append(queries, types.MetricDataQuery{
-					Id:         aws.String(id),
-					AccountId:  aws.String(mapping.AccountId),
-					Expression: mapping.ExpressionPtr(),
-					MetricStat: &types.MetricStat{
-						Period: aws.Int32(periodSec),
-						Stat:   aws.String(mapping.Stat),
-						Metric: &types.Metric{
-							Namespace:  aws.String(mapping.Namespace),
-							MetricName: aws.String(mapping.MetricName),
-							Dimensions: mapping.Dimensions.ToAws(),
-						},
-					},
-				})
+				queries = append(queries, mapping.ToMetricDateQuery(id, periodSec))
 			}
 		}
 	}
