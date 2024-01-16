@@ -19,15 +19,6 @@ type Outputs struct {
 	ArtifactsKeyTemplate string     `ns:"artifacts_key_template"`
 }
 
-func (o Outputs) AccountId() string {
-	arn := o.LambdaArn
-	tokens := strings.Split(arn, ":")
-	if len(tokens) < 5 {
-		return ""
-	}
-	return tokens[4]
-}
-
 func (o Outputs) FunctionName() string {
 	return o.LambdaName
 }
