@@ -31,7 +31,11 @@ func (s MetricsGetters) FindMetricsGetter(osWriters logging.OsWriters, nsConfig 
 			if v == nil {
 				return nil, nil
 			}
-			return v(osWriters, nsConfig, blockDetails)
+			mg, err := v(osWriters, nsConfig, blockDetails)
+			if err != nil {
+				return nil, MetricsNotSupportedError{InnerErr: err}
+			}
+			return mg, nil
 		}
 	}
 

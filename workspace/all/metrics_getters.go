@@ -19,6 +19,8 @@ var (
 		Platform:    "k8s",
 		Subplatform: "gke",
 	}
+	// MetricsGetters is a factory for creating a new MetricsGetter from a workspace
+	// If the factory method returns an error, it is wrapped with MetricsNotSupportedError
 	MetricsGetters = workspace.MetricsGetters{
 		Aws:    cwMetrics.NewGetter,
 		GcpGke: nil,

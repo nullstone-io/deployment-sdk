@@ -18,7 +18,7 @@ var _ workspace.MetricsGetter = Getter{}
 func NewGetter(osWriters logging.OsWriters, nsConfig api.Config, blockDetails workspace.Details) (workspace.MetricsGetter, error) {
 	outs, err := outputs.Retrieve[Outputs](nsConfig, blockDetails.Workspace)
 	if err != nil {
-		return nil, workspace.MetricsNotSupportedError{InnerErr: err}
+		return nil, err
 	}
 
 	return Getter{
