@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
@@ -45,8 +44,6 @@ func (g Getter) GetMetrics(ctx context.Context, options block.MetricsGetterOptio
 		ScanBy:            types.ScanByTimestampAscending,
 		MetricDataQueries: queries,
 	}
-	raw, _ := json.Marshal(input)
-	fmt.Printf("get-metric-data input: %s\n", string(raw))
 
 	cwClient := cloudwatch.NewFromConfig(g.Infra.AwsConfig())
 	paginator := cloudwatch.NewGetMetricDataPaginator(cwClient, input)
