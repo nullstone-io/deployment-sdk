@@ -2,8 +2,6 @@ module github.com/nullstone-io/deployment-sdk
 
 go 1.21
 
-replace gopkg.in/nullstone-io/go-api-client.v0 => ../go-api-client
-
 require (
 	github.com/aws/aws-sdk-go-v2 v1.24.1
 	github.com/aws/aws-sdk-go-v2/credentials v1.16.16
@@ -30,7 +28,7 @@ require (
 	github.com/vmihailenco/tagparser v0.1.2
 	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
-	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20231109204408-47911e567aec
+	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20240119221247-7d13771b44f8
 	k8s.io/api v0.27.2
 	k8s.io/apimachinery v0.27.2
 	k8s.io/client-go v0.27.2
