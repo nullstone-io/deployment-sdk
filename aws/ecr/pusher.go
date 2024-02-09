@@ -84,10 +84,6 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 	return nil
 }
 
-func (p Pusher) CalculateVersion(ctx context.Context, commitSha string) (string, error) {
-	return commitSha, nil
-}
-
 func (p Pusher) ListArtifacts(ctx context.Context) ([]string, error) {
 	targetAuth, err := p.getEcrLoginAuth(ctx)
 	if err != nil {
