@@ -7,6 +7,8 @@ import (
 	"github.com/nullstone-io/deployment-sdk/artifacts"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
+	"gopkg.in/nullstone-io/go-api-client.v0"
+	"strings"
 )
 
 func NewDirPusher(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Pusher, error) {
@@ -51,5 +53,23 @@ func (p DirPusher) Push(ctx context.Context, source, version string) error {
 }
 
 func (p DirPusher) ListArtifacts(ctx context.Context) ([]string, error) {
-	return []string{}, nil
+	dirs, err := ListDirs(ctx, p.Infra)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]string, 0)
+	if before, after, found := strings.Cut(p.Infra.ArtifactsKeyTemplate, KeyTemplateAppVersion); found {
+		for _, dir := range dirs {
+			cur := strings.TrimPrefix(dir, before)
+			cur = strings.TrimSuffix(cur, after)
+			results = append(results, cur)
+		}
+	} else {
+		for _, dir := range dirs {
+			results = append(results, dir)
+		}
+	}
+
+	return results, nil
 }
