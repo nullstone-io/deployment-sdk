@@ -13,6 +13,8 @@ import (
 	"github.com/nullstone-io/deployment-sdk/docker"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
+	"gopkg.in/nullstone-io/go-api-client.v0"
+	"log"
 	"strings"
 	"time"
 )
@@ -61,6 +63,14 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 		return fmt.Errorf("error creating docker client: %w", err)
 	}
 
+	list, err := dockerCli.Client().ImageList(ctx, dockertypes.ImageListOptions{})
+	if err != nil {
+		return fmt.Errorf("error listing images: %w", err)
+	}
+	for _, img := range list {
+		log.Printf("Image: %#v\n", img)
+	}
+
 	fmt.Fprintf(stdout, "Retagging %s => %s\n", sourceUrl.String(), targetUrl.String())
 	if err := dockerCli.Client().ImageTag(ctx, sourceUrl.String(), targetUrl.String()); err != nil {
 		return fmt.Errorf("error retagging image: %w", err)
@@ -72,6 +82,10 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 	}
 
 	return nil
+}
+
+func (p Pusher) CalculateVersion(ctx context.Context, commitSha string) (string, error) {
+	return commitSha, nil
 }
 
 func (p Pusher) validate(targetUrl docker.ImageUrl) error {

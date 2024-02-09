@@ -24,6 +24,7 @@ type NewLogStreamerFunc func(osWriters logging.OsWriters, source outputs.Retriev
 
 type Pusher interface {
 	Push(ctx context.Context, source, version string) error
+	CalculateVersion(ctx context.Context, commitSha string) (string, error)
 }
 
 type Deployer interface {

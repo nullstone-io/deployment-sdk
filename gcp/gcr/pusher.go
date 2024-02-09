@@ -72,6 +72,10 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 	return nil
 }
 
+func (p Pusher) CalculateVersion(ctx context.Context, commitSha string) (string, error) {
+	return commitSha, nil
+}
+
 func (p Pusher) validate(targetUrl docker.ImageUrl) error {
 	if targetUrl.String() == "" {
 		return fmt.Errorf("cannot push if 'image_repo_url' module output is missing")

@@ -51,3 +51,11 @@ func (p ZipPusher) Push(ctx context.Context, source, version string) error {
 	fmt.Fprintln(stdout, "Upload complete")
 	return nil
 }
+
+func (p ZipPusher) CalculateVersion(ctx context.Context, commitSha string) (string, error) {
+	// pull all zip filenames from the s3 bucket
+	// find the latest zip filename that contains the commitSha
+	// extract the version from the filename and return
+
+	return commitSha, nil
+}

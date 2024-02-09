@@ -51,3 +51,7 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 
 	return nil
 }
+
+func (p Pusher) CalculateVersion(ctx context.Context, commitSha string) (string, error) {
+	return p.zipPusher.CalculateVersion(ctx, commitSha)
+}
