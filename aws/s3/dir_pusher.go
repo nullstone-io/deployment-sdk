@@ -50,6 +50,6 @@ func (p DirPusher) Push(ctx context.Context, source, version string) error {
 	return nil
 }
 
-func (p DirPusher) CalculateVersion(ctx context.Context, commitSha string) (string, error) {
-	return commitSha, nil
+func (p DirPusher) ListArtifacts(ctx context.Context) ([]string, error) {
+	return []string{}, nil
 }

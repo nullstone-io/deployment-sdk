@@ -52,10 +52,6 @@ func (p ZipPusher) Push(ctx context.Context, source, version string) error {
 	return nil
 }
 
-func (p ZipPusher) CalculateVersion(ctx context.Context, commitSha string) (string, error) {
-	// pull all zip filenames from the s3 bucket
-	// find the latest zip filename that contains the commitSha
-	// extract the version from the filename and return
-
-	return commitSha, nil
+func (p ZipPusher) ListArtifacts(ctx context.Context) ([]string, error) {
+	return []string{}, nil
 }
