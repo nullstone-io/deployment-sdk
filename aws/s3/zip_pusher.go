@@ -7,6 +7,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"os"
+	"strings"
 )
 
 func NewZipPusher(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Pusher, error) {
@@ -53,5 +54,27 @@ func (p ZipPusher) Push(ctx context.Context, source, version string) error {
 }
 
 func (p ZipPusher) ListArtifacts(ctx context.Context) ([]string, error) {
-	return []string{}, nil
+	results := make([]string, 0)
+	if before, after, found := strings.Cut(p.Infra.ArtifactsKeyTemplate, KeyTemplateAppVersion); found {
+		objects, err := ListObjects(ctx, p.Infra, before)
+		if err != nil {
+			return nil, err
+		}
+		for _, obj := range objects {
+			key := strings.TrimPrefix(*obj.Key, before)
+			if after != "" {
+				key = strings.TrimSuffix(key, after)
+			}
+			results = append(results, key)
+		}
+	} else {
+		objects, err := ListObjects(ctx, p.Infra, "")
+		if err != nil {
+			return nil, err
+		}
+		for _, obj := range objects {
+			results = append(results, *obj.Key)
+		}
+	}
+	return results, nil
 }
