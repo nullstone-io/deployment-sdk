@@ -3,7 +3,20 @@ package docker
 import (
 	"encoding/json"
 	"fmt"
+	"net"
+	"regexp"
 	"strings"
+)
+
+var (
+	// Detect more complex forms of local references.
+	reLocal = regexp.MustCompile(`.*\.local(?:host)?(?::\d{1,5})?$`)
+
+	// Detect the loopback IP (127.0.0.1)
+	reLoopback = regexp.MustCompile(regexp.QuoteMeta("127.0.0.1"))
+
+	// Detect the loopback IPV6 (::1)
+	reipv6Loopback = regexp.MustCompile(regexp.QuoteMeta("::1"))
 )
 
 var _ json.Unmarshaler = &ImageUrl{}
@@ -16,6 +29,7 @@ type ImageUrl struct {
 	Repo     string
 	Tag      string
 	Digest   string
+	Insecure bool
 }
 
 func (u *ImageUrl) UnmarshalJSON(data []byte) error {
@@ -75,4 +89,49 @@ func ParseImageUrl(raw string) ImageUrl {
 	}
 
 	return it
+}
+
+func (u ImageUrl) RepoName() string {
+	if u.User == "" {
+		return u.Repo
+	}
+	return fmt.Sprintf("%s/%s", u.User, u.Repo)
+}
+
+// Scheme returns https scheme for all the endpoints except localhost or when explicitly defined.
+func (u ImageUrl) Scheme() string {
+	if u.Insecure {
+		return "http"
+	}
+	if u.isRFC1918() {
+		return "http"
+	}
+	if strings.HasPrefix(u.Registry, "localhost:") {
+		return "http"
+	}
+	if reLocal.MatchString(u.Registry) {
+		return "http"
+	}
+	if reLoopback.MatchString(u.Registry) {
+		return "http"
+	}
+	if reipv6Loopback.MatchString(u.Registry) {
+		return "http"
+	}
+	return "https"
+}
+
+func (u ImageUrl) isRFC1918() bool {
+	ipStr := strings.Split(u.Registry, ":")[0]
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return false
+	}
+	for _, cidr := range []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"} {
+		_, block, _ := net.ParseCIDR(cidr)
+		if block.Contains(ip) {
+			return true
+		}
+	}
+	return false
 }
