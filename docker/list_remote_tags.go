@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/docker/docker/api/types"
+	"io"
 	"net/http"
 	"net/url"
 )
@@ -32,6 +33,14 @@ func ListRemoteTags(ctx context.Context, targetUrl ImageUrl, targetAuth types.Au
 	}
 	if res.Body != nil {
 		defer res.Body.Close()
+	}
+
+	if res.StatusCode >= 400 {
+		raw, err := io.ReadAll(res.Body)
+		if err != nil {
+			return nil, fmt.Errorf("error reading error (status code = %d) response: %w", res.StatusCode, err)
+		}
+		return nil, fmt.Errorf("error response (status code = %d): %s", res.StatusCode, string(raw))
 	}
 
 	decoder := json.NewDecoder(res.Body)
