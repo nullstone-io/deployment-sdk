@@ -13,7 +13,6 @@ import (
 	"github.com/nullstone-io/deployment-sdk/docker"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
-	"log"
 	"strings"
 	"time"
 )
@@ -60,14 +59,6 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 	dockerCli, err := docker.DiscoverDockerCli(p.OsWriters)
 	if err != nil {
 		return fmt.Errorf("error creating docker client: %w", err)
-	}
-
-	list, err := dockerCli.Client().ImageList(ctx, dockertypes.ImageListOptions{})
-	if err != nil {
-		return fmt.Errorf("error listing images: %w", err)
-	}
-	for _, img := range list {
-		log.Printf("Image: %#v\n", img)
 	}
 
 	fmt.Fprintf(stdout, "Retagging %s => %s\n", sourceUrl.String(), targetUrl.String())
