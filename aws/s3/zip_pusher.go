@@ -53,7 +53,7 @@ func (p ZipPusher) Push(ctx context.Context, source, version string) error {
 	return nil
 }
 
-func (p ZipPusher) ListArtifacts(ctx context.Context) ([]string, error) {
+func (p ZipPusher) ListArtifactVersions(ctx context.Context) ([]string, error) {
 	results := make([]string, 0)
 	if before, after, found := strings.Cut(p.Infra.ArtifactsKeyTemplate, KeyTemplateAppVersion); found {
 		objects, err := ListObjects(ctx, p.Infra, before)

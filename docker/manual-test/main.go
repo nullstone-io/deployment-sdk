@@ -28,7 +28,7 @@ func main() {
 		},
 	}
 
-	tags, err := pusher.ListArtifacts(ctx)
+	tags, err := pusher.ListArtifactVersions(ctx)
 	if err != nil {
 		log.Fatalln(err)
 	}

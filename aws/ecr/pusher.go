@@ -74,7 +74,7 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 	return nil
 }
 
-func (p Pusher) ListArtifacts(ctx context.Context) ([]string, error) {
+func (p Pusher) ListArtifactVersions(ctx context.Context) ([]string, error) {
 	targetAuth, err := p.getEcrLoginAuth(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving image registry credentials: %w", err)

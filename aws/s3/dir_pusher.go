@@ -51,7 +51,7 @@ func (p DirPusher) Push(ctx context.Context, source, version string) error {
 	return nil
 }
 
-func (p DirPusher) ListArtifacts(ctx context.Context) ([]string, error) {
+func (p DirPusher) ListArtifactVersions(ctx context.Context) ([]string, error) {
 	dirs, err := ListDirs(ctx, p.Infra)
 	if err != nil {
 		return nil, err
