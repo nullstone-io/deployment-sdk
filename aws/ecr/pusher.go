@@ -74,6 +74,19 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 	return nil
 }
 
+func (p Pusher) ListArtifactVersions(ctx context.Context) ([]string, error) {
+	targetAuth, err := p.getEcrLoginAuth(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving image registry credentials: %w", err)
+	}
+
+	tags, err := docker.ListRemoteTags(ctx, p.Infra.ImageRepoUrl, targetAuth)
+	if err != nil {
+		return nil, fmt.Errorf("error listing remote tags: %w", err)
+	}
+	return tags, nil
+}
+
 func (p Pusher) validate(targetUrl docker.ImageUrl) error {
 	if targetUrl.String() == "" {
 		return fmt.Errorf("cannot push if 'image_repo_url' module output is missing")

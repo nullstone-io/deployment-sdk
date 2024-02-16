@@ -7,6 +7,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/artifacts"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
+	"strings"
 )
 
 func NewDirPusher(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Pusher, error) {
@@ -48,4 +49,26 @@ func (p DirPusher) Push(ctx context.Context, source, version string) error {
 	}
 
 	return nil
+}
+
+func (p DirPusher) ListArtifactVersions(ctx context.Context) ([]string, error) {
+	dirs, err := ListDirs(ctx, p.Infra)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]string, 0)
+	if before, after, found := strings.Cut(p.Infra.ArtifactsKeyTemplate, KeyTemplateAppVersion); found {
+		for _, dir := range dirs {
+			cur := strings.TrimPrefix(dir, before)
+			cur = strings.TrimSuffix(cur, after)
+			results = append(results, cur)
+		}
+	} else {
+		for _, dir := range dirs {
+			results = append(results, dir)
+		}
+	}
+
+	return results, nil
 }
