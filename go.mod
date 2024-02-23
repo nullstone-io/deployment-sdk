@@ -25,6 +25,7 @@ require (
 	github.com/sethvargo/go-retry v0.2.3
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.1
+	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80
 	github.com/vmihailenco/tagparser v0.1.2
 	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f

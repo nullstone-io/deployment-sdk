@@ -15,13 +15,17 @@ import (
 func main() {
 	ctx := context.Background()
 
+	accountId := "" // AWS Account ID
+	region := "us-east-1"
+	repoName := "" // ECR image repo name
+	imageUrl := docker.ParseImageUrl(fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s", accountId, region, repoName))
+
 	pusher := ecr.Pusher{
 		OsWriters: logging.StandardOsWriters{},
 		Infra: ecr.Outputs{
-			Region:       "us-east-1",
-			ImageRepoUrl: docker.ParseImageUrl("820877947822.dkr.ecr.us-east-1.amazonaws.com/api-gateway-bufms"),
+			Region:       region,
+			ImageRepoUrl: imageUrl,
 			ImagePusher: nsaws.User{
-				Name:            "image-pusher-api-gateway-bufms",
 				AccessKeyId:     os.Getenv("AWS_ACCESS_KEY_ID"),
 				SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
 			},
