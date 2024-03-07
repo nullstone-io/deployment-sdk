@@ -10,8 +10,8 @@ import (
 	"strings"
 )
 
-func NewDirPusher(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Pusher, error) {
-	outs, err := outputs.Retrieve[Outputs](source, appDetails.Workspace)
+func NewDirPusher(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Pusher, error) {
+	outs, err := outputs.Retrieve[Outputs](ctx, source, appDetails.Workspace)
 	if err != nil {
 		return nil, err
 	}

@@ -33,8 +33,8 @@ type PollingDeployWatcher struct {
 
 // NewPollingDeployWatcher wraps a DeployStatusGetter to provide polling support for watching a deployment
 func NewPollingDeployWatcher(statusGetterFn NewDeployStatusGetterFunc) NewDeployWatcherFunc {
-	return func(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (DeployWatcher, error) {
-		statusGetter, err := statusGetterFn(osWriters, source, appDetails)
+	return func(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (DeployWatcher, error) {
+		statusGetter, err := statusGetterFn(ctx, osWriters, source, appDetails)
 		if err != nil {
 			return nil, err
 		}

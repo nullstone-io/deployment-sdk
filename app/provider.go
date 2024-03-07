@@ -15,12 +15,12 @@ type Provider struct {
 	NewLogStreamer     NewLogStreamerFunc
 }
 
-type NewPusherFunc func(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (Pusher, error)
-type NewDeployerFunc func(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (Deployer, error)
-type NewDeployStatusGetterFunc func(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (DeployStatusGetter, error)
-type NewDeployWatcherFunc func(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (DeployWatcher, error)
-type NewStatuserFunc func(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (Statuser, error)
-type NewLogStreamerFunc func(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (LogStreamer, error)
+type NewPusherFunc func(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (Pusher, error)
+type NewDeployerFunc func(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (Deployer, error)
+type NewDeployStatusGetterFunc func(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (DeployStatusGetter, error)
+type NewDeployWatcherFunc func(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (DeployWatcher, error)
+type NewStatuserFunc func(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (Statuser, error)
+type NewLogStreamerFunc func(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails Details) (LogStreamer, error)
 
 type Pusher interface {
 	Push(ctx context.Context, source, version string) error
