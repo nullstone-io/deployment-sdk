@@ -87,8 +87,8 @@ type StatusTaskContainerPort struct {
 	HealthReason string `json:"healthReason"`
 }
 
-func NewStatuser(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Statuser, error) {
-	outs, err := outputs.Retrieve[Outputs](source, appDetails.Workspace)
+func NewStatuser(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Statuser, error) {
+	outs, err := outputs.Retrieve[Outputs](ctx, source, appDetails.Workspace)
 	if err != nil {
 		return nil, err
 	}

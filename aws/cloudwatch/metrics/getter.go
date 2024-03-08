@@ -14,8 +14,8 @@ import (
 
 var _ workspace.MetricsGetter = Getter{}
 
-func NewGetter(osWriters logging.OsWriters, source outputs.RetrieverSource, blockDetails workspace.Details) (workspace.MetricsGetter, error) {
-	outs, err := outputs.Retrieve[Outputs](source, blockDetails.Workspace)
+func NewGetter(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, blockDetails workspace.Details) (workspace.MetricsGetter, error) {
+	outs, err := outputs.Retrieve[Outputs](ctx, source, blockDetails.Workspace)
 	if err != nil {
 		return nil, err
 	}

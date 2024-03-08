@@ -8,8 +8,8 @@ import (
 	"github.com/nullstone-io/deployment-sdk/outputs"
 )
 
-func NewDeployer(osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Deployer, error) {
-	outs, err := outputs.Retrieve[Outputs](source, appDetails.Workspace)
+func NewDeployer(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Deployer, error) {
+	outs, err := outputs.Retrieve[Outputs](ctx, source, appDetails.Workspace)
 	if err != nil {
 		return nil, err
 	}

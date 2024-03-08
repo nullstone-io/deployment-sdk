@@ -1,6 +1,7 @@
 package outputs
 
 import (
+	"context"
 	"github.com/google/uuid"
 	"github.com/nullstone-io/module/config"
 	"github.com/stretchr/testify/assert"
@@ -150,7 +151,7 @@ func TestRetriever_Retrieve(t *testing.T) {
 
 		retriever := Retriever{Source: ApiRetrieverSource{Config: nsConfig}}
 		var got MockFlatOutputs
-		if assert.NoError(t, retriever.Retrieve(flatWorkspace, &got)) {
+		if assert.NoError(t, retriever.Retrieve(context.Background(), flatWorkspace, &got)) {
 			assert.Equal(t, want, got)
 		}
 	})
@@ -183,7 +184,7 @@ func TestRetriever_Retrieve(t *testing.T) {
 
 		retriever := Retriever{Source: ApiRetrieverSource{Config: nsConfig}}
 		var got MockDeepOutputs
-		if assert.NoError(t, retriever.Retrieve(deepWorkspace, &got)) {
+		if assert.NoError(t, retriever.Retrieve(context.Background(), deepWorkspace, &got)) {
 			assert.Equal(t, want, got)
 		}
 	})

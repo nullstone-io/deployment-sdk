@@ -1,6 +1,7 @@
 package outputs
 
 import (
+	"context"
 	"fmt"
 	"github.com/google/uuid"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
@@ -8,14 +9,14 @@ import (
 )
 
 type RetrieverSource interface {
-	GetWorkspace(stackId, blockId, envId int64) (*types.Workspace, error)
-	GetCurrentOutputs(stackId int64, workspaceUid uuid.UUID, showSensitive bool) (types.Outputs, error)
+	GetWorkspace(ctx context.Context, stackId, blockId, envId int64) (*types.Workspace, error)
+	GetCurrentOutputs(ctx context.Context, stackId int64, workspaceUid uuid.UUID, showSensitive bool) (types.Outputs, error)
 }
 
-func Retrieve[T any](source RetrieverSource, workspace *types.Workspace) (T, error) {
+func Retrieve[T any](ctx context.Context, source RetrieverSource, workspace *types.Workspace) (T, error) {
 	var t T
 	r := Retriever{Source: source}
-	if err := r.Retrieve(workspace, &t); err != nil {
+	if err := r.Retrieve(ctx, workspace, &t); err != nil {
 		return t, err
 	}
 	return t, nil
@@ -39,7 +40,7 @@ func (n NoWorkspaceOutputsError) Error() string {
 // To properly use, the input obj must be a pointer to a struct that contains fields that map to outputs
 // Struct tags on each field within the struct define how to read the outputs from nullstone APIs
 // See Field for more details
-func (r *Retriever) Retrieve(workspace *types.Workspace, obj interface{}) error {
+func (r *Retriever) Retrieve(ctx context.Context, workspace *types.Workspace, obj interface{}) error {
 	objType := reflect.TypeOf(obj)
 	if objType.Kind() != reflect.Ptr {
 		return fmt.Errorf("input object must be a pointer")
@@ -48,7 +49,7 @@ func (r *Retriever) Retrieve(workspace *types.Workspace, obj interface{}) error 
 		return fmt.Errorf("input object must be a pointer to a struct")
 	}
 
-	workspaceOutputs, err := r.Source.GetCurrentOutputs(workspace.StackId, workspace.Uid, true)
+	workspaceOutputs, err := r.Source.GetCurrentOutputs(ctx, workspace.StackId, workspace.Uid, true)
 	if err != nil {
 		wt := types.WorkspaceTarget{
 			StackId: workspace.StackId,
@@ -73,7 +74,7 @@ func (r *Retriever) Retrieve(workspace *types.Workspace, obj interface{}) error 
 			}
 			target := field.InitializeConnectionValue(obj)
 
-			connWorkspace, err := r.GetConnectionWorkspace(workspace, field.ConnectionName, field.ConnectionType, field.ConnectionContract)
+			connWorkspace, err := r.GetConnectionWorkspace(ctx, workspace, field.ConnectionName, field.ConnectionType, field.ConnectionContract)
 			if err != nil {
 				return fmt.Errorf("error finding connection workspace (name=%s, type=%s, contract=%s): %w", field.ConnectionName, field.ConnectionType, field.ConnectionContract, err)
 			}
@@ -87,7 +88,7 @@ func (r *Retriever) Retrieve(workspace *types.Workspace, obj interface{}) error 
 					ConnectionContract: field.ConnectionContract,
 				}
 			}
-			if err := r.Retrieve(connWorkspace, target); err != nil {
+			if err := r.Retrieve(ctx, connWorkspace, target); err != nil {
 				return err
 			}
 		} else {
@@ -108,7 +109,7 @@ func (r *Retriever) Retrieve(workspace *types.Workspace, obj interface{}) error 
 // This will search through connections matching on connectionName and connectionType
 // Specify "" to ignore filtering for that field
 // One of either connectionName or connectionType must be specified
-func (r *Retriever) GetConnectionWorkspace(source *types.Workspace, connectionName, connectionType, connectionContract string) (*types.Workspace, error) {
+func (r *Retriever) GetConnectionWorkspace(ctx context.Context, source *types.Workspace, connectionName, connectionType, connectionContract string) (*types.Workspace, error) {
 	conn, err := findConnection(source, connectionName, connectionType, connectionContract)
 	if err != nil {
 		return nil, err
@@ -123,7 +124,7 @@ func (r *Retriever) GetConnectionWorkspace(source *types.Workspace, connectionNa
 	}
 	destTarget := sourceTarget.FindRelativeConnection(*conn.Reference)
 
-	return r.Source.GetWorkspace(destTarget.StackId, destTarget.BlockId, destTarget.EnvId)
+	return r.Source.GetWorkspace(ctx, destTarget.StackId, destTarget.BlockId, destTarget.EnvId)
 }
 
 func findConnection(source *types.Workspace, connectionName, connectionType, connectionContract string) (*types.Connection, error) {
