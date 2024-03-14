@@ -8,7 +8,6 @@ import (
 	"github.com/nullstone-io/deployment-sdk/k8s"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
-	"gopkg.in/nullstone-io/go-api-client.v0"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -16,8 +15,8 @@ const (
 	DeployReferenceNoop = "no-updated-revision"
 )
 
-func NewDeployer(osWriters logging.OsWriters, nsConfig api.Config, appDetails app.Details) (app.Deployer, error) {
-	outs, err := outputs.Retrieve[Outputs](nsConfig, appDetails.Workspace)
+func NewDeployer(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Deployer, error) {
+	outs, err := outputs.Retrieve[Outputs](ctx, source, appDetails.Workspace)
 	if err != nil {
 		return nil, err
 	}
