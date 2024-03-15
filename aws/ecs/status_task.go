@@ -11,12 +11,13 @@ var (
 	// Explanations provides plain-english explanations for a task status
 	// See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-lifecycle.html
 	Explanations = map[string]string{
-		"PROVISIONING":   "Creating network resources",
-		"PENDING":        "Provisioning compute resources",
+		"PROVISIONING":   "Creating compute and network resources",
+		"PENDING":        "Configuring network interface",
+		"ACTIVATING":     "Registering with load balancer",
 		"RUNNING":        "Alive",
 		"DEACTIVATING":   "Draining load balancer",
 		"STOPPING":       "Stopping containers",
-		"DEPROVISIONING": "Deleting network resources",
+		"DEPROVISIONING": "Deleting compute and network resources",
 		"STOPPED":        "Dead",
 		"DELETED":        "Deleted",
 	}
