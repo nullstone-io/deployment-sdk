@@ -72,6 +72,10 @@ func (s *PollingDeployWatcher) Watch(ctx context.Context, reference string) erro
 	for {
 		status, err := s.StatusGetter.GetDeployStatus(ctx, reference)
 		if err != nil {
+			// TODO: Differentiate between initialization and failure errors
+			// -> initialization errors will keep polling (e.g. we don't want to stop polling if the service is booting)
+			// -> failure errors will immediately fail the deployment (e.g. the deployment was cancelled/evicted)
+
 			// if for some reason we can't fetch the app status from the provider
 			// we are going to log the error and continue looping
 			// eventually the deploy will timeout and fail
