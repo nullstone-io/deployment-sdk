@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/aws"
 	"github.com/nullstone-io/deployment-sdk/aws/ecs"
@@ -43,7 +44,13 @@ func main() {
 		},
 	}
 
-	deployment, err := ecs.UpdateServiceTask(context.Background(), infra, taskDefArn)
+	newTaskDefArn := updateTaskDef(ctx, infra, taskDefArn, func(taskDef types.TaskDefinition) types.TaskDefinition {
+		// NOTE: Use this area to update the task def to try failure scenarios
+
+		return taskDef
+	})
+
+	deployment, err := ecs.UpdateServiceTask(context.Background(), infra, newTaskDefArn)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -52,4 +59,21 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+}
+
+func updateTaskDef(ctx context.Context, infra ecs.Outputs, taskDefArn string, fn func(taskDef types.TaskDefinition) types.TaskDefinition) string {
+	taskDef, err := ecs.GetTaskDefinitionByArn(ctx, infra, taskDefArn)
+	if err != nil {
+		log.Fatalln(err)
+	} else if taskDef == nil {
+		log.Fatalln("Cannot find task definition")
+	}
+
+	updatedTaskDef := fn(*taskDef)
+
+	newTaskDef, err := ecs.UpdateTask(ctx, infra, &updatedTaskDef, *taskDef.TaskDefinitionArn)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return *newTaskDef.TaskDefinitionArn
 }

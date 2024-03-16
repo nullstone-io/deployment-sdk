@@ -14,25 +14,45 @@ import (
 type deployTaskLoggers map[string]*deployTaskLogger
 
 func (l deployTaskLoggers) Refresh(ctx context.Context, osWriters logging.OsWriters, infra Outputs, deploymentId string, lbs StatusLoadBalancers, taskDef *ecstypes.TaskDefinition) error {
-	tasks, err := GetDeploymentTasks(ctx, infra, deploymentId)
+	// 1. Look for new task arns and collate them into the existing list of task loggers
+	taskArns, err := GetAllDeploymentTaskArns(ctx, infra, deploymentId)
 	if err != nil {
-		// TODO: Handle error?
-		return fmt.Errorf("unable to retrieve deployment tasks: %w", err)
+		return fmt.Errorf("unable to retrieve new deployment tasks: %w", err)
 	}
-	// Find tasks that we're not tracking yet, add them to our list of tasks to watch
-	// Then, log any differences as events
+	taskArnsToInit := map[string]bool{}
+	for _, taskArn := range taskArns {
+		if _, ok := l[taskArn]; !ok {
+			taskArnsToInit[taskArn] = true
+			l[taskArn] = newDeployTaskLogger(osWriters, taskArn)
+		}
+	}
+
+	// 2. Collect the details of all tasks via a single DescribeTasks call
+	tasks, err := GetTasksWithDetail(ctx, infra, l.getAllTaskArns())
+	if err != nil {
+		return fmt.Errorf("unable to refresh task detail: %w", err)
+	}
+
+	// 3. Feed that detail into the task loggers (via Init or Refresh)
 	for _, task := range tasks {
 		taskArn := *task.TaskArn
-		taskLogger, ok := l[taskArn]
-		if !ok {
-			taskLogger = newDeployTaskLogger(osWriters, taskArn)
+		taskLogger, _ := l[taskArn] // This should always contain a task logger
+		if _, needsInit := taskArnsToInit[*task.TaskArn]; needsInit {
 			taskLogger.Init(task)
-			l[taskArn] = taskLogger
 		} else {
 			taskLogger.Refresh(task, lbs, taskDef)
 		}
 	}
+
 	return nil
+}
+
+func (l deployTaskLoggers) getAllTaskArns() []string {
+	all := make([]string, 0)
+	for _, tl := range l {
+		all = append(all, tl.TaskArn)
+	}
+	return all
 }
 
 type deployTaskLogger struct {
