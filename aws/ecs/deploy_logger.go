@@ -11,6 +11,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"log"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -52,7 +53,7 @@ type LogEvent struct {
 }
 
 func (e LogEvent) String() string {
-	return fmt.Sprintf("%s %s", display.FormatTime(e.At), e.Message)
+	return fmt.Sprintf("[%s] %s", display.FormatTime(e.At), e.Message)
 }
 
 func (d *DeployLogger) GetDeployStatus(ctx context.Context, deploymentId string) (app.RolloutStatus, error) {
@@ -102,6 +103,7 @@ func (d *DeployLogger) refresh(ctx context.Context, deploymentId string) error {
 	d.service = updated
 	d.serviceLogger.SetPrefix(fmt.Sprintf("[%s] ", *d.service.ServiceName))
 
+	d.deployLogger.SetPrefix(fmt.Sprintf("[%s] ", deploymentId))
 	previousDeployment := d.deployment
 	d.refreshDeployment(*updated, deploymentId)
 	// TODO: deployment.Status != "PRIMARY" means another deployment is evicting this one
@@ -194,16 +196,6 @@ func (d *DeployLogger) initLastSeenEvent(service ecstypes.Service) {
 // logInitialEvents logs messages about initial creation of the service and deployment
 func (d *DeployLogger) logInitialEvents(previous *ecstypes.Service, previousDeployment *ecstypes.Deployment) {
 	now := time.Now()
-	if d.service != nil && previous == nil {
-		// NOTE: This is here for consistency
-		// I don't know if there is something interesting to log when we first identify the service
-		if period := d.service.HealthCheckGracePeriodSeconds; period != nil && *period > 0 {
-			d.deployLogger.Println(LogEvent{
-				At:      now,
-				Message: fmt.Sprintf("Service tasks have a health check grace period of %s", time.Second*time.Duration(*period)),
-			})
-		}
-	}
 	if d.deployment != nil && previousDeployment == nil {
 		deployCreatedAt := aws.ToTime(d.deployment.CreatedAt)
 		d.deployLogger.Println(LogEvent{
@@ -214,6 +206,16 @@ func (d *DeployLogger) logInitialEvents(previous *ecstypes.Service, previousDepl
 			At:      deployCreatedAt,
 			Message: fmt.Sprintf("Launching %d tasks", d.deployment.DesiredCount),
 		})
+	}
+	if d.service != nil && previous == nil {
+		// NOTE: This is here for consistency
+		// I don't know if there is something interesting to log when we first identify the service
+		if period := d.service.HealthCheckGracePeriodSeconds; period != nil && *period > 0 {
+			d.serviceLogger.Println(LogEvent{
+				At:      now,
+				Message: fmt.Sprintf("Service tasks have a health check grace period of %s", time.Second*time.Duration(*period)),
+			})
+		}
 	}
 }
 
@@ -263,8 +265,18 @@ func (d *DeployLogger) logNewEvents() {
 		return newEvents[i].At.Before(newEvents[j].At)
 	})
 
+	svcEventPrefix := fmt.Sprintf("(service %s)", *d.service.ServiceName)
+	deployEventPrefix := fmt.Sprintf("(service %s) (deployment %s)", *d.service.ServiceName, *d.deployment.Id)
+
 	for _, evt := range newEvents {
 		// TODO: Filter out deployment/task events that don't belong to this deployment
-		d.serviceLogger.Println(evt)
+		if strings.Contains(evt.Message, deployEventPrefix) {
+			evt.Message = strings.Replace(evt.Message, deployEventPrefix, "Deployment", 1)
+			evt.Message = strings.Replace(evt.Message, "Deployment deployment", "Deployment", 1) // Remove duplicate "deployment"
+			d.deployLogger.Println(evt)
+		} else {
+			evt.Message = strings.Replace(evt.Message, svcEventPrefix, "Service", 1)
+			d.serviceLogger.Println(evt)
+		}
 	}
 }

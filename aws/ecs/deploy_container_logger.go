@@ -69,17 +69,23 @@ func (l *deployContainerLogger) comparePreviousPorts(previous []StatusTaskContai
 		} else {
 			prevPort := previous[index]
 			if prevPort.HealthStatus != curPort.HealthStatus {
-				l.Logger.Println(LogEvent{
-					At:      now,
-					Message: fmt.Sprintf("(%s) %s", prefix, curPort.HealthStatus),
-				})
+				switch elbv2types.TargetHealthStateEnum(curPort.HealthStatus) {
+				case elbv2types.TargetHealthStateEnumHealthy:
+					l.Logger.Println(LogEvent{At: now, Message: fmt.Sprintf("(%s) Target is healthy", prefix)})
+				case elbv2types.TargetHealthStateEnumUnhealthy:
+					l.Logger.Println(LogEvent{At: now, Message: fmt.Sprintf("(%s) Target is unhealthy", prefix)})
+				default:
+				}
 			}
 			if prevPort.HealthReason != curPort.HealthReason {
 				reason := elbv2types.TargetHealthReasonEnum(curPort.HealthReason)
-				l.Logger.Println(LogEvent{
-					At:      now,
-					Message: fmt.Sprintf("(%s) %s", prefix, LbHealthReasonExplanations[reason]),
-				})
+				explanation := LbHealthReasonExplanations[reason]
+				if explanation != "" {
+					l.Logger.Println(LogEvent{
+						At:      now,
+						Message: fmt.Sprintf("(%s) %s", prefix, explanation),
+					})
+				}
 			}
 		}
 	}
@@ -106,10 +112,12 @@ func (l *deployContainerLogger) comparePrevious(previous *StatusTaskContainer) {
 		}
 	}
 	if l.container.Status != previous.Status {
-		l.Logger.Println(LogEvent{
-			At:      now,
-			Message: l.container.Status,
-		})
+		if l.container.Status != "" {
+			l.Logger.Println(LogEvent{
+				At:      now,
+				Message: fmt.Sprintf("Container transitioned to %s", l.container.Status),
+			})
+		}
 	}
 	if l.container.Reason != previous.Reason {
 		l.Logger.Println(LogEvent{
