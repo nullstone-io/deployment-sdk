@@ -202,10 +202,6 @@ func (d *DeployLogger) logInitialEvents(previous *ecstypes.Service, previousDepl
 			At:      deployCreatedAt,
 			Message: "Deployment created",
 		})
-		d.deployLogger.Println(LogEvent{
-			At:      deployCreatedAt,
-			Message: fmt.Sprintf("Launching %d tasks", d.deployment.DesiredCount),
-		})
 	}
 	if d.service != nil && previous == nil {
 		// NOTE: This is here for consistency
@@ -226,17 +222,24 @@ func (d *DeployLogger) logDifferences(previous *ecstypes.Service, previousDeploy
 		// NOTE: I don't know of anything noteworthy to log yet
 	}
 	if d.deployment != nil && previousDeployment != nil {
+		createdAt := aws.ToTime(d.deployment.CreatedAt)
 		updatedAt := aws.ToTime(d.deployment.UpdatedAt)
+		if d.deployment.DesiredCount != previousDeployment.DesiredCount {
+			d.deployLogger.Println(LogEvent{
+				At:      createdAt,
+				Message: fmt.Sprintf("Launching %d tasks", d.deployment.DesiredCount),
+			})
+		}
 		if d.deployment.RunningCount != previousDeployment.RunningCount {
 			d.deployLogger.Println(LogEvent{
 				At:      updatedAt,
-				Message: fmt.Sprintf("deployment has %d running tasks", d.deployment.RunningCount),
+				Message: fmt.Sprintf("Deployment has %d running tasks", d.deployment.RunningCount),
 			})
 		}
 		if deployStatus := aws.ToString(d.deployment.Status); deployStatus != aws.ToString(previousDeployment.Status) {
 			d.deployLogger.Println(LogEvent{
 				At:      updatedAt,
-				Message: fmt.Sprintf("deployment transitioned to %s", deployStatus),
+				Message: fmt.Sprintf("Deployment transitioned to %s", deployStatus),
 			})
 		}
 	}
@@ -269,7 +272,6 @@ func (d *DeployLogger) logNewEvents() {
 	deployEventPrefix := fmt.Sprintf("(service %s) (deployment %s)", *d.service.ServiceName, *d.deployment.Id)
 
 	for _, evt := range newEvents {
-		// TODO: Filter out deployment/task events that don't belong to this deployment
 		if strings.Contains(evt.Message, deployEventPrefix) {
 			evt.Message = strings.Replace(evt.Message, deployEventPrefix, "Deployment", 1)
 			evt.Message = strings.Replace(evt.Message, "Deployment deployment", "Deployment", 1) // Remove duplicate "deployment"
