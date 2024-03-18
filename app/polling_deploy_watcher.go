@@ -50,7 +50,7 @@ func NewPollingDeployWatcher(statusGetterFn NewDeployStatusGetterFunc) NewDeploy
 // This function has the following return values:
 // - nil: deployment completed successfully
 // - ErrFailed: Deployment failed as reported by DeployStatusGetter.GetDeployStatus
-// - ErrCancelled: System cancelled via ctx
+// - CancelError: System cancelled by evicted deployment or via ctx
 // - ErrTimeout: ctx reached timeout or watcher reached 15m timeout
 func (s *PollingDeployWatcher) Watch(ctx context.Context, reference string) error {
 	stdout := s.OsWriters.Stdout()
