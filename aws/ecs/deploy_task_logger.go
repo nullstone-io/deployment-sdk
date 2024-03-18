@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
+	"github.com/nullstone-io/deployment-sdk/display"
 	"github.com/nullstone-io/deployment-sdk/logging"
-	"log"
 	"strings"
 	"time"
 )
@@ -58,7 +58,6 @@ func (l deployTaskLoggers) getAllTaskArns() []string {
 type deployTaskLogger struct {
 	TaskId    string
 	TaskArn   string
-	Logger    *log.Logger
 	OsWriters logging.OsWriters
 
 	task       *StatusTask
@@ -70,7 +69,6 @@ func newDeployTaskLogger(osWriters logging.OsWriters, taskArn string) *deployTas
 	dtw := &deployTaskLogger{
 		TaskId:     taskId,
 		TaskArn:    taskArn,
-		Logger:     log.New(osWriters.Stdout(), fmt.Sprintf("[%s] ", taskId), 0),
 		OsWriters:  osWriters,
 		containers: deployContainerLoggers{},
 	}
@@ -82,14 +80,8 @@ func (l *deployTaskLogger) Init(task ecstypes.Task) {
 	l.task = &st
 	if l.task != nil {
 		createdAt := aws.ToTime(l.task.CreatedAt)
-		l.Logger.Println(LogEvent{
-			At:      createdAt,
-			Message: "Created task",
-		})
-		l.Logger.Println(LogEvent{
-			At:      createdAt,
-			Message: "Provisioning compute resources",
-		})
+		l.log(createdAt, "Created task")
+		l.log(createdAt, "Provisioning compute resources")
 	}
 }
 
@@ -118,67 +110,50 @@ func (l *deployTaskLogger) comparePrevious(previous *StatusTask) {
 		explanation := Explanations[l.task.Status]
 		switch l.task.Status {
 		case "PENDING":
-			l.Logger.Println(LogEvent{At: now, Message: explanation})
+			l.log(now, explanation)
 		case "ACTIVATING":
-			l.Logger.Println(LogEvent{At: now, Message: explanation})
+			l.log(now, explanation)
 		case "RUNNING": // Handled below
 		case "DEACTIVATING":
-			l.Logger.Println(LogEvent{At: now, Message: explanation})
+			l.log(now, explanation)
 		case "STOPPING": // Handled below
 		case "DEPROVISIONING":
-			l.Logger.Println(LogEvent{At: now, Message: explanation})
+			l.log(now, explanation)
 		case "STOPPED": // Handled below
 		case "DELETED":
-			l.Logger.Println(LogEvent{At: now, Message: explanation})
+			l.log(now, explanation)
 		}
 	}
 
 	if at := aws.ToTime(l.task.StartedAt); at != aws.ToTime(previous.StartedAt) {
-		l.Logger.Println(LogEvent{
-			At:      at,
-			Message: "Task started",
-		})
+		l.log(at, "Task started")
 	}
 	if at := aws.ToTime(l.task.PullStartedAt); at != aws.ToTime(previous.PullStartedAt) {
-		l.Logger.Println(LogEvent{
-			At:      at,
-			Message: "Pulling image",
-		})
+		l.log(at, "Pulling image")
 	}
 	if at := aws.ToTime(l.task.PullStoppedAt); at != aws.ToTime(previous.PullStoppedAt) {
 		// PullStoppedAt refers to the image pull stopping for failure and success
 		// We're only going to log "Image pulled" when it was successful
 		if !strings.HasPrefix(l.task.StoppedReason, "CannotPullContainerError") {
-			l.Logger.Println(LogEvent{
-				At:      at,
-				Message: "Image pulled",
-			})
+			l.log(at, "Image pulled")
 		}
 	}
 	if at := aws.ToTime(l.task.StoppingAt); at != aws.ToTime(previous.StoppingAt) {
-		l.Logger.Println(LogEvent{
-			At:      at,
-			Message: "Task stopping",
-		})
+		l.log(at, "Task stopping")
 	}
 	if at := aws.ToTime(l.task.StoppedAt); at != aws.ToTime(previous.StoppedAt) {
-		l.Logger.Println(LogEvent{
-			At:      at,
-			Message: "Task stopped",
-		})
+		l.log(at, "Task stopped")
 	}
 	if l.task.StopCode != previous.StopCode {
-		l.Logger.Println(LogEvent{
-			At:      aws.ToTime(l.task.StoppedAt),
-			Message: string(l.task.StopCode),
-		})
+		l.log(aws.ToTime(l.task.StoppedAt), string(l.task.StopCode))
 	}
 	if l.task.StoppedReason != previous.StoppedReason {
-		l.Logger.Println(LogEvent{
-			At:      aws.ToTime(l.task.StoppedAt),
-			Message: l.task.StoppedReason,
-		})
+		l.log(aws.ToTime(l.task.StoppedAt), l.task.StoppedReason)
 	}
 
 	//HealthStatus,
+}
+
+func (l *deployTaskLogger) log(at time.Time, msg string) {
+	fmt.Fprintf(l.OsWriters.Stdout(), "%s [%s] %s\n", display.FormatTime(at), l.TaskId, msg)
 }

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	elbv2types "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
+	"github.com/nullstone-io/deployment-sdk/display"
 	"github.com/nullstone-io/deployment-sdk/logging"
-	"log"
 	"slices"
 	"time"
 )
@@ -26,9 +26,9 @@ func (s deployContainerLoggers) Refresh(osWriters logging.OsWriters, containers 
 }
 
 type deployContainerLogger struct {
+	OsWriters     logging.OsWriters
 	TaskId        string
 	ContainerName string
-	Logger        *log.Logger
 
 	container *StatusTaskContainer
 	ports     []StatusTaskContainerPort
@@ -36,9 +36,9 @@ type deployContainerLogger struct {
 
 func newDeployContainerLogger(osWriters logging.OsWriters, taskId, containerName string) *deployContainerLogger {
 	return &deployContainerLogger{
+		OsWriters:     osWriters,
 		TaskId:        taskId,
 		ContainerName: containerName,
-		Logger:        log.New(osWriters.Stdout(), fmt.Sprintf("[%s/%s] ", taskId, containerName), 0),
 	}
 }
 
@@ -71,9 +71,9 @@ func (l *deployContainerLogger) comparePreviousPorts(previous []StatusTaskContai
 			if prevPort.HealthStatus != curPort.HealthStatus {
 				switch elbv2types.TargetHealthStateEnum(curPort.HealthStatus) {
 				case elbv2types.TargetHealthStateEnumHealthy:
-					l.Logger.Println(LogEvent{At: now, Message: fmt.Sprintf("(%s) Target is healthy", prefix)})
+					l.log(now, fmt.Sprintf("(%s) Target is healthy", prefix))
 				case elbv2types.TargetHealthStateEnumUnhealthy:
-					l.Logger.Println(LogEvent{At: now, Message: fmt.Sprintf("(%s) Target is unhealthy", prefix)})
+					l.log(now, fmt.Sprintf("(%s) Target is unhealthy", prefix))
 				default:
 				}
 			}
@@ -81,10 +81,7 @@ func (l *deployContainerLogger) comparePreviousPorts(previous []StatusTaskContai
 				reason := elbv2types.TargetHealthReasonEnum(curPort.HealthReason)
 				explanation := LbHealthReasonExplanations[reason]
 				if explanation != "" {
-					l.Logger.Println(LogEvent{
-						At:      now,
-						Message: fmt.Sprintf("(%s) %s", prefix, explanation),
-					})
+					l.log(now, fmt.Sprintf("(%s) %s", prefix, explanation))
 				}
 			}
 		}
@@ -100,37 +97,26 @@ func (l *deployContainerLogger) comparePrevious(previous *StatusTaskContainer) {
 	if l.container.Health != previous.Health {
 		switch types.HealthStatus(l.container.Health) {
 		case types.HealthStatusHealthy:
-			l.Logger.Println(LogEvent{
-				At:      now,
-				Message: "Container is healthy",
-			})
+			l.log(now, "Container is healthy")
 		case types.HealthStatusUnhealthy:
-			l.Logger.Println(LogEvent{
-				At:      now,
-				Message: "Container is unhealthy",
-			})
+			l.log(now, "Container is unhealthy")
 		}
 	}
 	if l.container.Status != previous.Status {
 		if l.container.Status != "" {
-			l.Logger.Println(LogEvent{
-				At:      now,
-				Message: fmt.Sprintf("Container transitioned to %s", l.container.Status),
-			})
+			l.log(now, fmt.Sprintf("Container transitioned to %s", l.container.Status))
 		}
 	}
 	if l.container.Reason != previous.Reason {
-		l.Logger.Println(LogEvent{
-			At:      now,
-			Message: l.container.Reason,
-		})
+		l.log(now, l.container.Reason)
 	}
 	if previous.ExitCode == nil && l.container.ExitCode != nil {
-		l.Logger.Println(LogEvent{
-			At:      now,
-			Message: fmt.Sprintf("Container exited (code = %d)", *l.container.ExitCode),
-		})
+		l.log(now, fmt.Sprintf("Container exited (code = %d)", *l.container.ExitCode))
 	}
+}
+
+func (l *deployContainerLogger) log(at time.Time, msg string) {
+	fmt.Fprintf(l.OsWriters.Stdout(), "%s [%s/%s] %s\n", display.FormatTime(at), l.TaskId, l.ContainerName, msg)
 }
 
 var (

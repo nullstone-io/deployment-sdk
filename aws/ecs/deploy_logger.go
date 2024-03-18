@@ -9,7 +9,6 @@ import (
 	"github.com/nullstone-io/deployment-sdk/display"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
-	"log"
 	"sort"
 	"strings"
 	"time"
@@ -18,13 +17,13 @@ import (
 var _ app.DeployStatusGetter = &DeployLogger{}
 
 type DeployLogger struct {
-	OsWriters logging.OsWriters
-	Infra     Outputs
+	OsWriters    logging.OsWriters
+	Infra        Outputs
+	ServiceName  string
+	DeploymentId string
 
 	// Loggers
-	serviceLogger *log.Logger
-	deployLogger  *log.Logger
-	taskLoggers   deployTaskLoggers
+	taskLoggers deployTaskLoggers
 
 	// Cached data
 	service         *ecstypes.Service
@@ -47,20 +46,24 @@ func NewDeployLogger(ctx context.Context, osWriters logging.OsWriters, source ou
 }
 
 type LogEvent struct {
-	Id      string
+	Source  string
 	At      time.Time
 	Message string
 }
 
 func (e LogEvent) String() string {
-	return fmt.Sprintf("[%s] %s", display.FormatTime(e.At), e.Message)
+	return fmt.Sprintf("%s [%s] %s", display.FormatTime(e.At), e.Source, e.Message)
 }
 
 func (d *DeployLogger) GetDeployStatus(ctx context.Context, deploymentId string) (app.RolloutStatus, error) {
 	d.init()
 
 	if d.Infra.ServiceName == "" {
-		d.serviceLogger.Println(`Empty or missing "service_name" output in app module. Skipping check for healthy.`)
+		d.log(LogEvent{
+			Source:  d.Infra.ServiceName,
+			At:      time.Now(),
+			Message: `Empty or missing "service_name" output in app module. Skipping check for healthy.`,
+		})
 		return app.RolloutStatusComplete, nil
 	}
 	if deploymentId == "" {
@@ -83,12 +86,6 @@ func (d *DeployLogger) GetDeployStatus(ctx context.Context, deploymentId string)
 }
 
 func (d *DeployLogger) init() {
-	if d.serviceLogger == nil {
-		d.serviceLogger = log.New(d.OsWriters.Stdout(), "", 0)
-	}
-	if d.deployLogger == nil {
-		d.deployLogger = log.New(d.OsWriters.Stdout(), "", 0)
-	}
 	if d.taskLoggers == nil {
 		d.taskLoggers = deployTaskLoggers{}
 	}
@@ -101,9 +98,9 @@ func (d *DeployLogger) refresh(ctx context.Context, deploymentId string) error {
 		return fmt.Errorf("unable to retrieve service: %w", err)
 	}
 	d.service = updated
-	d.serviceLogger.SetPrefix(fmt.Sprintf("[%s] ", *d.service.ServiceName))
+	d.ServiceName = *d.service.ServiceName
 
-	d.deployLogger.SetPrefix(fmt.Sprintf("[%s] ", deploymentId))
+	d.DeploymentId = deploymentId
 	previousDeployment := d.deployment
 	d.refreshDeployment(*updated, deploymentId)
 	// TODO: deployment.Status != "PRIMARY" means another deployment is evicting this one
@@ -198,7 +195,8 @@ func (d *DeployLogger) logInitialEvents(previous *ecstypes.Service, previousDepl
 	now := time.Now()
 	if d.deployment != nil && previousDeployment == nil {
 		deployCreatedAt := aws.ToTime(d.deployment.CreatedAt)
-		d.deployLogger.Println(LogEvent{
+		d.log(LogEvent{
+			Source:  d.DeploymentId,
 			At:      deployCreatedAt,
 			Message: "Deployment created",
 		})
@@ -207,7 +205,8 @@ func (d *DeployLogger) logInitialEvents(previous *ecstypes.Service, previousDepl
 		// NOTE: This is here for consistency
 		// I don't know if there is something interesting to log when we first identify the service
 		if period := d.service.HealthCheckGracePeriodSeconds; period != nil && *period > 0 {
-			d.serviceLogger.Println(LogEvent{
+			d.log(LogEvent{
+				Source:  d.ServiceName,
 				At:      now,
 				Message: fmt.Sprintf("Service tasks have a health check grace period of %s", time.Second*time.Duration(*period)),
 			})
@@ -225,19 +224,22 @@ func (d *DeployLogger) logDifferences(previous *ecstypes.Service, previousDeploy
 		createdAt := aws.ToTime(d.deployment.CreatedAt)
 		updatedAt := aws.ToTime(d.deployment.UpdatedAt)
 		if d.deployment.DesiredCount != previousDeployment.DesiredCount {
-			d.deployLogger.Println(LogEvent{
+			d.log(LogEvent{
+				Source:  d.DeploymentId,
 				At:      createdAt,
 				Message: fmt.Sprintf("Launching %d tasks", d.deployment.DesiredCount),
 			})
 		}
 		if d.deployment.RunningCount != previousDeployment.RunningCount {
-			d.deployLogger.Println(LogEvent{
+			d.log(LogEvent{
+				Source:  d.DeploymentId,
 				At:      updatedAt,
 				Message: fmt.Sprintf("Deployment has %d running tasks", d.deployment.RunningCount),
 			})
 		}
 		if deployStatus := aws.ToString(d.deployment.Status); deployStatus != aws.ToString(previousDeployment.Status) {
-			d.deployLogger.Println(LogEvent{
+			d.log(LogEvent{
+				Source:  d.DeploymentId,
 				At:      updatedAt,
 				Message: fmt.Sprintf("Deployment transitioned to %s", deployStatus),
 			})
@@ -255,7 +257,7 @@ func (d *DeployLogger) logNewEvents() {
 			// "events" are usually sorted newest to oldest
 			// we're only updating "latest" if this event is newer
 			newEvents = append(newEvents, LogEvent{
-				Id:      aws.ToString(evt.Id),
+				Source:  d.ServiceName,
 				At:      aws.ToTime(evt.CreatedAt),
 				Message: aws.ToString(evt.Message),
 			})
@@ -268,17 +270,20 @@ func (d *DeployLogger) logNewEvents() {
 		return newEvents[i].At.Before(newEvents[j].At)
 	})
 
-	svcEventPrefix := fmt.Sprintf("(service %s)", *d.service.ServiceName)
-	deployEventPrefix := fmt.Sprintf("(service %s) (deployment %s)", *d.service.ServiceName, *d.deployment.Id)
-
+	svcEventPrefix := fmt.Sprintf("(service %s)", d.ServiceName)
+	deployEventPrefix := fmt.Sprintf("(service %s) (deployment %s)", d.ServiceName, d.DeploymentId)
 	for _, evt := range newEvents {
 		if strings.Contains(evt.Message, deployEventPrefix) {
+			evt.Source = d.DeploymentId
 			evt.Message = strings.Replace(evt.Message, deployEventPrefix, "Deployment", 1)
 			evt.Message = strings.Replace(evt.Message, "Deployment deployment", "Deployment", 1) // Remove duplicate "deployment"
-			d.deployLogger.Println(evt)
 		} else {
 			evt.Message = strings.Replace(evt.Message, svcEventPrefix, "Service", 1)
-			d.serviceLogger.Println(evt)
 		}
+		d.log(evt)
 	}
+}
+
+func (d *DeployLogger) log(evt LogEvent) {
+	fmt.Fprintln(d.OsWriters.Stdout(), evt)
 }
