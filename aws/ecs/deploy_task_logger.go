@@ -140,15 +140,15 @@ func (l *deployTaskLogger) comparePrevious(previous *StatusTask) {
 	}
 	if at := aws.ToTime(l.task.StoppingAt); at != aws.ToTime(previous.StoppingAt) {
 		l.log(at, "Task stopping")
+		if l.task.StopCode != previous.StopCode {
+			l.log(aws.ToTime(l.task.StoppingAt), string(l.task.StopCode))
+		}
+		if l.task.StoppedReason != previous.StoppedReason {
+			l.log(aws.ToTime(l.task.StoppingAt), l.task.StoppedReason)
+		}
 	}
 	if at := aws.ToTime(l.task.StoppedAt); at != aws.ToTime(previous.StoppedAt) {
 		l.log(at, "Task stopped")
-	}
-	if l.task.StopCode != previous.StopCode {
-		l.log(aws.ToTime(l.task.StoppedAt), string(l.task.StopCode))
-	}
-	if l.task.StoppedReason != previous.StoppedReason {
-		l.log(aws.ToTime(l.task.StoppedAt), l.task.StoppedReason)
 	}
 
 	//HealthStatus,
