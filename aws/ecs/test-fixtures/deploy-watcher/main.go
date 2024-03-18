@@ -47,6 +47,10 @@ func main() {
 	newTaskDefArn := updateTaskDef(ctx, infra, taskDefArn, func(taskDef types.TaskDefinition) types.TaskDefinition {
 		// NOTE: Use this area to update the task def to try failure scenarios
 
+		//curImg := *taskDef.ContainerDefinitions[0].Image
+		//badImg := fmt.Sprintf("%sxyz", curImg)
+		//taskDef.ContainerDefinitions[0].Image = aws.String(badImg)
+
 		return taskDef
 	})
 

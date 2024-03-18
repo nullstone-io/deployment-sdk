@@ -150,8 +150,6 @@ func (l *deployTaskLogger) comparePrevious(previous *StatusTask) {
 	if at := aws.ToTime(l.task.StoppedAt); at != aws.ToTime(previous.StoppedAt) {
 		l.log(at, "Task stopped")
 	}
-
-	//HealthStatus,
 }
 
 func (l *deployTaskLogger) log(at time.Time, msg string) {
