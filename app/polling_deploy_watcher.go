@@ -15,9 +15,8 @@ const (
 )
 
 var (
-	ErrTimeout   = errors.New("deployment timed out")
-	ErrFailed    = errors.New("deployment failed")
-	ErrCancelled = errors.New("deployment cancelled")
+	ErrTimeout = errors.New("deployment timed out")
+	ErrFailed  = errors.New("deployment failed")
 )
 
 var _ DeployWatcher = &PollingDeployWatcher{}
@@ -72,6 +71,9 @@ func (s *PollingDeployWatcher) Watch(ctx context.Context, reference string) erro
 	for {
 		status, err := s.StatusGetter.GetDeployStatus(ctx, reference)
 		if err != nil {
+			if status == RolloutStatusCancelled {
+				return &CancelError{Reason: err.Error()}
+			}
 			// TODO: Differentiate between initialization and failure errors
 			// -> initialization errors will keep polling (e.g. we don't want to stop polling if the service is booting)
 			// -> failure errors will immediately fail the deployment (e.g. the deployment was cancelled/evicted)
@@ -91,10 +93,13 @@ func (s *PollingDeployWatcher) Watch(ctx context.Context, reference string) erro
 
 		select {
 		case <-ctx.Done():
-			if ctx.Err() == context.DeadlineExceeded {
-				return ErrTimeout
+			if err := ctx.Err(); err != nil {
+				if errors.Is(err, context.DeadlineExceeded) {
+					return ErrTimeout
+				}
+				return &CancelError{Reason: err.Error()}
 			}
-			return ErrCancelled
+			return &CancelError{}
 		case <-t1:
 			return ErrTimeout
 		case <-time.After(delay):

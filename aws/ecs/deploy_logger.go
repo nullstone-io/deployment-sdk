@@ -2,6 +2,7 @@ package ecs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
@@ -14,12 +15,16 @@ import (
 	"time"
 )
 
+var (
+	ErrNotPrimaryDeployment = errors.New("Cancelled deployment because a newer deployment invalidated this deployment.")
+	ErrInactiveDeployment   = errors.New("Cancelled deployment because it is no longer active.")
+)
+
 var _ app.DeployStatusGetter = &DeployLogger{}
 
 type DeployLogger struct {
 	OsWriters    logging.OsWriters
 	Infra        Outputs
-	ServiceName  string
 	DeploymentId string
 
 	// Loggers
@@ -52,7 +57,12 @@ type LogEvent struct {
 }
 
 func (e LogEvent) String() string {
-	return fmt.Sprintf("%s [%s] %s", display.FormatTime(e.At), e.Source, e.Message)
+	padding := ""
+	if len(e.Source) < 32 {
+		padding = strings.Repeat(" ", 32-len(e.Source))
+	}
+	src := fmt.Sprintf("[%s]%s", e.Source, padding)
+	return fmt.Sprintf("%s %s %s", display.FormatTime(e.At), src, e.Message)
 }
 
 func (d *DeployLogger) GetDeployStatus(ctx context.Context, deploymentId string) (app.RolloutStatus, error) {
@@ -71,6 +81,10 @@ func (d *DeployLogger) GetDeployStatus(ctx context.Context, deploymentId string)
 	}
 	if err := d.refresh(ctx, deploymentId); err != nil {
 		return app.RolloutStatusUnknown, err
+	}
+
+	if err := d.isEvicted(); err != nil {
+		return app.RolloutStatusCancelled, err
 	}
 
 	switch d.deployment.RolloutState {
@@ -98,7 +112,6 @@ func (d *DeployLogger) refresh(ctx context.Context, deploymentId string) error {
 		return fmt.Errorf("unable to retrieve service: %w", err)
 	}
 	d.service = updated
-	d.ServiceName = *d.service.ServiceName
 
 	d.DeploymentId = deploymentId
 	previousDeployment := d.deployment
@@ -123,6 +136,25 @@ func (d *DeployLogger) refresh(ctx context.Context, deploymentId string) error {
 	d.logDifferences(previous, previousDeployment)
 	d.logNewEvents()
 
+	return nil
+}
+
+// isEvicted determines if the current deployment was evicted by another deployment
+// This allows us to immediately cancel the deployment if another deployment becomes the primary
+func (d *DeployLogger) isEvicted() error {
+	switch aws.ToString(d.deployment.Status) {
+	case "PRIMARY":
+		// We're still the primary deployment, we haven't been evicted
+		return nil
+	case "ACTIVE":
+		// Another deployment was created after us
+		return ErrNotPrimaryDeployment
+	case "INACTIVE":
+		// This deployment is no longer active
+		// This shouldn't happen, we will handle it if something odd happens
+		return ErrInactiveDeployment
+	}
+	// For unknown cases, we will say that we're not evicted
 	return nil
 }
 
@@ -206,7 +238,7 @@ func (d *DeployLogger) logInitialEvents(previous *ecstypes.Service, previousDepl
 		// I don't know if there is something interesting to log when we first identify the service
 		if period := d.service.HealthCheckGracePeriodSeconds; period != nil && *period > 0 {
 			d.log(LogEvent{
-				Source:  d.ServiceName,
+				Source:  d.Infra.ServiceName,
 				At:      now,
 				Message: fmt.Sprintf("Service tasks have a health check grace period of %s", time.Second*time.Duration(*period)),
 			})
@@ -257,7 +289,7 @@ func (d *DeployLogger) logNewEvents() {
 			// "events" are usually sorted newest to oldest
 			// we're only updating "latest" if this event is newer
 			newEvents = append(newEvents, LogEvent{
-				Source:  d.ServiceName,
+				Source:  d.Infra.ServiceName,
 				At:      aws.ToTime(evt.CreatedAt),
 				Message: aws.ToString(evt.Message),
 			})
@@ -270,8 +302,8 @@ func (d *DeployLogger) logNewEvents() {
 		return newEvents[i].At.Before(newEvents[j].At)
 	})
 
-	svcEventPrefix := fmt.Sprintf("(service %s)", d.ServiceName)
-	deployEventPrefix := fmt.Sprintf("(service %s) (deployment %s)", d.ServiceName, d.DeploymentId)
+	svcEventPrefix := fmt.Sprintf("(service %s)", d.Infra.ServiceName)
+	deployEventPrefix := fmt.Sprintf("(service %s) (deployment %s)", d.Infra.ServiceName, d.DeploymentId)
 	for _, evt := range newEvents {
 		if strings.Contains(evt.Message, deployEventPrefix) {
 			evt.Source = d.DeploymentId
