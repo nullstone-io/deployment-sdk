@@ -20,7 +20,7 @@ var Provider = app.Provider{
 	CanDeployImmediate: false,
 	NewPusher:          ecr.NewPusher,
 	NewDeployer:        ecs.NewDeployer,
-	NewDeployWatcher:   app.NewPollingDeployWatcher(ecs.NewDeployStatusGetter),
+	NewDeployWatcher:   app.NewPollingDeployWatcher(ecs.NewDeployLogger),
 	NewStatuser:        ecs.NewStatuser,
 	NewLogStreamer:     cloudwatch.NewLogStreamer,
 }
