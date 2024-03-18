@@ -3,7 +3,7 @@ module github.com/nullstone-io/deployment-sdk
 go 1.21
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.24.1
+	github.com/aws/aws-sdk-go-v2 v1.25.3
 	github.com/aws/aws-sdk-go-v2/credentials v1.16.16
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.15.13
 	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.32.6
@@ -15,7 +15,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.26.7
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.49.7
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.48.0
-	github.com/aws/smithy-go v1.19.0
+	github.com/aws/smithy-go v1.20.1
 	github.com/docker/cli v20.10.9+incompatible
 	github.com/docker/docker v20.10.17+incompatible
 	github.com/fatih/color v1.13.0

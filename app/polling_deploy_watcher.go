@@ -15,9 +15,8 @@ const (
 )
 
 var (
-	ErrTimeout   = errors.New("deployment timed out")
-	ErrFailed    = errors.New("deployment failed")
-	ErrCancelled = errors.New("deployment cancelled")
+	ErrTimeout = errors.New("deployment timed out")
+	ErrFailed  = errors.New("deployment failed")
 )
 
 var _ DeployWatcher = &PollingDeployWatcher{}
@@ -51,7 +50,7 @@ func NewPollingDeployWatcher(statusGetterFn NewDeployStatusGetterFunc) NewDeploy
 // This function has the following return values:
 // - nil: deployment completed successfully
 // - ErrFailed: Deployment failed as reported by DeployStatusGetter.GetDeployStatus
-// - ErrCancelled: System cancelled via ctx
+// - CancelError: System cancelled by evicted deployment or via ctx
 // - ErrTimeout: ctx reached timeout or watcher reached 15m timeout
 func (s *PollingDeployWatcher) Watch(ctx context.Context, reference string) error {
 	stdout := s.OsWriters.Stdout()
@@ -72,6 +71,13 @@ func (s *PollingDeployWatcher) Watch(ctx context.Context, reference string) erro
 	for {
 		status, err := s.StatusGetter.GetDeployStatus(ctx, reference)
 		if err != nil {
+			if status == RolloutStatusCancelled {
+				return &CancelError{Reason: err.Error()}
+			}
+			// TODO: Differentiate between initialization and failure errors
+			// -> initialization errors will keep polling (e.g. we don't want to stop polling if the service is booting)
+			// -> failure errors will immediately fail the deployment (e.g. the deployment was cancelled/evicted)
+
 			// if for some reason we can't fetch the app status from the provider
 			// we are going to log the error and continue looping
 			// eventually the deploy will timeout and fail
@@ -87,10 +93,13 @@ func (s *PollingDeployWatcher) Watch(ctx context.Context, reference string) erro
 
 		select {
 		case <-ctx.Done():
-			if ctx.Err() == context.DeadlineExceeded {
-				return ErrTimeout
+			if err := ctx.Err(); err != nil {
+				if errors.Is(err, context.DeadlineExceeded) {
+					return ErrTimeout
+				}
+				return &CancelError{Reason: err.Error()}
 			}
-			return ErrCancelled
+			return &CancelError{}
 		case <-t1:
 			return ErrTimeout
 		case <-time.After(delay):

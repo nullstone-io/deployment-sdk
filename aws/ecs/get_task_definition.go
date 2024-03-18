@@ -9,10 +9,14 @@ import (
 )
 
 func GetTaskDefinition(ctx context.Context, infra Outputs) (*ecstypes.TaskDefinition, error) {
+	return GetTaskDefinitionByArn(ctx, infra, infra.TaskArn)
+}
+
+func GetTaskDefinitionByArn(ctx context.Context, infra Outputs, taskDefArn string) (*ecstypes.TaskDefinition, error) {
 	ecsClient := ecs.NewFromConfig(nsaws.NewConfig(infra.Deployer, infra.Region))
 
 	out2, err := ecsClient.DescribeTaskDefinition(ctx, &ecs.DescribeTaskDefinitionInput{
-		TaskDefinition: aws.String(infra.TaskArn),
+		TaskDefinition: aws.String(taskDefArn),
 	})
 	if err != nil {
 		return nil, err

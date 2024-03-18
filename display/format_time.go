@@ -9,6 +9,9 @@ const (
 )
 
 func FormatTime(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
 	return t.In(time.Local).Format(CommonFormat)
 }
 
