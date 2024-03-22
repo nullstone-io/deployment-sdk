@@ -11,6 +11,5 @@ type Outputs struct {
 	JobDefinitionName string          `ns:"job_definition_name"`
 	ImageRepoUrl      docker.ImageUrl `ns:"image_repo_url,optional"`
 	ImagePusher       nsaws.User      `ns:"image_pusher,optional"`
-	MainContainerName string          `ns:"main_container_name,optional"`
 	Deployer          nsaws.User      `ns:"deployer,optional"`
 }
