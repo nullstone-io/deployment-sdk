@@ -2,6 +2,7 @@ package all
 
 import (
 	"github.com/nullstone-io/deployment-sdk/app"
+	aws_batch_fargate "github.com/nullstone-io/deployment-sdk/app/container/aws-batch-fargate"
 	"github.com/nullstone-io/deployment-sdk/app/container/aws-ecs-ec2"
 	"github.com/nullstone-io/deployment-sdk/app/container/aws-ecs-fargate"
 	gcp_gke_service "github.com/nullstone-io/deployment-sdk/app/container/gcp-gke-service"
@@ -13,6 +14,7 @@ import (
 
 var (
 	Providers = app.Providers{
+		aws_batch_fargate.ModuleContractName:    aws_batch_fargate.Provider,
 		aws_ecs_fargate.ModuleContractName:      aws_ecs_fargate.Provider,
 		aws_ecs_ec2.ModuleContractName:          aws_ecs_ec2.Provider,
 		aws_s3.ModuleContractName:               aws_s3.Provider,
