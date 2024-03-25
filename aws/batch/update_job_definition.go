@@ -2,6 +2,7 @@ package batch
 
 import (
 	"context"
+	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/batch"
 	batchtypes "github.com/aws/aws-sdk-go-v2/service/batch/types"
@@ -28,14 +29,14 @@ func UpdateJobDefinition(ctx context.Context, infra Outputs, jobDefinition *batc
 	}
 	out, err := client.RegisterJobDefinition(ctx, input)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to register job definition: %w", err)
 	}
 
 	_, err = client.DeregisterJobDefinition(ctx, &batch.DeregisterJobDefinitionInput{
 		JobDefinition: &previousJobDefArn,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to deregister job definition: %w", err)
 	}
 
 	return out.JobDefinitionArn, nil
