@@ -10,8 +10,12 @@ import (
 
 func GetJobDefinition(ctx context.Context, infra Outputs) (*batchtypes.JobDefinition, error) {
 	client := batch.NewFromConfig(nsaws.NewConfig(infra.Deployer, infra.Region))
-	lookup := []string{infra.JobDefinitionArn}
-	jobDefs, err := client.DescribeJobDefinitions(ctx, &batch.DescribeJobDefinitionsInput{JobDefinitions: lookup})
+	active := "ACTIVE"
+	lookup := &batch.DescribeJobDefinitionsInput{
+		JobDefinitionName: &infra.JobDefinitionName,
+		Status:            &active,
+	}
+	jobDefs, err := client.DescribeJobDefinitions(ctx, lookup)
 	if err != nil {
 		return nil, fmt.Errorf("error getting job definition: %w", err)
 	}
