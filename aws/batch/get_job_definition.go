@@ -22,9 +22,15 @@ func GetJobDefinition(ctx context.Context, infra Outputs) (*batchtypes.JobDefini
 	if len(jobDefs.JobDefinitions) == 0 {
 		return nil, fmt.Errorf("job definition named %q not found", infra.JobDefinitionName)
 	}
-	if len(jobDefs.JobDefinitions) > 1 {
-		return nil, fmt.Errorf("found multiple job definitions with name %q", infra.JobDefinitionName)
+	return getLatestJobDefinition(jobDefs.JobDefinitions), nil
+}
+
+func getLatestJobDefinition(defs []batchtypes.JobDefinition) *batchtypes.JobDefinition {
+	var latest *batchtypes.JobDefinition
+	for _, def := range defs {
+		if latest == nil || (def.Revision != nil && *def.Revision > *latest.Revision) {
+			latest = &def
+		}
 	}
-	jobDef := jobDefs.JobDefinitions[0]
-	return &jobDef, nil
+	return latest
 }
