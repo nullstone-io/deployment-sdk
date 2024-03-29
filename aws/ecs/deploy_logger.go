@@ -10,19 +10,12 @@ import (
 	"github.com/nullstone-io/deployment-sdk/display"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
-	"k8s.io/utils/strings/slices"
 	"sort"
 	"strings"
 	"time"
 )
 
 var (
-	enabledOrgs = []string{
-		"nullstone",
-		"fayde",
-		"BSick7",
-		"ssickles",
-	}
 	ErrNotPrimaryDeployment = errors.New("Cancelled deployment because a newer deployment invalidated this deployment.")
 	ErrInactiveDeployment   = errors.New("Cancelled deployment because it is no longer active.")
 )
@@ -46,11 +39,6 @@ type DeployLogger struct {
 }
 
 func NewDeployLogger(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.DeployStatusGetter, error) {
-	enabled := appDetails.App != nil && slices.Contains(enabledOrgs, appDetails.App.OrgName)
-	if !enabled {
-		return NewDeployStatusGetter(ctx, osWriters, source, appDetails)
-	}
-
 	outs, err := outputs.Retrieve[Outputs](ctx, source, appDetails.Workspace)
 	if err != nil {
 		return nil, err
