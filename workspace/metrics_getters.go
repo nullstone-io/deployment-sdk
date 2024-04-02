@@ -14,7 +14,7 @@ type MetricsGetters map[types.ModuleContractName]NewMetricsGetterFunc
 
 func (s MetricsGetters) FindMetricsGetter(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, blockDetails Details) (MetricsGetter, error) {
 	fn := contract.FindInRegistrarByModule(s, blockDetails.Module)
-	if fn == nil {
+	if fn == nil || *fn == nil {
 		return nil, nil
 	}
 	mg, err := (*fn)(ctx, osWriters, source, blockDetails)
