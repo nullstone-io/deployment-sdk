@@ -6,6 +6,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
+	"strings"
 )
 
 func NewDeployer(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Deployer, error) {
@@ -49,22 +50,38 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 
 	fmt.Fprintf(stdout, "Deploying app %q\n", d.Details.App.Name)
 
-	jobDef, err := GetJobDefinition(ctx, d.Infra)
+	jobDef, allDefs, err := GetJobDefinition(ctx, d.Infra)
 	if err != nil {
 		return "", fmt.Errorf("error retrieving current job information: %w", err)
 	} else if jobDef == nil {
 		return "", fmt.Errorf("could not find job definition")
 	}
+	fmt.Fprintf(stdout, "Current active job definition revision: %d\n", *jobDef.Revision)
 
 	updatedJobDef := ReplaceJobDefinitionImageTag(d.Infra, *jobDef, meta.Version)
 	updatedJobDef = ReplaceEnvVars(updatedJobDef, meta)
 
 	fmt.Fprintf(stdout, "Updating job definition version and environment variables\n")
-	_, err = UpdateJobDefinition(ctx, d.Infra, &updatedJobDef, *jobDef.JobDefinitionArn)
+	newJobDefArn, revision, err := CreateJobDefinition(ctx, d.Infra, &updatedJobDef)
 	if err != nil {
 		return "", fmt.Errorf("error updating job definition with new image tag: %w", err)
 	}
-	fmt.Fprintf(stdout, "Updated job definition version and environment variables\n")
+	if newJobDefArn == nil {
+		return "", fmt.Errorf("new job definition arn is nil")
+	}
+	if revision == nil {
+		return "", fmt.Errorf("new job definition revision is nil")
+	}
+	fmt.Fprintf(stdout, "New job definition created: (arn - %s, revision - %d)\n", *newJobDefArn, *revision)
+
+	deregisteredRevisions, err := DeregisterJobDefinitions(ctx, d.Infra, allDefs)
+	deregistered := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(deregisteredRevisions)), ", "), "[]")
+	fmt.Fprintf(stdout, "The following revisions has been deregistered: %s\n", deregistered)
+	if err != nil {
+		return "", fmt.Errorf("error deregistering old job definitions: %w", err)
+	}
+	fmt.Fprintln(stdout, "Current active job definition has been successfully updated")
+	fmt.Fprintln(stdout, "")
 
 	fmt.Fprintf(stdout, "No service name in app module. Skipping update service.\n")
 	fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)

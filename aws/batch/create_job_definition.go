@@ -9,7 +9,7 @@ import (
 	nsaws "github.com/nullstone-io/deployment-sdk/aws"
 )
 
-func UpdateJobDefinition(ctx context.Context, infra Outputs, jobDefinition *batchtypes.JobDefinition, previousJobDefArn string) (*string, error) {
+func CreateJobDefinition(ctx context.Context, infra Outputs, jobDefinition *batchtypes.JobDefinition) (*string, *int32, error) {
 	client := batch.NewFromConfig(nsaws.NewConfig(infra.Deployer, infra.Region))
 
 	input := &batch.RegisterJobDefinitionInput{
@@ -29,15 +29,8 @@ func UpdateJobDefinition(ctx context.Context, infra Outputs, jobDefinition *batc
 	}
 	out, err := client.RegisterJobDefinition(ctx, input)
 	if err != nil {
-		return nil, fmt.Errorf("unable to register job definition: %w", err)
+		return nil, nil, fmt.Errorf("unable to register job definition: %w", err)
 	}
 
-	_, err = client.DeregisterJobDefinition(ctx, &batch.DeregisterJobDefinitionInput{
-		JobDefinition: &previousJobDefArn,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("unable to deregister job definition: %w", err)
-	}
-
-	return out.JobDefinitionArn, nil
+	return out.JobDefinitionArn, out.Revision, nil
 }
