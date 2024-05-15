@@ -76,7 +76,7 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 
 	deregisteredRevisions, err := DeregisterJobDefinitions(ctx, d.Infra, allDefs)
 	deregistered := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(deregisteredRevisions)), ", "), "[]")
-	fmt.Fprintf(stdout, "The following revisions has been deregistered: %s\n", deregistered)
+	fmt.Fprintf(stdout, "The following revisions have been deregistered: %s\n", deregistered)
 	if err != nil {
 		return "", fmt.Errorf("error deregistering old job definitions: %w", err)
 	}
