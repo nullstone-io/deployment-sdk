@@ -18,6 +18,11 @@ func (s ApiRetrieverSource) GetWorkspace(ctx context.Context, stackId, blockId, 
 	return nsClient.Workspaces().Get(ctx, stackId, blockId, envId)
 }
 
+func (s ApiRetrieverSource) GetCurrentConfig(ctx context.Context, stackId, blockId, envId int64) (*types.WorkspaceConfig, error) {
+	nsClient := api.Client{Config: s.Config}
+	return nsClient.WorkspaceConfigs().GetCurrent(ctx, stackId, blockId, envId)
+}
+
 func (s ApiRetrieverSource) GetCurrentOutputs(ctx context.Context, stackId int64, workspaceUid uuid.UUID, showSensitive bool) (types.Outputs, error) {
 	nsClient := api.Client{Config: s.Config}
 	return nsClient.WorkspaceOutputs().GetCurrent(ctx, stackId, workspaceUid, showSensitive)

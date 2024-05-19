@@ -10,13 +10,60 @@ import (
 
 type RetrieverSource interface {
 	GetWorkspace(ctx context.Context, stackId, blockId, envId int64) (*types.Workspace, error)
+	GetCurrentConfig(ctx context.Context, stackId, blockId, envId int64) (*types.WorkspaceConfig, error)
 	GetCurrentOutputs(ctx context.Context, stackId int64, workspaceUid uuid.UUID, showSensitive bool) (types.Outputs, error)
 }
 
-func Retrieve[T any](ctx context.Context, source RetrieverSource, workspace *types.Workspace) (T, error) {
+func NewRetrieveWorkspace(workspace *types.Workspace, workspaceConfig *types.WorkspaceConfig) *RetrieveWorkspace {
+	if workspace == nil {
+		return nil
+	}
+	var wc types.WorkspaceConfig
+	if workspaceConfig != nil {
+		wc = *workspaceConfig
+	} else if workspace.LastFinishedRun != nil && workspace.LastFinishedRun.Config != nil {
+		lfr := workspace.LastFinishedRun.Config
+		wc = types.WorkspaceConfig{
+			Source:            lfr.Source,
+			SourceVersion:     lfr.SourceVersion,
+			Variables:         lfr.Variables,
+			EnvVariables:      lfr.EnvVariables,
+			Connections:       lfr.Connections,
+			Providers:         lfr.Providers,
+			Capabilities:      lfr.Capabilities,
+			Dependencies:      lfr.Dependencies,
+			DependencyConfigs: lfr.DependencyConfigs,
+		}
+	}
+
+	return &RetrieveWorkspace{
+		OrgName:      workspace.OrgName,
+		WorkspaceUid: workspace.Uid,
+		StackId:      workspace.StackId,
+		BlockId:      workspace.BlockId,
+		EnvId:        workspace.EnvId,
+		Config:       wc,
+	}
+}
+
+type RetrieveWorkspace struct {
+	OrgName      string                `json:"orgName"`
+	WorkspaceUid uuid.UUID             `json:"workspaceUid"`
+	StackId      int64                 `json:"stackId"`
+	BlockId      int64                 `json:"blockId"`
+	EnvId        int64                 `json:"envId"`
+	Config       types.WorkspaceConfig `json:"config"`
+}
+
+func (w RetrieveWorkspace) Id() string {
+	return fmt.Sprintf("%s/%s", w.OrgName, w.WorkspaceUid)
+}
+
+func Retrieve[T any](ctx context.Context, source RetrieverSource, workspace *types.Workspace, workspaceConfig *types.WorkspaceConfig) (T, error) {
+	rw := NewRetrieveWorkspace(workspace, workspaceConfig)
 	var t T
 	r := Retriever{Source: source}
-	if err := r.Retrieve(ctx, workspace, &t); err != nil {
+	if err := r.Retrieve(ctx, rw, &t); err != nil {
 		return t, err
 	}
 	return t, nil
@@ -29,7 +76,7 @@ type Retriever struct {
 var _ error = NoWorkspaceOutputsError{}
 
 type NoWorkspaceOutputsError struct {
-	workspace types.Workspace
+	workspace RetrieveWorkspace
 }
 
 func (n NoWorkspaceOutputsError) Error() string {
@@ -40,7 +87,7 @@ func (n NoWorkspaceOutputsError) Error() string {
 // To properly use, the input obj must be a pointer to a struct that contains fields that map to outputs
 // Struct tags on each field within the struct define how to read the outputs from nullstone APIs
 // See Field for more details
-func (r *Retriever) Retrieve(ctx context.Context, workspace *types.Workspace, obj interface{}) error {
+func (r *Retriever) Retrieve(ctx context.Context, rw *RetrieveWorkspace, obj interface{}) error {
 	objType := reflect.TypeOf(obj)
 	if objType.Kind() != reflect.Ptr {
 		return fmt.Errorf("input object must be a pointer")
@@ -49,17 +96,12 @@ func (r *Retriever) Retrieve(ctx context.Context, workspace *types.Workspace, ob
 		return fmt.Errorf("input object must be a pointer to a struct")
 	}
 
-	workspaceOutputs, err := r.Source.GetCurrentOutputs(ctx, workspace.StackId, workspace.Uid, true)
+	workspaceOutputs, err := r.Source.GetCurrentOutputs(ctx, rw.StackId, rw.WorkspaceUid, true)
 	if err != nil {
-		wt := types.WorkspaceTarget{
-			StackId: workspace.StackId,
-			BlockId: workspace.BlockId,
-			EnvId:   workspace.EnvId,
-		}
-		return fmt.Errorf("unable to fetch the outputs for %s/%s: %w", workspace.OrgName, wt.Id(), err)
+		return fmt.Errorf("unable to fetch the outputs for %s: %w", rw.Id(), err)
 	}
 	if len(workspaceOutputs) == 0 {
-		return NoWorkspaceOutputsError{workspace: *workspace}
+		return NoWorkspaceOutputsError{workspace: *rw}
 	}
 
 	fields := GetFields(reflect.TypeOf(obj).Elem())
@@ -74,7 +116,7 @@ func (r *Retriever) Retrieve(ctx context.Context, workspace *types.Workspace, ob
 			}
 			target := field.InitializeConnectionValue(obj)
 
-			connWorkspace, err := r.GetConnectionWorkspace(ctx, workspace, field.ConnectionName, field.ConnectionType, field.ConnectionContract)
+			connWorkspace, err := r.GetConnectionWorkspace(ctx, rw, field.ConnectionName, field.ConnectionType, field.ConnectionContract)
 			if err != nil {
 				return fmt.Errorf("error finding connection workspace (name=%s, type=%s, contract=%s): %w", field.ConnectionName, field.ConnectionType, field.ConnectionContract, err)
 			}
@@ -109,7 +151,7 @@ func (r *Retriever) Retrieve(ctx context.Context, workspace *types.Workspace, ob
 // This will search through connections matching on connectionName and connectionType
 // Specify "" to ignore filtering for that field
 // One of either connectionName or connectionType must be specified
-func (r *Retriever) GetConnectionWorkspace(ctx context.Context, source *types.Workspace, connectionName, connectionType, connectionContract string) (*types.Workspace, error) {
+func (r *Retriever) GetConnectionWorkspace(ctx context.Context, source *RetrieveWorkspace, connectionName, connectionType, connectionContract string) (*RetrieveWorkspace, error) {
 	conn, err := findConnection(source, connectionName, connectionType, connectionContract)
 	if err != nil {
 		return nil, err
@@ -124,12 +166,32 @@ func (r *Retriever) GetConnectionWorkspace(ctx context.Context, source *types.Wo
 	}
 	destTarget := sourceTarget.FindRelativeConnection(*conn.Reference)
 
-	return r.Source.GetWorkspace(ctx, destTarget.StackId, destTarget.BlockId, destTarget.EnvId)
+	workspace, err := r.Source.GetWorkspace(ctx, destTarget.StackId, destTarget.BlockId, destTarget.EnvId)
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving workspace: %w", err)
+	} else if workspace == nil {
+		return nil, nil
+	}
+
+	workspaceConfig, err := r.Source.GetCurrentConfig(ctx, destTarget.StackId, destTarget.BlockId, destTarget.EnvId)
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving current workspace config: %w", err)
+	} else if workspaceConfig == nil {
+		return nil, nil
+	}
+	return &RetrieveWorkspace{
+		OrgName:      source.OrgName,
+		WorkspaceUid: workspace.Uid,
+		StackId:      destTarget.StackId,
+		BlockId:      destTarget.BlockId,
+		EnvId:        destTarget.EnvId,
+		Config:       *workspaceConfig,
+	}, nil
 }
 
-func findConnection(source *types.Workspace, connectionName, connectionType, connectionContract string) (*types.Connection, error) {
-	if source.LastFinishedRun == nil || source.LastFinishedRun.Config == nil {
-		return nil, fmt.Errorf("cannot find connections for app")
+func findConnection(source *RetrieveWorkspace, connectionName, connectionType, connectionContract string) (*types.Connection, error) {
+	if source == nil {
+		return nil, fmt.Errorf("cannot find connections for app, workspace does not have a configuration")
 	}
 	hasType := connectionType != ""
 	hasContract := connectionContract != ""
@@ -144,7 +206,7 @@ func findConnection(source *types.Workspace, connectionName, connectionType, con
 		}
 	}
 
-	for name, connection := range source.LastFinishedRun.Config.Connections {
+	for name, connection := range source.Config.Connections {
 		curConnContract, err := types.ParseModuleContractName(connection.Contract)
 		if err != nil {
 			// We are skipping connections with bad contracts in the current run config

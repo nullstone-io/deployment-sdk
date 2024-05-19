@@ -151,7 +151,8 @@ func TestRetriever_Retrieve(t *testing.T) {
 
 		retriever := Retriever{Source: ApiRetrieverSource{Config: nsConfig}}
 		var got MockFlatOutputs
-		if assert.NoError(t, retriever.Retrieve(context.Background(), flatWorkspace, &got)) {
+		rw := NewRetrieveWorkspace(flatWorkspace, nil)
+		if assert.NoError(t, retriever.Retrieve(context.Background(), rw, &got)) {
 			assert.Equal(t, want, got)
 		}
 	})
@@ -184,7 +185,8 @@ func TestRetriever_Retrieve(t *testing.T) {
 
 		retriever := Retriever{Source: ApiRetrieverSource{Config: nsConfig}}
 		var got MockDeepOutputs
-		if assert.NoError(t, retriever.Retrieve(context.Background(), deepWorkspace, &got)) {
+		dw := NewRetrieveWorkspace(deepWorkspace, nil)
+		if assert.NoError(t, retriever.Retrieve(context.Background(), dw, &got)) {
 			assert.Equal(t, want, got)
 		}
 	})
