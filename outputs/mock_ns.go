@@ -21,6 +21,15 @@ func mockNs(workspaces []types.Workspace, currentOutputs map[string]types.Output
 			raw, _ := json.Marshal(cur)
 			w.Write(raw)
 		}))
+		configsEndpoint := fmt.Sprintf("/orgs/%s/stacks/%d/blocks/%d/envs/%d/configs/current", cur.OrgName, cur.StackId, cur.BlockId, cur.EnvId)
+		mux.Handle(configsEndpoint, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if cur.LastFinishedRun == nil || cur.LastFinishedRun.Config == nil {
+				w.Write([]byte(`{}`))
+			} else {
+				raw, _ := json.Marshal(cur.LastFinishedRun.Config)
+				w.Write(raw)
+			}
+		}))
 		outputsEndpoint := fmt.Sprintf("/orgs/%s/stacks/%d/workspaces/%s/current-outputs",
 			cur.OrgName, cur.StackId, cur.Uid)
 		mux.Handle(outputsEndpoint, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
