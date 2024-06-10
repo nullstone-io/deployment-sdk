@@ -3,6 +3,7 @@ package lambda_container
 import (
 	"context"
 	"fmt"
+	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/aws/lambda"
 	nslambda "github.com/nullstone-io/deployment-sdk/aws/lambda"
@@ -31,13 +32,24 @@ type Deployer struct {
 	Infra     Outputs
 }
 
+func (d Deployer) Print() {
+	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
+	colorstring.Fprintln(stdout, "[bold]Retrieved Lambda outputs")
+	fmt.Fprintf(stdout, "	region: %q\n", d.Infra.Region)
+	fmt.Fprintf(stdout, "	lambda_name: %q\n", d.Infra.LambdaName)
+	fmt.Fprintf(stdout, "	image_repo_url: %q\n", d.Infra.ImageRepoUrl)
+}
+
 func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
+	d.Print()
+
 	waitForChangesHeartbeat := func() {
 		fmt.Fprintf(stdout, "Waiting for AWS to apply changes to lambda...\n")
 	}
 
-	fmt.Fprintf(stdout, "Deploying app %q\n", d.Details.App.Name)
+	fmt.Fprintln(stdout)
+	fmt.Fprintf(stdout, "[bold]Deploying app %q\n", d.Details.App.Name)
 	if meta.Version == "" {
 		return "", fmt.Errorf("--version is required to deploy app")
 	}
