@@ -3,6 +3,7 @@ package s3
 import (
 	"context"
 	"fmt"
+	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/aws/cdn"
 	env_vars "github.com/nullstone-io/deployment-sdk/env-vars"
@@ -35,7 +36,8 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 
 	if len(d.Infra.CdnIds) < 1 {
-		fmt.Fprintf(stdout, "There are no attached CDNs. There is nothing to deploy.\n")
+		fmt.Fprintln(stdout)
+		colorstring.Fprintln(stdout, "[bold]There are no attached CDNs. There is nothing to deploy.")
 		return "", nil
 	}
 
