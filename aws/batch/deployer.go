@@ -89,6 +89,5 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 
 	fmt.Fprintf(stdout, "No service name in app module. Skipping update service.\n")
 	fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
-	fmt.Fprintln(stdout, "")
 	return "", nil
 }

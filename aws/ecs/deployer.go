@@ -78,7 +78,6 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	if d.Infra.ServiceName == "" {
 		fmt.Fprintf(stdout, "No service name in app module. Skipping update service.\n")
 		fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
-		fmt.Fprintln(stdout, "")
 		return "", nil
 	}
 
@@ -90,6 +89,5 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 		return "", nil
 	}
 	fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
-	fmt.Fprintln(stdout, "")
 	return *deployment.Id, nil
 }

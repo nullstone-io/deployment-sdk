@@ -99,6 +99,5 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	}
 
 	fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
-	fmt.Fprintln(stdout, "")
 	return revision, nil
 }
