@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	dockertypes "github.com/docker/docker/api/types"
+	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/aws"
 	"github.com/nullstone-io/deployment-sdk/docker"
@@ -39,9 +40,17 @@ type Pusher struct {
 	Infra     Outputs
 }
 
+func (p Pusher) Print() {
+	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
+	colorstring.Fprintln(stdout, "[bold]Retrieved ECR outputs")
+	fmt.Fprintf(stdout, "	region: %q\n", p.Infra.Region)
+	fmt.Fprintf(stdout, "	image_repo_url: %q\n", p.Infra.ImageRepoUrl)
+	fmt.Fprintf(stdout, "	image_pusher: %q\n", p.Infra.ImagePusher.Name)
+}
+
 func (p Pusher) Push(ctx context.Context, source, version string) error {
 	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
-	// TODO: Log information to logger
+	p.Print()
 
 	sourceUrl := docker.ParseImageUrl(source)
 	targetUrl := p.Infra.ImageRepoUrl
@@ -51,6 +60,7 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 		return err
 	}
 
+	colorstring.Fprintln(stdout, "[bold]Authenticating with ECR...")
 	targetAuth, err := p.getEcrLoginAuth(ctx)
 	if err != nil {
 		return fmt.Errorf("error retrieving image registry credentials: %w", err)
@@ -61,12 +71,13 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 		return fmt.Errorf("error creating docker client: %w", err)
 	}
 
-	fmt.Fprintf(stdout, "Retagging %s => %s\n", sourceUrl.String(), targetUrl.String())
+	colorstring.Fprintf(stdout, "[bold]Retagging source image %s => %s\n", sourceUrl, targetUrl)
 	if err := dockerCli.Client().ImageTag(ctx, sourceUrl.String(), targetUrl.String()); err != nil {
 		return fmt.Errorf("error retagging image: %w", err)
 	}
 
-	fmt.Fprintf(stdout, "Pushing %s\n", targetUrl.String())
+	fmt.Fprintln(stdout)
+	colorstring.Fprintf(stdout, "[bold]Pushing docker image to %s\n", targetUrl)
 	if err := docker.PushImage(ctx, dockerCli, targetUrl, targetAuth); err != nil {
 		return fmt.Errorf("error pushing image: %w", err)
 	}

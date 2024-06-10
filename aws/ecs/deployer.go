@@ -3,6 +3,7 @@ package ecs
 import (
 	"context"
 	"fmt"
+	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
@@ -29,9 +30,10 @@ type Deployer struct {
 
 func (d Deployer) Print() {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
-	fmt.Fprintf(stdout, "ecs cluster: %q\n", d.Infra.ClusterArn())
-	fmt.Fprintf(stdout, "ecs service: %q\n", d.Infra.ServiceName)
-	fmt.Fprintf(stdout, "repository image url: %q\n", d.Infra.ImageRepoUrl)
+	colorstring.Fprintln(stdout, "[bold]Retrieved ECS service outputs")
+	fmt.Fprintf(stdout, "	cluster_arn: %q\n", d.Infra.ClusterArn())
+	fmt.Fprintf(stdout, "	service_name: %q\n", d.Infra.ServiceName)
+	fmt.Fprintf(stdout, "	image_repo_url: %q\n", d.Infra.ImageRepoUrl)
 }
 
 // Deploy takes the following steps to deploy an AWS ECS service
@@ -49,7 +51,8 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 		return "", fmt.Errorf("no version specified, version is required to deploy")
 	}
 
-	fmt.Fprintf(stdout, "Deploying app %q\n", d.Details.App.Name)
+	fmt.Fprintln(stdout)
+	fmt.Fprintf(stdout, "[bold]Deploying app %q\n", d.Details.App.Name)
 
 	taskDef, err := GetTaskDefinition(ctx, d.Infra)
 	if err != nil {
