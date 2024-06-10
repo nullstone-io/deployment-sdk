@@ -60,18 +60,20 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 		return err
 	}
 
-	colorstring.Fprintln(stdout, "[bold]Authenticating with ECR...")
+	fmt.Fprintln(stdout)
+	fmt.Fprintln(stdout, "Authenticating with ECR...")
 	targetAuth, err := p.getEcrLoginAuth(ctx)
 	if err != nil {
 		return fmt.Errorf("error retrieving image registry credentials: %w", err)
 	}
+	fmt.Fprintln(stdout, "Authenticated")
 
 	dockerCli, err := docker.DiscoverDockerCli(p.OsWriters)
 	if err != nil {
 		return fmt.Errorf("error creating docker client: %w", err)
 	}
 
-	colorstring.Fprintf(stdout, "[bold]Retagging source image %s => %s\n", sourceUrl, targetUrl)
+	fmt.Fprintf(stdout, "Retagging source image %s => %s\n", sourceUrl, targetUrl)
 	if err := dockerCli.Client().ImageTag(ctx, sourceUrl.String(), targetUrl.String()); err != nil {
 		return fmt.Errorf("error retagging image: %w", err)
 	}

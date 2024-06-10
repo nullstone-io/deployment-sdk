@@ -49,7 +49,7 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	}
 
 	fmt.Fprintln(stdout)
-	fmt.Fprintf(stdout, "[bold]Deploying app %q\n", d.Details.App.Name)
+	fmt.Fprintf(stdout, "Deploying app %q\n", d.Details.App.Name)
 	if meta.Version == "" {
 		return "", fmt.Errorf("--version is required to deploy app")
 	}
