@@ -31,9 +31,9 @@ type Deployer struct {
 func (d Deployer) Print() {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 	colorstring.Fprintln(stdout, "[bold]Retrieved ECS service outputs")
-	fmt.Fprintf(stdout, "	cluster_arn: %q\n", d.Infra.ClusterArn())
-	fmt.Fprintf(stdout, "	service_name: %q\n", d.Infra.ServiceName)
-	fmt.Fprintf(stdout, "	image_repo_url: %q\n", d.Infra.ImageRepoUrl)
+	fmt.Fprintf(stdout, "	cluster_arn:    %s\n", d.Infra.ClusterArn())
+	fmt.Fprintf(stdout, "	service_name:   %s\n", d.Infra.ServiceName)
+	fmt.Fprintf(stdout, "	image_repo_url: %s\n", d.Infra.ImageRepoUrl)
 }
 
 // Deploy takes the following steps to deploy an AWS ECS service

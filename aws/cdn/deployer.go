@@ -32,7 +32,7 @@ type Deployer struct {
 func (d Deployer) Print() {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 	colorstring.Fprintln(stdout, "[bold]Retrieved CDN outputs")
-	fmt.Fprintf(stdout, "	region: %q\n", d.Infra.Region)
+	fmt.Fprintf(stdout, "	region:  %s\n", d.Infra.Region)
 	fmt.Fprintf(stdout, "	cdn_ids: %+v\n", d.Infra.CdnIds)
 }
 

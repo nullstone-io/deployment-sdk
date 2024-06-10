@@ -35,9 +35,9 @@ type Deployer struct {
 func (d Deployer) Print() {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 	colorstring.Fprintln(stdout, "[bold]Retrieved Lambda outputs")
-	fmt.Fprintf(stdout, "	region: %q\n", d.Infra.Region)
-	fmt.Fprintf(stdout, "	lambda_name: %q\n", d.Infra.LambdaName)
-	fmt.Fprintf(stdout, "	artifacts_bucket_name: %q\n", d.Infra.ArtifactsBucketName)
+	fmt.Fprintf(stdout, "	region:                %s\n", d.Infra.Region)
+	fmt.Fprintf(stdout, "	lambda_name:           %s\n", d.Infra.LambdaName)
+	fmt.Fprintf(stdout, "	artifacts_bucket_name: %s\n", d.Infra.ArtifactsBucketName)
 }
 
 func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {

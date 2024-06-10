@@ -43,9 +43,9 @@ type Pusher struct {
 func (p Pusher) Print() {
 	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
 	colorstring.Fprintln(stdout, "[bold]Retrieved ECR outputs")
-	fmt.Fprintf(stdout, "	region: %q\n", p.Infra.Region)
-	fmt.Fprintf(stdout, "	image_repo_url: %q\n", p.Infra.ImageRepoUrl)
-	fmt.Fprintf(stdout, "	image_pusher: %q\n", p.Infra.ImagePusher.Name)
+	fmt.Fprintf(stdout, "	region:         %s\n", p.Infra.Region)
+	fmt.Fprintf(stdout, "	image_repo_url: %s\n", p.Infra.ImageRepoUrl)
+	fmt.Fprintf(stdout, "	image_pusher:   %s\n", p.Infra.ImagePusher.Name)
 }
 
 func (p Pusher) Push(ctx context.Context, source, version string) error {
