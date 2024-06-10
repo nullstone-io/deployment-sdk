@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	ebtypes "github.com/aws/aws-sdk-go-v2/service/elasticbeanstalk/types"
+	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
@@ -29,8 +30,19 @@ type Deployer struct {
 	Infra     Outputs
 }
 
+func (d Deployer) Print() {
+	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
+	colorstring.Fprintln(stdout, "[bold]Retrieved Beanstalk outputs")
+	fmt.Fprintf(stdout, "	region:                %s\n", d.Infra.Region)
+	fmt.Fprintf(stdout, "	beanstalk_name:        %s\n", d.Infra.BeanstalkName)
+	fmt.Fprintf(stdout, "	environment_id:        %s\n", d.Infra.EnvironmentId)
+	fmt.Fprintf(stdout, "	artifacts_bucket_name: %s\n", d.Infra.ArtifactsBucketName)
+}
+
 func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
+	d.Print()
+
 	fmt.Fprintf(stdout, "Deploying app %q\n", d.Details.App.Name)
 	if meta.Version == "" {
 		return "", fmt.Errorf("--version is required to deploy app")

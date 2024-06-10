@@ -3,6 +3,7 @@ package batch
 import (
 	"context"
 	"fmt"
+	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
@@ -30,8 +31,11 @@ type Deployer struct {
 
 func (d Deployer) Print() {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
-	fmt.Fprintf(stdout, "job definition: %q\n", d.Infra.JobDefinitionArn)
-	fmt.Fprintf(stdout, "repository image url: %q\n", d.Infra.ImageRepoUrl)
+	colorstring.Fprintln(stdout, "[bold]Retrieved Beanstalk outputs")
+	fmt.Fprintf(stdout, "	region:              %s\n", d.Infra.Region)
+	fmt.Fprintf(stdout, "	job_definition_name: %s\n", d.Infra.JobDefinitionName)
+	fmt.Fprintf(stdout, "	image_repo_url:      %s\n", d.Infra.ImageRepoUrl)
+	fmt.Fprintf(stdout, "	image_pusher:        %s\n", d.Infra.ImagePusher.Name)
 }
 
 // Deploy takes the following steps to deploy an AWS ECS service
