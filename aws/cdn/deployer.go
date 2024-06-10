@@ -3,6 +3,7 @@ package cdn
 import (
 	"context"
 	"fmt"
+	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
@@ -28,10 +29,19 @@ type Deployer struct {
 	PostUpdateFn func(ctx context.Context, meta app.DeployMetadata) (bool, error)
 }
 
+func (d Deployer) Print() {
+	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
+	colorstring.Fprintln(stdout, "[bold]Retrieved CDN outputs")
+	fmt.Fprintf(stdout, "	region:  %s\n", d.Infra.Region)
+	fmt.Fprintf(stdout, "	cdn_ids: %+v\n", d.Infra.CdnIds)
+}
+
 func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
 	ctx = logging.ContextWithOsWriters(ctx, d.OsWriters)
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
+	d.Print()
 
+	fmt.Fprintln(stdout)
 	fmt.Fprintf(stdout, "Deploying app %q\n", d.Details.App.Name)
 	if meta.Version == "" {
 		return "", fmt.Errorf("no version specified, version is required to deploy")

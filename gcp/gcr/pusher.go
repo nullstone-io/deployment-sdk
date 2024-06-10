@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	dockertypes "github.com/docker/docker/api/types"
+	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/docker"
 	"github.com/nullstone-io/deployment-sdk/gcp"
@@ -37,9 +38,16 @@ type Pusher struct {
 	Infra     Outputs
 }
 
+func (p Pusher) Print() {
+	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
+	colorstring.Fprintln(stdout, "[bold]Retrieved GCR outputs")
+	fmt.Fprintf(stdout, "	image_repo_url: %s\n", p.Infra.ImageRepoUrl)
+	fmt.Fprintf(stdout, "	image_pusher:   %s\n", p.Infra.ImagePusher.Email)
+}
+
 func (p Pusher) Push(ctx context.Context, source, version string) error {
 	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
-	// TODO: Log information to logger
+	p.Print()
 
 	sourceUrl := docker.ParseImageUrl(source)
 	targetUrl := p.Infra.ImageRepoUrl
@@ -49,22 +57,26 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 		return err
 	}
 
+	fmt.Fprintln(stdout)
+	fmt.Fprintln(stdout, "Authenticating with GCR...")
 	targetAuth, err := p.getGcrLoginAuth(ctx)
 	if err != nil {
 		return fmt.Errorf("error retrieving image registry credentials: %w", err)
 	}
+	fmt.Fprintln(stdout, "Authenticated")
 
 	dockerCli, err := docker.DiscoverDockerCli(p.OsWriters)
 	if err != nil {
 		return fmt.Errorf("error creating docker client: %w", err)
 	}
 
-	fmt.Fprintf(stdout, "Retagging %s => %s\n", sourceUrl.String(), targetUrl.String())
+	fmt.Fprintf(stdout, "Retagging source image %s => %s\n", sourceUrl, targetUrl)
 	if err := dockerCli.Client().ImageTag(ctx, sourceUrl.String(), targetUrl.String()); err != nil {
 		return fmt.Errorf("error retagging image: %w", err)
 	}
 
-	fmt.Fprintf(stdout, "Pushing %s\n", targetUrl.String())
+	fmt.Fprintln(stdout)
+	colorstring.Fprintf(stdout, "[bold]Pushing docker image to %s\n", targetUrl)
 	if err := docker.PushImage(ctx, dockerCli, targetUrl, targetAuth); err != nil {
 		return fmt.Errorf("error pushing image: %w", err)
 	}
