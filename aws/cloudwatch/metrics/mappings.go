@@ -6,8 +6,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/nullstone-io/deployment-sdk/workspace"
 	"slices"
-	"strconv"
-	"strings"
 )
 
 type MappingGroups []MappingGroup
@@ -70,8 +68,7 @@ func (g MappingGroups) BuildMetricQueries(metrics []string, periodSec int32) []t
 			// This Metric Group was specified in the list of requested metrics
 			// Let's build a query and add it
 			for id, mapping := range grp.Mappings {
-				uniqueId := fmt.Sprintf("group_%d_%s", i, id)
-				queries = append(queries, mapping.ToMetricDateQuery(uniqueId, periodSec))
+				queries = append(queries, mapping.ToMetricDateQuery(g.genMetricId(i, id), periodSec))
 			}
 		}
 	}
@@ -79,33 +76,16 @@ func (g MappingGroups) BuildMetricQueries(metrics []string, periodSec int32) []t
 }
 
 func (g MappingGroups) FindGroupByMetricId(metricId string) *MappingGroup {
-	i, id := g.parseMetricId(metricId)
-	if i >= 0 && i < len(g) {
-		grp := g[i]
-		if _, ok := grp.Mappings[id]; ok {
-			return &grp
+	for i, grp := range g {
+		for id, _ := range grp.Mappings {
+			if g.genMetricId(i, id) == metricId {
+				return &grp
+			}
 		}
 	}
 	return nil
 }
 
-// parseMetricId takes the unique metric id in the format `group_<i>_<id>` and extracts each component
-// This returns (-1, "") if the format is invalid
-func (g MappingGroups) parseMetricId(metricId string) (int, string) {
-	rest, found := strings.CutPrefix(metricId, "group_")
-	if !found {
-		return -1, ""
-	}
-	istr, id, found := strings.Cut(rest, "_")
-	if !found {
-		return -1, ""
-	}
-	i, err := strconv.Atoi(istr)
-	if err != nil {
-		return -1, ""
-	}
-	if i < 0 || i >= len(g) {
-		return -1, ""
-	}
-	return i, id
+func (g MappingGroups) genMetricId(i int, id string) string {
+	return fmt.Sprintf("group_%d_%s", i, id)
 }
