@@ -6,6 +6,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/nullstone-io/deployment-sdk/workspace"
 	"slices"
+	"strconv"
+	"strings"
 )
 
 type MappingGroups []MappingGroup
@@ -76,12 +78,34 @@ func (g MappingGroups) BuildMetricQueries(metrics []string, periodSec int32) []t
 	return queries
 }
 
-func (g MappingGroups) FindGroupByMetricId(id string) *MappingGroup {
-	for i, grp := range g {
-		uniqueId := fmt.Sprintf("group_%d_%s", i, id)
-		if _, ok := grp.Mappings[uniqueId]; ok {
+func (g MappingGroups) FindGroupByMetricId(metricId string) *MappingGroup {
+	i, id := g.parseMetricId(metricId)
+	if i >= 0 && i < len(g) {
+		grp := g[i]
+		if _, ok := grp.Mappings[id]; ok {
 			return &grp
 		}
 	}
 	return nil
+}
+
+// parseMetricId takes the unique metric id in the format `group_<i>_<id>` and extracts each component
+// This returns (-1, "") if the format is invalid
+func (g MappingGroups) parseMetricId(metricId string) (int, string) {
+	rest, found := strings.CutPrefix(metricId, "group_")
+	if !found {
+		return -1, ""
+	}
+	istr, id, found := strings.Cut(rest, "_")
+	if !found {
+		return -1, ""
+	}
+	i, err := strconv.Atoi(istr)
+	if err != nil {
+		return -1, ""
+	}
+	if i < 0 || i >= len(g) {
+		return -1, ""
+	}
+	return i, id
 }
