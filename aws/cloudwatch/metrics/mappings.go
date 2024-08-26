@@ -4,7 +4,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/nullstone-io/deployment-sdk/workspace"
-	"k8s.io/utils/strings/slices"
+	"slices"
 )
 
 type MappingGroups []MappingGroup
