@@ -75,15 +75,15 @@ func (g MappingGroups) BuildMetricQueries(metrics []string, periodSec int32) []t
 	return queries
 }
 
-func (g MappingGroups) FindGroupByMetricId(metricId string) *MappingGroup {
+func (g MappingGroups) FindByMetricId(metricId string) (*MappingGroup, MetricMapping) {
 	for i, grp := range g {
-		for id, _ := range grp.Mappings {
+		for id, mapping := range grp.Mappings {
 			if g.genMetricId(i, id) == metricId {
-				return &grp
+				return &grp, mapping
 			}
 		}
 	}
-	return nil
+	return nil, MetricMapping{}
 }
 
 func (g MappingGroups) genMetricId(i int, id string) string {
