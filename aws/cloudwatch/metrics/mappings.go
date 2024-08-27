@@ -1,10 +1,11 @@
 package metrics
 
 import (
+	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/nullstone-io/deployment-sdk/workspace"
-	"k8s.io/utils/strings/slices"
+	"slices"
 )
 
 type MappingGroups []MappingGroup
@@ -62,23 +63,29 @@ func (d MetricMappingDimensions) ToAws() []types.Dimension {
 
 func (g MappingGroups) BuildMetricQueries(metrics []string, periodSec int32) []types.MetricDataQuery {
 	queries := make([]types.MetricDataQuery, 0)
-	for _, grp := range g {
+	for i, grp := range g {
 		if len(metrics) < 1 || slices.Contains(metrics, grp.Name) {
 			// This Metric Group was specified in the list of requested metrics
 			// Let's build a query and add it
 			for id, mapping := range grp.Mappings {
-				queries = append(queries, mapping.ToMetricDateQuery(id, periodSec))
+				queries = append(queries, mapping.ToMetricDateQuery(g.genMetricId(i, id), periodSec))
 			}
 		}
 	}
 	return queries
 }
 
-func (g MappingGroups) FindGroupByMetricId(id string) *MappingGroup {
-	for _, grp := range g {
-		if _, ok := grp.Mappings[id]; ok {
-			return &grp
+func (g MappingGroups) FindByMetricId(metricId string) (*MappingGroup, string, MetricMapping) {
+	for i, grp := range g {
+		for id, mapping := range grp.Mappings {
+			if g.genMetricId(i, id) == metricId {
+				return &grp, id, mapping
+			}
 		}
 	}
-	return nil
+	return nil, "", MetricMapping{}
+}
+
+func (g MappingGroups) genMetricId(i int, id string) string {
+	return fmt.Sprintf("group_%d_%s", i, id)
 }

@@ -61,16 +61,16 @@ func (g Getter) GetMetrics(ctx context.Context, options workspace.MetricsGetterO
 func (g Getter) ingest(output *cloudwatch.GetMetricDataOutput, result *workspace.MetricsData) {
 	for _, dataResult := range output.MetricDataResults {
 		metricId := *dataResult.Id
-		metricGroup := g.Infra.MetricsMappings.FindGroupByMetricId(metricId)
+		metricGroup, id, mapping := g.Infra.MetricsMappings.FindByMetricId(metricId)
 		if metricGroup == nil {
 			// This shouldn't happen, it means we don't have a mapping from metric id to its dataset
 			// Should we warn?
 			continue
 		}
-		if metricGroup.Mappings[metricId].HideFromResults {
+		if mapping.HideFromResults {
 			continue
 		}
-		curSeries := result.GetDataset(metricGroup.Name, metricGroup.Type, metricGroup.Unit).GetSeries(metricId)
+		curSeries := result.GetDataset(metricGroup.Name, metricGroup.Type, metricGroup.Unit).GetSeries(id, metricId)
 		for i := 0; i < len(dataResult.Timestamps); i++ {
 			curSeries.AddPoint(dataResult.Timestamps[i], dataResult.Values[i])
 		}

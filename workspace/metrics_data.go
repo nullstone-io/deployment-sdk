@@ -41,9 +41,16 @@ func NewMetricDataset(metricName string, metricType MetricDatasetType, unit stri
 	}
 }
 
+// MetricDataset contains all data and labels for a single chart
+// The Series contained are plotted on the same chart
 type MetricDataset struct {
-	Name   string                   `json:"name"`
-	Type   MetricDatasetType        `json:"type"`
+	// Name is displayed in the title of the chart
+	Name string `json:"name"`
+	// Type is the kind of metric that is used to select what type of chart to use
+	Type MetricDatasetType `json:"type"`
+	// Unit is the unit of measurement for the entire chart
+	// All Series in this MetricDataset must use the same unit of measurement
+	// The unit of measurement is added to the title as `<name> (<unit>)`
 	Unit   string                   `json:"unit"`
 	Series map[string]*MetricSeries `json:"series"`
 }
@@ -56,19 +63,20 @@ const (
 	MetricDatasetTypeDuration    = "duration"
 )
 
-func (d *MetricDataset) GetSeries(metricId string) *MetricSeries {
-	if existing, ok := d.Series[metricId]; ok {
+func (d *MetricDataset) GetSeries(id, metricId string) *MetricSeries {
+	if existing, ok := d.Series[id]; ok {
 		return existing
 	}
 
-	ms := NewMetricSeries(metricId)
-	d.Series[metricId] = ms
+	ms := NewMetricSeries(id, metricId)
+	d.Series[id] = ms
 	return ms
 }
 
-func NewMetricSeries(id string) *MetricSeries {
+func NewMetricSeries(id, metricId string) *MetricSeries {
 	return &MetricSeries{
 		Id:         id,
+		MetricId:   metricId,
 		MinValue:   math.MaxFloat64,
 		MaxValue:   0,
 		Datapoints: make([]MetricDataPoint, 0),
@@ -76,8 +84,13 @@ func NewMetricSeries(id string) *MetricSeries {
 }
 
 type MetricSeries struct {
-	Id         string            `json:"id"`
-	MinValue   float64           `json:"minValue"`
+	// Id is used as the label and unique identifier within a single chart
+	Id string `json:"id"`
+	// MetricId is a unique identifier across all MetricDatasets in order to safely query from the metrics provider
+	MetricId string `json:"metricId"`
+	// MinValue is used to identify the lowest y-value on the chart
+	MinValue float64 `json:"minValue"`
+	// MaxValue is used to identify the highest y-value on the chart
 	MaxValue   float64           `json:"maxValue"`
 	Datapoints []MetricDataPoint `json:"datapoints"`
 }
