@@ -15,6 +15,7 @@ func UpdateTask(ctx context.Context, infra Outputs, taskDefinition *ecstypes.Tas
 		Family:                  taskDefinition.Family,
 		Cpu:                     taskDefinition.Cpu,
 		ExecutionRoleArn:        taskDefinition.ExecutionRoleArn,
+		EphemeralStorage:        taskDefinition.EphemeralStorage,
 		InferenceAccelerators:   taskDefinition.InferenceAccelerators,
 		IpcMode:                 taskDefinition.IpcMode,
 		Memory:                  taskDefinition.Memory,
@@ -23,6 +24,7 @@ func UpdateTask(ctx context.Context, infra Outputs, taskDefinition *ecstypes.Tas
 		PlacementConstraints:    taskDefinition.PlacementConstraints,
 		ProxyConfiguration:      taskDefinition.ProxyConfiguration,
 		RequiresCompatibilities: taskDefinition.RequiresCompatibilities,
+		RuntimePlatform:         taskDefinition.RuntimePlatform,
 		TaskRoleArn:             taskDefinition.TaskRoleArn,
 		Volumes:                 taskDefinition.Volumes,
 	}
