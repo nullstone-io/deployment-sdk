@@ -10,6 +10,5 @@ type Outputs struct {
 	JobDefinitionArn  string          `ns:"job_definition_arn"`
 	JobDefinitionName string          `ns:"job_definition_name"`
 	ImageRepoUrl      docker.ImageUrl `ns:"image_repo_url,optional"`
-	ImagePusher       nsaws.User      `ns:"image_pusher,optional"`
 	Deployer          nsaws.User      `ns:"deployer,optional"`
 }

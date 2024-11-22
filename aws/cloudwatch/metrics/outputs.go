@@ -1,8 +1,10 @@
 package metrics
 
 import (
-	"github.com/aws/aws-sdk-go-v2/aws"
 	nsaws "github.com/nullstone-io/deployment-sdk/aws"
+	"github.com/nullstone-io/deployment-sdk/aws/creds"
+	"github.com/nullstone-io/deployment-sdk/outputs"
+	"gopkg.in/nullstone-io/go-api-client.v0/types"
 )
 
 type Outputs struct {
@@ -12,9 +14,7 @@ type Outputs struct {
 	MetricsMappings MappingGroups `ns:"metrics_mappings"`
 }
 
-func (o Outputs) AwsConfig() aws.Config {
-	if o.MetricsReader.Name != "" {
-		return nsaws.NewConfig(o.MetricsReader, o.Region)
-	}
-	return nsaws.NewConfig(o.LogReader, o.Region)
+func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
+	credsFactory := creds.NewProviderFactory(source, ws.StackId, ws.Uid)
+	o.MetricsReader.RemoteProvider = credsFactory("metrics_reader", "log_reader")
 }

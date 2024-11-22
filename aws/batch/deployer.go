@@ -35,7 +35,6 @@ func (d Deployer) Print() {
 	fmt.Fprintf(stdout, "	region:              %s\n", d.Infra.Region)
 	fmt.Fprintf(stdout, "	job_definition_name: %s\n", d.Infra.JobDefinitionName)
 	fmt.Fprintf(stdout, "	image_repo_url:      %s\n", d.Infra.ImageRepoUrl)
-	fmt.Fprintf(stdout, "	image_pusher:        %s\n", d.Infra.ImagePusher.Name)
 }
 
 // Deploy takes the following steps to deploy an AWS ECS service
