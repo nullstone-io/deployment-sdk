@@ -10,7 +10,7 @@ import (
 )
 
 func NewLogStreamer(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.LogStreamer, error) {
-	outs, err := outputs.Retrieve[Outputs](ctx, source, appDetails.Workspace)
+	outs, err := outputs.Retrieve[Outputs](ctx, source, appDetails.Workspace, appDetails.WorkspaceConfig)
 	if err != nil {
 		return nil, err
 	}

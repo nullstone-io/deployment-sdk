@@ -3,6 +3,7 @@ package eks
 import (
 	"context"
 	"fmt"
+	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	env_vars "github.com/nullstone-io/deployment-sdk/env-vars"
 	"github.com/nullstone-io/deployment-sdk/k8s"
@@ -16,7 +17,7 @@ const (
 )
 
 func NewDeployer(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Deployer, error) {
-	outs, err := outputs.Retrieve[Outputs](ctx, source, appDetails.Workspace)
+	outs, err := outputs.Retrieve[Outputs](ctx, source, appDetails.Workspace, appDetails.WorkspaceConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -36,9 +37,11 @@ type Deployer struct {
 
 func (d Deployer) Print() {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
-	fmt.Fprintf(stdout, "eks endpoint: %q\n", d.Infra.ClusterNamespace.ClusterEndpoint)
-	fmt.Fprintf(stdout, "eks service: %q\n", d.Infra.ServiceName)
-	fmt.Fprintf(stdout, "repository image url: %q\n", d.Infra.ImageRepoUrl)
+	colorstring.Fprintln(stdout, "[bold]Retrieved GKE service outputs")
+	fmt.Fprintf(stdout, "	cluster_endpoint:  %s\n", d.Infra.ClusterNamespace.ClusterEndpoint)
+	fmt.Fprintf(stdout, "	service_namespace: %s\n", d.Infra.ServiceNamespace)
+	fmt.Fprintf(stdout, "	service_name:      %s\n", d.Infra.ServiceName)
+	fmt.Fprintf(stdout, "	image_repo_url:    %s\n", d.Infra.ImageRepoUrl)
 }
 
 func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
@@ -49,6 +52,7 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 		return "", fmt.Errorf("no version specified, version is required to deploy")
 	}
 
+	fmt.Fprintln(stdout)
 	fmt.Fprintf(stdout, "Deploying app %q\n", d.Details.App.Name)
 
 	if d.Infra.ServiceName == "" {
@@ -95,6 +99,5 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	}
 
 	fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
-	fmt.Fprintln(stdout, "")
 	return revision, nil
 }
