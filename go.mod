@@ -1,10 +1,12 @@
 module github.com/nullstone-io/deployment-sdk
 
-go 1.21
+go 1.22.7
+
+toolchain go1.22.9
 
 require (
-	github.com/aws/aws-sdk-go v1.44.332
-	github.com/aws/aws-sdk-go-v2 v1.26.0
+	github.com/aws/aws-sdk-go v1.54.6
+	github.com/aws/aws-sdk-go-v2 v1.30.4
 	github.com/aws/aws-sdk-go-v2/credentials v1.16.16
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.15.13
 	github.com/aws/aws-sdk-go-v2/service/batch v1.35.1
@@ -17,7 +19,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.26.7
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.49.7
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.48.0
-	github.com/aws/smithy-go v1.20.1
+	github.com/aws/smithy-go v1.20.4
 	github.com/docker/cli v20.10.9+incompatible
 	github.com/docker/docker v20.10.17+incompatible
 	github.com/fatih/color v1.13.0
@@ -32,14 +34,11 @@ require (
 	github.com/vmihailenco/tagparser v0.1.2
 	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
-	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20231109204408-47911e567aec
-	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
 	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20240704122801-fa8b47b44f84
 	k8s.io/api v0.27.2
 	k8s.io/apimachinery v0.27.2
 	k8s.io/client-go v0.27.2
 	k8s.io/kubectl v0.27.1
-	k8s.io/utils v0.0.0-20230209194617-a36077c30491
 	sigs.k8s.io/aws-iam-authenticator v0.6.16
 )
 
