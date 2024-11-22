@@ -29,6 +29,7 @@ func (i IamUserAuth) AuthInfo(ctx context.Context) (clientcmdapi.AuthInfo, error
 		Region:      aws.String(i.Region),
 	})
 	opts := &token.GetTokenOptions{
+		Region:    i.Region,
 		ClusterID: i.ClusterId,
 		Session:   ses,
 	}

@@ -5,7 +5,7 @@ import (
 	aws_batch_fargate "github.com/nullstone-io/deployment-sdk/app/container/aws-batch-fargate"
 	"github.com/nullstone-io/deployment-sdk/app/container/aws-ecs-ec2"
 	"github.com/nullstone-io/deployment-sdk/app/container/aws-ecs-fargate"
-	aws_eks "github.com/nullstone-io/deployment-sdk/app/container/aws-eks"
+	aws_eks_service "github.com/nullstone-io/deployment-sdk/app/container/aws-eks-service"
 	gcp_gke_service "github.com/nullstone-io/deployment-sdk/app/container/gcp-gke-service"
 	"github.com/nullstone-io/deployment-sdk/app/server/aws-beanstalk"
 	"github.com/nullstone-io/deployment-sdk/app/serverless/aws-lambda-container"
@@ -19,7 +19,7 @@ var (
 		aws_batch_fargate.ModuleContractName:    aws_batch_fargate.Provider,
 		aws_ecs_fargate.ModuleContractName:      aws_ecs_fargate.Provider,
 		aws_ecs_ec2.ModuleContractName:          aws_ecs_ec2.Provider,
-		aws_eks.ModuleContractName:              aws_eks.Provider,
+		aws_eks_service.ModuleContractName:      aws_eks_service.Provider,
 		aws_s3.ModuleContractName:               aws_s3.Provider,
 		aws_lambda_zip.ModuleContractName:       aws_lambda_zip.Provider,
 		aws_lambda_container.ModuleContractName: aws_lambda_container.Provider,

@@ -1,4 +1,4 @@
-package aws_eks
+package aws_eks_service
 
 import (
 	"github.com/nullstone-io/deployment-sdk/app"
