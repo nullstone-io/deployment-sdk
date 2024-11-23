@@ -2,6 +2,7 @@ package creds
 
 import (
 	"context"
+	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/google/uuid"
 	"github.com/nullstone-io/deployment-sdk/outputs"
@@ -32,10 +33,16 @@ type NullstoneCredsProvider struct {
 }
 
 func (p NullstoneCredsProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
-	// TODO: Implement me
-	panic("not implemented")
-	//creds, err := p.RetrieverSource.GetTemporaryCredentials(ctx, p.StackId, p.WorkspaceUid, p.OutputName)
-	//if err != nil {
-	//	return aws.Credentials{}, fmt.Errorf("error retrieving temporary credentials from Nullstone: %w", err)
-	//}
+	creds, err := p.RetrieverSource.GetTemporaryCredentials(ctx, p.StackId, p.WorkspaceUid, p.OutputNames)
+	if err != nil {
+		return aws.Credentials{}, fmt.Errorf("error retrieving temporary credentials from Nullstone: %w", err)
+	}
+	return aws.Credentials{
+		AccessKeyID:     creds.Aws.AccessKeyID,
+		SecretAccessKey: creds.Aws.SecretAccessKey,
+		SessionToken:    creds.Aws.SessionToken,
+		Source:          creds.Aws.Source,
+		CanExpire:       creds.Aws.CanExpire,
+		Expires:         creds.Aws.Expires,
+	}, nil
 }

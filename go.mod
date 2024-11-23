@@ -1,6 +1,8 @@
 module github.com/nullstone-io/deployment-sdk
 
-go 1.21
+go 1.22.0
+
+toolchain go1.22.9
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.26.0
@@ -31,7 +33,7 @@ require (
 	github.com/vmihailenco/tagparser v0.1.2
 	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
-	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20240704122801-fa8b47b44f84
+	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20241123152056-4186edf2c390
 	k8s.io/api v0.27.2
 	k8s.io/apimachinery v0.27.2
 	k8s.io/client-go v0.27.2
@@ -90,6 +92,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.14.1 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
+	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -132,7 +135,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	golang.org/x/crypto v0.1.0 // indirect
-	golang.org/x/mod v0.8.0 // indirect
+	golang.org/x/mod v0.21.0 // indirect
 	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/term v0.6.0 // indirect
