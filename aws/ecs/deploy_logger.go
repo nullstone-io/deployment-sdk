@@ -43,6 +43,7 @@ func NewDeployLogger(ctx context.Context, osWriters logging.OsWriters, source ou
 	if err != nil {
 		return nil, err
 	}
+	outs.InitializeCreds(source, appDetails.Workspace)
 
 	return &DeployLogger{
 		OsWriters: osWriters,

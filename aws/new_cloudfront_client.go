@@ -1,11 +1,12 @@
 package nsaws
 
 import (
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 )
 
-func NewCloudfrontClient(user User, region string) *cloudfront.Client {
-	cfg := NewConfig(user, region)
+func NewCloudfrontClient(credentialsProvider aws.CredentialsProvider, region string) *cloudfront.Client {
+	cfg := NewConfig(credentialsProvider, region)
 	opts := cloudfront.Options{
 		Region:        cfg.Region,
 		HTTPClient:    cfg.HTTPClient,

@@ -18,6 +18,7 @@ func NewDeployer(ctx context.Context, osWriters logging.OsWriters, source output
 		return nil, err
 	}
 	outs.InitializeCreds(source, appDetails.Workspace)
+
 	return Deployer{
 		OsWriters: osWriters,
 		Details:   appDetails,
