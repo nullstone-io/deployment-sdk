@@ -37,6 +37,9 @@ func (p NullstoneCredsProvider) Retrieve(ctx context.Context) (aws.Credentials, 
 	if err != nil {
 		return aws.Credentials{}, fmt.Errorf("error retrieving temporary credentials from Nullstone: %w", err)
 	}
+	if creds == nil {
+		return aws.Credentials{}, nil
+	}
 	return aws.Credentials{
 		AccessKeyID:     creds.Aws.AccessKeyID,
 		SecretAccessKey: creds.Aws.SecretAccessKey,
