@@ -28,7 +28,7 @@ func (s ApiRetrieverSource) GetCurrentOutputs(ctx context.Context, stackId int64
 	return nsClient.WorkspaceOutputs().GetCurrent(ctx, stackId, workspaceUid, showSensitive)
 }
 
-func (s ApiRetrieverSource) GetTemporaryCredentials(ctx context.Context, stackId int64, workspaceUid uuid.UUID, provider string, outputNames []string) (*types.OutputCredentials, error) {
+func (s ApiRetrieverSource) GetTemporaryCredentials(ctx context.Context, stackId int64, workspaceUid uuid.UUID, input api.GenerateCredentialsInput) (*types.OutputCredentials, error) {
 	nsClient := api.Client{Config: s.Config}
-	return nsClient.WorkspaceOutputCredentials().Create(ctx, stackId, workspaceUid, provider, outputNames)
+	return nsClient.WorkspaceOutputCredentials().Create(ctx, stackId, workspaceUid, input)
 }

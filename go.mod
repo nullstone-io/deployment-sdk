@@ -33,7 +33,7 @@ require (
 	github.com/vmihailenco/tagparser v0.1.2
 	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
-	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20241126201936-9bee15403ad6
+	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20241126223246-569d698249f8
 	k8s.io/api v0.27.2
 	k8s.io/apimachinery v0.27.2
 	k8s.io/client-go v0.27.2

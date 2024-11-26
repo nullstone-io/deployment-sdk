@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/google/uuid"
 	"github.com/nullstone-io/deployment-sdk/outputs"
+	"gopkg.in/nullstone-io/go-api-client.v0"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
 )
 
@@ -34,7 +35,11 @@ type NullstoneCredsProvider struct {
 }
 
 func (p NullstoneCredsProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
-	creds, err := p.RetrieverSource.GetTemporaryCredentials(ctx, p.StackId, p.WorkspaceUid, types.ProviderAws, p.OutputNames)
+	input := api.GenerateCredentialsInput{
+		Provider:    types.ProviderAws,
+		OutputNames: p.OutputNames,
+	}
+	creds, err := p.RetrieverSource.GetTemporaryCredentials(ctx, p.StackId, p.WorkspaceUid, input)
 	if err != nil {
 		return aws.Credentials{}, fmt.Errorf("error retrieving temporary credentials from Nullstone: %w", err)
 	}

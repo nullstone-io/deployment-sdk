@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
+	"gopkg.in/nullstone-io/go-api-client.v0"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
 	"reflect"
 )
@@ -12,7 +13,7 @@ type RetrieverSource interface {
 	GetWorkspace(ctx context.Context, stackId, blockId, envId int64) (*types.Workspace, error)
 	GetCurrentConfig(ctx context.Context, stackId, blockId, envId int64) (*types.WorkspaceConfig, error)
 	GetCurrentOutputs(ctx context.Context, stackId int64, workspaceUid uuid.UUID, showSensitive bool) (types.Outputs, error)
-	GetTemporaryCredentials(ctx context.Context, stackId int64, workspaceUid uuid.UUID, provider string, outputNames []string) (*types.OutputCredentials, error)
+	GetTemporaryCredentials(ctx context.Context, stackId int64, workspaceUid uuid.UUID, input api.GenerateCredentialsInput) (*types.OutputCredentials, error)
 }
 
 func NewRetrieveWorkspace(workspace *types.Workspace, workspaceConfig *types.WorkspaceConfig) *RetrieveWorkspace {
