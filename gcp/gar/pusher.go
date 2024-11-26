@@ -8,8 +8,10 @@ import (
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/docker"
 	"github.com/nullstone-io/deployment-sdk/gcp"
+	"github.com/nullstone-io/deployment-sdk/gcp/creds"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
+	"gopkg.in/nullstone-io/go-api-client.v0/types"
 	"strings"
 )
 
@@ -22,11 +24,17 @@ type Outputs struct {
 	ImagePusher  gcp.ServiceAccount `ns:"image_pusher,optional"`
 }
 
+func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
+	o.ImagePusher.RemoteTokenSourcer = creds.NewTokenSourcer(source, ws.StackId, ws.Uid, "image_pusher")
+}
+
 func NewPusher(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Pusher, error) {
 	outs, err := outputs.Retrieve[Outputs](ctx, source, appDetails.Workspace, appDetails.WorkspaceConfig)
 	if err != nil {
 		return nil, err
 	}
+	outs.InitializeCreds(source, appDetails.Workspace)
+
 	return &Pusher{
 		OsWriters: osWriters,
 		Infra:     outs,
