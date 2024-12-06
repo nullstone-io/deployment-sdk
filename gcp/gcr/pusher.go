@@ -104,7 +104,7 @@ func (p Pusher) validate(targetUrl docker.ImageUrl) error {
 	if targetUrl.Tag == "" {
 		return fmt.Errorf("no version was specified, version is required to push image")
 	}
-	if !strings.Contains(targetUrl.Registry, "gcr.io") ||
+	if !strings.Contains(targetUrl.Registry, "gcr.io") &&
 		!strings.Contains(targetUrl.Registry, "docker.pkg.dev") {
 		return fmt.Errorf("this app only supports push to GCP and GAP GCR (image=%s)", targetUrl)
 	}
