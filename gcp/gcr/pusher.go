@@ -104,8 +104,9 @@ func (p Pusher) validate(targetUrl docker.ImageUrl) error {
 	if targetUrl.Tag == "" {
 		return fmt.Errorf("no version was specified, version is required to push image")
 	}
-	if !strings.Contains(targetUrl.Registry, "gcr.io") {
-		return fmt.Errorf("this app only supports push to GCP GCR (image=%s)", targetUrl)
+	if !strings.Contains(targetUrl.Registry, "gcr.io") ||
+		!strings.Contains(targetUrl.Registry, "docker.pkg.dev") {
+		return fmt.Errorf("this app only supports push to GCP and GAP GCR (image=%s)", targetUrl)
 	}
 	// NOTE: For now, we are assuming that the production docker image is hosted in GCR
 	// This will likely need to be refactored to support pushing to other image registries
