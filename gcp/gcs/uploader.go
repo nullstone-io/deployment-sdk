@@ -49,7 +49,11 @@ func (u *Uploader) uploadOne(ctx context.Context, bucket *storage.BucketHandle, 
 		return fmt.Errorf("error opening local file %q: %w", localFilepath, err)
 	}
 	defer file.Close()
-	objectKey := path.Join(u.ObjectDirectory, strings.Replace(fp, string(filepath.Separator), "/", -1))
+
+	objectKey := strings.Replace(fp, string(filepath.Separator), "/", -1)
+	if u.ObjectDirectory != "" {
+		objectKey = path.Join(u.ObjectDirectory, objectKey)
+	}
 
 	writer := bucket.Object(objectKey).NewWriter(ctx)
 	writer.ContentType = mime.TypeByExtension(filepath.Ext(fp))

@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 )
 
 func UploadDirArtifact(ctx context.Context, infra Outputs, source string, filepaths []string, version string) error {
 	objDir := infra.ArtifactsKey(version)
+	objDir = strings.TrimPrefix(objDir, "/")
 
 	logger := log.New(os.Stderr, "", 0)
 	uploader := Uploader{

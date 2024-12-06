@@ -58,13 +58,12 @@ func coerceValidPathPrefix(artifactsDir string) string {
 	if artifactsDir == "" {
 		return ""
 	}
-	// Ensure there is a single preceding and trailing `/`
+	// Ensure there is a single preceding `/`
 	if !strings.HasPrefix(artifactsDir, "/") {
 		artifactsDir = "/" + artifactsDir
 	}
-	if !strings.HasSuffix(artifactsDir, "/") {
-		artifactsDir += "/"
-	}
+	// Drop trailing '/'
+	artifactsDir = strings.TrimSuffix(artifactsDir, "/")
 	return artifactsDir
 }
 
