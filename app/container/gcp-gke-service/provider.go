@@ -2,7 +2,7 @@ package gcp_gke_service
 
 import (
 	"github.com/nullstone-io/deployment-sdk/app"
-	"github.com/nullstone-io/deployment-sdk/gcp/gcr"
+	"github.com/nullstone-io/deployment-sdk/gcp"
 	"github.com/nullstone-io/deployment-sdk/gcp/gke"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
 )
@@ -17,7 +17,7 @@ var ModuleContractName = types.ModuleContractName{
 
 var Provider = app.Provider{
 	CanDeployImmediate: false,
-	NewPusher:          gcr.NewPusher,
+	NewPusher:          gcp.NewPusher,
 	NewDeployer:        gke.NewDeployer,
 	NewDeployWatcher:   app.NewPollingDeployWatcher(gke.NewDeployStatusGetter),
 	NewStatuser:        nil,
