@@ -6,6 +6,7 @@ toolchain go1.22.9
 
 require (
 	cloud.google.com/go/compute v1.28.1
+	cloud.google.com/go/logging v1.11.0
 	cloud.google.com/go/storage v1.47.0
 	github.com/aws/aws-sdk-go-v2 v1.26.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.16.16
