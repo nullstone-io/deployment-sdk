@@ -26,6 +26,7 @@ func InvalidateCdnPaths(ctx context.Context, infra Outputs, urlPaths []string) (
 	}
 	defer client.Close()
 
+	invalidationNames := make([]string, 0)
 	requestId := uuid.New().String()
 	for _, urlPath := range urlPaths {
 		for _, urlMapId := range infra.CdnUrlMapNames {
@@ -37,12 +38,12 @@ func InvalidateCdnPaths(ctx context.Context, infra Outputs, urlPaths []string) (
 					Path: &urlPath,
 				},
 			}
-			_, err := client.InvalidateCache(ctx, req)
+			op, err := client.InvalidateCache(ctx, req)
 			if err != nil {
 				return nil, fmt.Errorf("error invalidating url map %s: %w", urlMapId, err)
 			}
-			// TODO: Find a way to pass a unique reference for watching the invalidation
+			invalidationNames = append(invalidationNames, op.Name())
 		}
 	}
-	return []string{}, nil
+	return invalidationNames, nil
 }

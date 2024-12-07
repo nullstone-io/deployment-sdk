@@ -2,6 +2,7 @@ package gcp_gcs
 
 import (
 	"github.com/nullstone-io/deployment-sdk/app"
+	"github.com/nullstone-io/deployment-sdk/gcp/cloudcdn"
 	"github.com/nullstone-io/deployment-sdk/gcp/gcs"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
 )
@@ -18,7 +19,7 @@ var Provider = app.Provider{
 	CanDeployImmediate: true,
 	NewPusher:          gcs.NewDirPusher,
 	NewDeployer:        gcs.NewDeployer,
-	NewDeployWatcher:   nil, //app.NewPollingDeployWatcher(cdn.NewDeployStatusGetter),
+	NewDeployWatcher:   app.NewPollingDeployWatcher(cloudcdn.NewDeployStatusGetter),
 	NewStatuser:        nil,
 	NewLogStreamer:     nil, //cloudlogging.NewLogStreamer,
 }

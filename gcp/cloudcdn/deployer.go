@@ -50,15 +50,15 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	// We only perform an invalidation if there were changes to the app
 	if changed {
 		fmt.Fprintln(stdout, "Invalidating cache in CDNs")
-		invalidationIds, err := InvalidateCdnPaths(ctx, d.Infra, []string{"/*"})
+		invalidationNames, err := InvalidateCdnPaths(ctx, d.Infra, []string{"/*"})
 		if err != nil {
 			return "", fmt.Errorf("error invalidating /*: %w", err)
 		}
-		// NOTE: We only know how to return a single CDN invalidation ID
+		// NOTE: We only know how to return a single CDN invalidation name
 		//       The first iteration of the loop will return the first one
-		for _, invalidationId := range invalidationIds {
+		for _, invalidationName := range invalidationNames {
 			fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
-			return invalidationId, nil
+			return invalidationName, nil
 		}
 	}
 	fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
