@@ -5,11 +5,11 @@ import (
 	"cloud.google.com/go/compute/apiv1/computepb"
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"google.golang.org/api/option"
 	"strings"
-	"time"
 )
 
 // UpdateCdnVersion updates the cloudfront distribution with the appropriate app version
@@ -38,7 +38,7 @@ func UpdateCdnVersion(ctx context.Context, infra Outputs, version string) (bool,
 			continue
 		}
 		hasChanges = true
-		requestId := time.Now().String()
+		requestId := uuid.New().String()
 		req := &computepb.UpdateUrlMapRequest{
 			Project:        infra.ProjectId,
 			RequestId:      &requestId,

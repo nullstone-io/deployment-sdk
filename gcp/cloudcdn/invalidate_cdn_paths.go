@@ -5,8 +5,8 @@ import (
 	computepb "cloud.google.com/go/compute/apiv1/computepb"
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"google.golang.org/api/option"
-	"time"
 )
 
 var (
@@ -26,7 +26,7 @@ func InvalidateCdnPaths(ctx context.Context, infra Outputs, urlPaths []string) (
 	}
 	defer client.Close()
 
-	requestId := time.Now().String()
+	requestId := uuid.New().String()
 	for _, urlPath := range urlPaths {
 		for _, urlMapId := range infra.CdnUrlMapNames {
 			req := &computepb.InvalidateCacheUrlMapRequest{

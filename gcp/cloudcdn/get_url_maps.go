@@ -2,7 +2,7 @@ package cloudcdn
 
 import (
 	compute "cloud.google.com/go/compute/apiv1"
-	computepb "cloud.google.com/go/compute/apiv1/computepb"
+	"cloud.google.com/go/compute/apiv1/computepb"
 	"context"
 	"fmt"
 )
