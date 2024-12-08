@@ -22,9 +22,7 @@ func DiscoverDockerCli(osWriters logging.OsWriters) (*command.DockerCli, error) 
 		return nil, err
 	}
 	opts := &flags.ClientOptions{
-		Common: &flags.CommonOptions{
-			Debug: true,
-		},
+		Common: &flags.CommonOptions{},
 	}
 	opts.Common.InstallFlags(pflag.NewFlagSet("", pflag.ContinueOnError))
 	opts.Common.SetDefaultOptions(&pflag.FlagSet{})
