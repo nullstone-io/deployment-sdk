@@ -1,4 +1,4 @@
-package gcr
+package gar
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	GCRScopes = []string{"https://www.googleapis.com/auth/cloud-platform"}
+	GARScopes = []string{"https://www.googleapis.com/auth/cloud-platform"}
 )
 
 type Outputs struct {
@@ -40,7 +40,7 @@ type Pusher struct {
 
 func (p Pusher) Print() {
 	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
-	colorstring.Fprintln(stdout, "[bold]Retrieved GCR outputs")
+	colorstring.Fprintln(stdout, "[bold]Retrieved GAR or GCR outputs")
 	fmt.Fprintf(stdout, "	image_repo_url: %s\n", p.Infra.ImageRepoUrl)
 	fmt.Fprintf(stdout, "	image_pusher:   %s\n", p.Infra.ImagePusher.Email)
 }
@@ -58,7 +58,7 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 	}
 
 	fmt.Fprintln(stdout)
-	fmt.Fprintln(stdout, "Authenticating with GCR...")
+	fmt.Fprintln(stdout, "Authenticating with GAR or GCR...")
 	targetAuth, err := p.getGcrLoginAuth(ctx)
 	if err != nil {
 		return fmt.Errorf("error retrieving image registry credentials: %w", err)
@@ -104,10 +104,11 @@ func (p Pusher) validate(targetUrl docker.ImageUrl) error {
 	if targetUrl.Tag == "" {
 		return fmt.Errorf("no version was specified, version is required to push image")
 	}
-	if !strings.Contains(targetUrl.Registry, "gcr.io") {
-		return fmt.Errorf("this app only supports push to GCP GCR (image=%s)", targetUrl)
+	if !strings.Contains(targetUrl.Registry, "gcr.io") &&
+		!strings.Contains(targetUrl.Registry, "docker.pkg.dev") {
+		return fmt.Errorf("this app only supports push to GAR or GCR (image=%s)", targetUrl)
 	}
-	// NOTE: For now, we are assuming that the production docker image is hosted in GCR
+	// NOTE: For now, we are assuming that the production docker image is hosted in GAR or GCR
 	// This will likely need to be refactored to support pushing to other image registries
 	if p.Infra.ImagePusher.PrivateKey == "" {
 		return fmt.Errorf("cannot push without an authorized user, make sure 'image_pusher' output is not empty")
@@ -117,7 +118,7 @@ func (p Pusher) validate(targetUrl docker.ImageUrl) error {
 }
 
 func (p Pusher) getGcrLoginAuth(ctx context.Context) (dockertypes.AuthConfig, error) {
-	ts, err := p.Infra.ImagePusher.TokenSource(ctx, GCRScopes...)
+	ts, err := p.Infra.ImagePusher.TokenSource(ctx, GARScopes...)
 	if err != nil {
 		return dockertypes.AuthConfig{}, fmt.Errorf("error creating access token source: %w", err)
 	}
@@ -131,7 +132,7 @@ func (p Pusher) getGcrLoginAuth(ctx context.Context) (dockertypes.AuthConfig, er
 
 	serverAddr := p.Infra.ImageRepoUrl.Registry
 	if serverAddr == "" {
-		serverAddr = "gcr.io"
+		serverAddr = "docker.pkg.dev"
 	}
 	return dockertypes.AuthConfig{
 		ServerAddress: serverAddr,
