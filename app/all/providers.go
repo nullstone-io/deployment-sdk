@@ -10,6 +10,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/app/serverless/aws-lambda-container"
 	"github.com/nullstone-io/deployment-sdk/app/serverless/aws-lambda-zip"
 	"github.com/nullstone-io/deployment-sdk/app/static-site/aws-s3"
+	"github.com/nullstone-io/deployment-sdk/app/static-site/gcp-gcs"
 )
 
 var (
@@ -22,5 +23,6 @@ var (
 		aws_lambda_container.ModuleContractName: aws_lambda_container.Provider,
 		aws_beanstalk.ModuleContractName:        aws_beanstalk.Provider,
 		gcp_gke_service.ModuleContractName:      gcp_gke_service.Provider,
+		gcp_gcs.ModuleContractName:              gcp_gcs.Provider,
 	}
 )

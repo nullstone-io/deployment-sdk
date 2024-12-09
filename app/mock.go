@@ -15,3 +15,7 @@ func (m *MockDeployStatusGetter) GetDeployStatus(ctx context.Context, reference 
 	args := m.MethodCalled("GetDeployStatus", ctx, reference)
 	return args.Get(0).(RolloutStatus), args.Error(1)
 }
+
+func (m *MockDeployStatusGetter) Close() {
+	m.MethodCalled("Close")
+}
