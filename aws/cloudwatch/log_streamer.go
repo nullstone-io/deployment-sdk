@@ -23,7 +23,7 @@ func NewLogStreamer(ctx context.Context, osWriters logging.OsWriters, source out
 	if err != nil {
 		return nil, err
 	}
-
+	outs.InitializeCreds(source, appDetails.Workspace)
 	return LogStreamer{
 		OsWriters: osWriters,
 		Details:   appDetails,

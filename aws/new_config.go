@@ -2,7 +2,6 @@ package nsaws
 
 import (
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/smithy-go/logging"
 	"os"
 )
@@ -12,7 +11,7 @@ const (
 	AwsTraceEnvVar   = "AWS_TRACE"
 )
 
-func NewConfig(user User, region string) aws.Config {
+func NewConfig(credentialsProvider aws.CredentialsProvider, region string) aws.Config {
 	awsConfig := aws.Config{}
 	if os.Getenv(AwsTraceEnvVar) != "" {
 		awsConfig.Logger = logging.NewStandardLogger(os.Stderr)
@@ -22,6 +21,6 @@ func NewConfig(user User, region string) aws.Config {
 	if region != "" {
 		awsConfig.Region = region
 	}
-	awsConfig.Credentials = credentials.NewStaticCredentialsProvider(user.AccessKeyId, user.SecretAccessKey, "")
+	awsConfig.Credentials = aws.NewCredentialsCache(credentialsProvider)
 	return awsConfig
 }

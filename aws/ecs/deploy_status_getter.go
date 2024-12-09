@@ -16,6 +16,7 @@ func NewDeployStatusGetter(ctx context.Context, osWriters logging.OsWriters, sou
 	if err != nil {
 		return nil, err
 	}
+	outs.InitializeCreds(source, appDetails.Workspace)
 
 	return &DeployStatusGetter{
 		OsWriters: osWriters,

@@ -15,6 +15,8 @@ func NewDirPusher(ctx context.Context, osWriters logging.OsWriters, source outpu
 	if err != nil {
 		return nil, err
 	}
+	outs.InitializeCreds(source, appDetails.Workspace)
+
 	return &DirPusher{
 		OsWriters: osWriters,
 		Source:    source,

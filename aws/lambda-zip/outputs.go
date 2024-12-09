@@ -3,6 +3,9 @@ package lambda_zip
 import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/nullstone-io/deployment-sdk/aws"
+	"github.com/nullstone-io/deployment-sdk/aws/creds"
+	"github.com/nullstone-io/deployment-sdk/outputs"
+	"gopkg.in/nullstone-io/go-api-client.v0/types"
 	"strings"
 )
 
@@ -17,6 +20,11 @@ type Outputs struct {
 	LambdaName           string     `ns:"lambda_name"`
 	ArtifactsBucketName  string     `ns:"artifacts_bucket_name"`
 	ArtifactsKeyTemplate string     `ns:"artifacts_key_template"`
+}
+
+func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
+	credsFactory := creds.NewProviderFactory(source, ws.StackId, ws.Uid)
+	o.Deployer.RemoteProvider = credsFactory("deployer")
 }
 
 func (o Outputs) FunctionName() string {
