@@ -38,6 +38,8 @@ type DeployLogger struct {
 	lastSeenEventAt time.Time
 }
 
+func (d *DeployLogger) Close() {}
+
 func NewDeployLogger(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.DeployStatusGetter, error) {
 	outs, err := outputs.Retrieve[Outputs](ctx, source, appDetails.Workspace, appDetails.WorkspaceConfig)
 	if err != nil {

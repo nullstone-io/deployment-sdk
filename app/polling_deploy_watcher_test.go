@@ -108,6 +108,7 @@ func TestPollingDeployWatcher(t *testing.T) {
 					Return(call.rolloutStatus, call.error).
 					Once()
 			}
+			mockGetter.On("Close")
 
 			err := mockWatcher.Watch(ctx, "stub")
 			mockGetter.AssertExpectations(t)
