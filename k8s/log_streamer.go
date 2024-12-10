@@ -2,10 +2,8 @@ package k8s
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"fmt"
-	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"golang.org/x/sync/errgroup"
@@ -45,29 +43,24 @@ func (l LogStreamer) Stream(ctx context.Context, options app.LogStreamOptions) e
 
 	cfg, err := l.NewConfigFn(ctx)
 	if err != nil {
-		l.writeInitError(options.Emitter, "There was an error creating kubernetes client", err)
-		return fmt.Errorf("error configuring kubernetes client: %w", err)
+		return app.NewLogInitError("There was an error creating kubernetes client", err)
 	}
 	client, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		l.writeInitError(options.Emitter, "There was an error initializing kubernetes client", err)
-		return fmt.Errorf("error creating kubernetes client: %w", err)
+		return app.NewLogInitError("There was an error initializing kubernetes client", err)
 	}
 	pods, err := client.CoreV1().Pods(l.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
 	if err != nil {
-		l.writeInitError(options.Emitter, "There was an error looking for application pods", err)
-		return fmt.Errorf("error looking for app pods: %w", err)
+		return app.NewLogInitError("There was an error looking for application pods", err)
 	}
 	if len(pods.Items) <= 0 {
-		l.writeInitError(options.Emitter, "No pods were found for app in namespace", nil)
-		return fmt.Errorf("no pods found for app %q in namespace %q", l.AppName, l.AppNamespace)
+		return app.NewLogInitError("No pods were found for app in namespace", nil)
 	}
 
 	logOptions := NewPodLogOptions(options)
 	requests, err := polymorphichelpers.LogsForObjectFn(RestClientGetter{Config: cfg}, pods, logOptions, getPodTimeout, true)
 	if err != nil {
-		l.writeInitError(options.Emitter, "There was an error initializing application log streamer", err)
-		return err
+		return app.NewLogInitError("There was an error initializing application log streamer", err)
 	}
 
 	if logOptions.Follow && len(requests) > 1 {
@@ -150,14 +143,4 @@ func (l LogStreamer) parseRef(ref corev1.ObjectReference) (string, string) {
 	}
 
 	return ref.Name, containerName
-}
-
-func (l LogStreamer) writeInitError(emitter app.LogEmitter, msg string, err error) {
-	buf := bytes.NewBufferString("")
-	if err == nil {
-		colorstring.Fprintf(buf, "[red]%s[reset]\n\n", msg)
-	} else {
-		colorstring.Fprintf(buf, "[red]%s: %s[reset]\n\n", msg, err.Error())
-	}
-	emitter(LogMessageFromLine(l.AppNamespace, l.AppName, "", "", buf.String()))
 }
