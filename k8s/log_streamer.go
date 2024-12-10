@@ -106,7 +106,7 @@ func (l LogStreamer) writeRequest(ctx context.Context, emitter app.LogEmitter, r
 	return func() error {
 		readCloser, err := request.Stream(ctx)
 		if err != nil {
-			return err
+			return app.NewLogInitError("An error occurred streaming logs", err)
 		}
 		defer readCloser.Close()
 
