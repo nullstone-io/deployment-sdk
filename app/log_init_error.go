@@ -1,9 +1,8 @@
 package app
 
 import (
-	"bytes"
 	"errors"
-	"github.com/mitchellh/colorstring"
+	"fmt"
 	"time"
 )
 
@@ -37,13 +36,11 @@ type LogInitError struct {
 }
 
 func (e LogInitError) Error() string {
-	buf := bytes.NewBufferString("")
 	if e.Err != nil {
-		colorstring.Fprintf(buf, "[red]%s: %s[reset]", e.Message, e.Err.Error())
+		return fmt.Sprintf("%s: %s", e.Message, e.Err)
 	} else {
-		colorstring.Fprintf(buf, "[red]%s[reset]", e.Message)
+		return e.Message
 	}
-	return buf.String()
 }
 
 func (e LogInitError) LogMessage() LogMessage {
