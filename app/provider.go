@@ -33,6 +33,7 @@ type Deployer interface {
 
 type DeployStatusGetter interface {
 	GetDeployStatus(ctx context.Context, reference string) (RolloutStatus, error)
+	Close()
 }
 
 type DeployWatcher interface {

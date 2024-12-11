@@ -38,6 +38,8 @@ type DeployStatusGetter struct {
 	numDesired      int
 }
 
+func (d *DeployStatusGetter) Close() {}
+
 func (d *DeployStatusGetter) initialize(ctx context.Context, reference string) error {
 	return nil
 }
