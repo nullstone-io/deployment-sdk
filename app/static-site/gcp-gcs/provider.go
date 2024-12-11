@@ -21,5 +21,5 @@ var Provider = app.Provider{
 	NewDeployer:        gcs.NewDeployer,
 	NewDeployWatcher:   app.NewPollingDeployWatcher(cloudcdn.NewDeployStatusGetter),
 	NewStatuser:        nil,
-	NewLogStreamer:     nil, //cloudlogging.NewLogStreamer,
+	NewLogStreamer:     nil, //TODO: Implement cloudlogging.NewLogStreamer,
 }
