@@ -1,0 +1,66 @@
+package cloudcdn
+
+import (
+	"context"
+	"fmt"
+	"github.com/mitchellh/colorstring"
+	"github.com/nullstone-io/deployment-sdk/app"
+	"github.com/nullstone-io/deployment-sdk/logging"
+)
+
+type Deployer struct {
+	OsWriters    logging.OsWriters
+	Details      app.Details
+	Infra        Outputs
+	PostUpdateFn func(ctx context.Context, meta app.DeployMetadata) (bool, error)
+}
+
+func (d Deployer) Print() {
+	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
+	colorstring.Fprintln(stdout, "[bold]Retrieved CDN outputs")
+	fmt.Fprintf(stdout, "	project_id:      %s\n", d.Infra.ProjectId)
+	fmt.Fprintf(stdout, "	cdn_url_map_ids: %+v\n", d.Infra.CdnUrlMapNames)
+}
+
+func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
+	ctx = logging.ContextWithOsWriters(ctx, d.OsWriters)
+	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
+	d.Print()
+
+	fmt.Fprintln(stdout)
+	fmt.Fprintf(stdout, "Deploying app %q\n", d.Details.App.Name)
+	if meta.Version == "" {
+		return "", fmt.Errorf("no version specified, version is required to deploy")
+	}
+
+	fmt.Fprintf(stdout, "Updating CDN version to %q\n", meta.Version)
+	changed, err := UpdateCdnVersion(ctx, d.Infra, meta.Version)
+	if err != nil {
+		return "", fmt.Errorf("error updating CDN version: %w", err)
+	}
+
+	if d.PostUpdateFn != nil {
+		hasChanges, err := d.PostUpdateFn(ctx, meta)
+		if err != nil {
+			return "", err
+		}
+		changed = changed || hasChanges
+	}
+
+	// We only perform an invalidation if there were changes to the app
+	if changed {
+		fmt.Fprintln(stdout, "Invalidating cache in CDNs")
+		invalidationNames, err := InvalidateCdnPaths(ctx, d.Infra, []string{"/*"})
+		if err != nil {
+			return "", fmt.Errorf("error invalidating /*: %w", err)
+		}
+		// NOTE: We only know how to return a single CDN invalidation name
+		//       The first iteration of the loop will return the first one
+		for _, invalidationName := range invalidationNames {
+			fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
+			return invalidationName, nil
+		}
+	}
+	fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
+	return "", nil
+}

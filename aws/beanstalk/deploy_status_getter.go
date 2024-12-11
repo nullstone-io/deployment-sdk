@@ -28,6 +28,8 @@ type DeployStatusGetter struct {
 	Infra     Outputs
 }
 
+func (d DeployStatusGetter) Close() {}
+
 func (d DeployStatusGetter) GetDeployStatus(ctx context.Context, reference string) (app.RolloutStatus, error) {
 	if reference == "" {
 		return app.RolloutStatusUnknown, nil

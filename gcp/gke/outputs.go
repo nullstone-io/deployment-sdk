@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"github.com/nullstone-io/deployment-sdk/docker"
 	"github.com/nullstone-io/deployment-sdk/gcp"
+	"github.com/nullstone-io/deployment-sdk/gcp/creds"
 	"github.com/nullstone-io/deployment-sdk/k8s"
+	"github.com/nullstone-io/deployment-sdk/outputs"
+	"gopkg.in/nullstone-io/go-api-client.v0/types"
 	apimachineryschema "k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -15,11 +18,14 @@ type Outputs struct {
 	ServiceNamespace  string             `ns:"service_namespace"`
 	ServiceName       string             `ns:"service_name"`
 	ImageRepoUrl      docker.ImageUrl    `ns:"image_repo_url,optional"`
-	ImagePusher       gcp.ServiceAccount `ns:"image_pusher,optional"`
 	Deployer          gcp.ServiceAccount `ns:"deployer"`
 	MainContainerName string             `ns:"main_container_name,optional"`
 
 	ClusterNamespace ClusterNamespaceOutputs `ns:",connectionContract:cluster-namespace/gcp/k8s:gke"`
+}
+
+func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
+	o.Deployer.RemoteTokenSourcer = creds.NewTokenSourcer(source, ws.StackId, ws.Uid, "deployer")
 }
 
 type ClusterNamespaceOutputs struct {

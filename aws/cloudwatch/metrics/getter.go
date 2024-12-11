@@ -19,6 +19,7 @@ func NewGetter(ctx context.Context, osWriters logging.OsWriters, source outputs.
 	if err != nil {
 		return nil, err
 	}
+	outs.InitializeCreds(source, blockDetails.Workspace)
 
 	return Getter{
 		OsWriters: osWriters,
@@ -44,7 +45,7 @@ func (g Getter) GetMetrics(ctx context.Context, options workspace.MetricsGetterO
 		MetricDataQueries: queries,
 	}
 
-	cwClient := cloudwatch.NewFromConfig(g.Infra.AwsConfig())
+	cwClient := cloudwatch.NewFromConfig(nsaws.NewConfig(g.Infra.MetricsReader, g.Infra.Region))
 	paginator := cloudwatch.NewGetMetricDataPaginator(cwClient, input)
 	result := workspace.NewMetricsData()
 	for paginator.HasMorePages() {

@@ -14,6 +14,8 @@ func NewPusher(ctx context.Context, osWriters logging.OsWriters, source outputs.
 	if err != nil {
 		return nil, err
 	}
+	outs.InitializeCreds(source, appDetails.Workspace)
+
 	zipPusher := &s3.ZipPusher{
 		OsWriters: osWriters,
 		Infra: s3.Outputs{

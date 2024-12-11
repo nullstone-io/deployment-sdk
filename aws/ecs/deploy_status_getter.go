@@ -16,6 +16,7 @@ func NewDeployStatusGetter(ctx context.Context, osWriters logging.OsWriters, sou
 	if err != nil {
 		return nil, err
 	}
+	outs.InitializeCreds(source, appDetails.Workspace)
 
 	return &DeployStatusGetter{
 		OsWriters: osWriters,
@@ -35,6 +36,8 @@ type DeployStatusGetter struct {
 	startDeployment  sync.Once
 	numDesired       int
 }
+
+func (d *DeployStatusGetter) Close() {}
 
 func (d *DeployStatusGetter) initialize(ctx context.Context, reference string) error {
 	var err error

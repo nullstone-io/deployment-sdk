@@ -43,24 +43,24 @@ func (l LogStreamer) Stream(ctx context.Context, options app.LogStreamOptions) e
 
 	cfg, err := l.NewConfigFn(ctx)
 	if err != nil {
-		return fmt.Errorf("error configuring kubernetes client: %w", err)
+		return l.newInitError("There was an error creating kubernetes client", err)
 	}
 	client, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		return fmt.Errorf("error creating kubernetes client: %w", err)
+		return l.newInitError("There was an error initializing kubernetes client", err)
 	}
 	pods, err := client.CoreV1().Pods(l.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
 	if err != nil {
-		return fmt.Errorf("error looking for app pods: %w", err)
+		return l.newInitError("There was an error looking for application pods", err)
 	}
 	if len(pods.Items) <= 0 {
-		return fmt.Errorf("no pods found for app %q in namespace %q", l.AppName, l.AppNamespace)
+		return l.newInitError("No pods were found for app in namespace", nil)
 	}
 
 	logOptions := NewPodLogOptions(options)
 	requests, err := polymorphichelpers.LogsForObjectFn(RestClientGetter{Config: cfg}, pods, logOptions, getPodTimeout, true)
 	if err != nil {
-		return err
+		return l.newInitError("There was an error initializing application log streamer", err)
 	}
 
 	if logOptions.Follow && len(requests) > 1 {
@@ -106,7 +106,7 @@ func (l LogStreamer) writeRequest(ctx context.Context, emitter app.LogEmitter, r
 	return func() error {
 		readCloser, err := request.Stream(ctx)
 		if err != nil {
-			return err
+			return l.newInitError("An error occurred streaming logs", err)
 		}
 		defer readCloser.Close()
 
@@ -143,4 +143,8 @@ func (l LogStreamer) parseRef(ref corev1.ObjectReference) (string, string) {
 	}
 
 	return ref.Name, containerName
+}
+
+func (l LogStreamer) newInitError(msg string, err error) app.LogInitError {
+	return app.NewLogInitError("k8s", fmt.Sprintf("%s/%s", l.AppNamespace, l.AppName), msg, err)
 }
