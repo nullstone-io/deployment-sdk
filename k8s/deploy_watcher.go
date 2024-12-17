@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"strings"
 	"time"
 )
 
@@ -96,11 +97,12 @@ func (s *DeployWatcher) streamEvents(ctx context.Context) func() {
 				return
 			case ev := <-watcher.ResultChan():
 				if event, ok := ev.Object.(*corev1.Event); ok {
+					obj := fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
 					colorstring.Fprintf(stdout, "%s\n", DeployEvent{
 						Timestamp: event.LastTimestamp.Time,
 						Type:      event.Type,
 						Reason:    event.Reason,
-						Object:    "",
+						Object:    obj,
 						Message:   event.Message,
 					})
 				}
