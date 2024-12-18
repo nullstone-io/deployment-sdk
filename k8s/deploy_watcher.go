@@ -67,11 +67,11 @@ func (s *DeployWatcher) Watch(ctx context.Context, reference string) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	go s.streamEvents(ctx)()
-	if err := s.watchDeployment(ctx, reference); err != nil {
-		return err
-	}
-	return nil
+	flushed := make(chan struct{})
+	go s.streamEvents(ctx, flushed)()
+	err := s.watchDeployment(ctx, reference)
+	<-flushed
+	return err
 }
 
 func (s *DeployWatcher) init(ctx context.Context) error {
@@ -97,13 +97,15 @@ func (s *DeployWatcher) init(ctx context.Context) error {
 	return nil
 }
 
-func (s *DeployWatcher) streamEvents(ctx context.Context) func() {
-	stdout, stderr := s.OsWriters.Stdout(), s.OsWriters.Stderr()
+func (s *DeployWatcher) streamEvents(ctx context.Context, flushed chan struct{}) func() {
+	defer close(flushed)
+	_, stderr := s.OsWriters.Stdout(), s.OsWriters.Stderr()
 	return func() {
 		earliest := time.Now()
 		// Wait for initial fetch of deployment to acquire the start time of the deployment revision
 		select {
 		case <-ctx.Done():
+			s.emitEvents(earliest)
 			return
 		case start := <-s.deployStartCh:
 			if start != nil {
@@ -114,6 +116,7 @@ func (s *DeployWatcher) streamEvents(ctx context.Context) func() {
 		watcher, err := s.client.CoreV1().Events(s.AppNamespace).Watch(ctx, metav1.ListOptions{})
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
+				s.emitEvents(earliest)
 				return
 			}
 			fmt.Fprintf(stderr, "There was an error streaming events for app: %s\n", err)
@@ -124,29 +127,8 @@ func (s *DeployWatcher) streamEvents(ctx context.Context) func() {
 			case <-ctx.Done():
 				return
 			case ev := <-watcher.ResultChan():
-				if event, ok := ev.Object.(*corev1.Event); ok {
-					if event.LastTimestamp.Time.Before(earliest) {
-						// Skip events that occurred before this deployment revision
-						continue
-					}
-					if err := s.tracker.Load(ctx, event.InvolvedObject); err != nil {
-						if errors.Is(err, context.Canceled) {
-							return
-						}
-						fmt.Fprintf(stderr, "There was an error loading object for event: %s\n", err)
-						continue
-					}
-					if !s.tracker.IsTracking(event.InvolvedObject) {
-						continue
-					}
-					obj := fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
-					colorstring.Fprintln(stdout, DeployEvent{
-						Timestamp: event.LastTimestamp.Time,
-						Type:      event.Type,
-						Reason:    event.Reason,
-						Object:    obj,
-						Message:   event.Message,
-					}.String())
+				if event, ok := ev.Object.(*corev1.Event); ok && event != nil {
+					s.emitEvent(ctx, earliest, *event)
 				}
 			}
 		}
@@ -189,6 +171,44 @@ func (s *DeployWatcher) watchDeployment(ctx context.Context, reference string) e
 			}
 		}
 	}
+}
+
+func (s *DeployWatcher) emitEvents(earliest time.Time) error {
+	ctx := context.Background()
+	events, err := s.client.CoreV1().Events(s.AppNamespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("error retrieving events: %w", err)
+	}
+	for _, event := range events.Items {
+		s.emitEvent(ctx, earliest, event)
+	}
+	return nil
+}
+
+func (s *DeployWatcher) emitEvent(ctx context.Context, earliest time.Time, event corev1.Event) {
+	stdout, stderr := s.OsWriters.Stdout(), s.OsWriters.Stderr()
+	if event.LastTimestamp.Time.Before(earliest) {
+		// Skip events that occurred before this deployment revision
+		return
+	}
+	if err := s.tracker.Load(ctx, event.InvolvedObject); err != nil {
+		if errors.Is(err, context.Canceled) {
+			return
+		}
+		fmt.Fprintf(stderr, "There was an error loading object for event: %s\n", err)
+		return
+	}
+	if !s.tracker.IsTracking(event.InvolvedObject) {
+		return
+	}
+	obj := fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
+	colorstring.Fprintln(stdout, DeployEvent{
+		Timestamp: event.LastTimestamp.Time,
+		Type:      event.Type,
+		Reason:    event.Reason,
+		Object:    obj,
+		Message:   event.Message,
+	}.String())
 }
 
 func (s *DeployWatcher) newInitError(msg string, err error) app.LogInitError {
