@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -30,7 +31,6 @@ var (
 // DeployWatcher is responsible for watching a kubernetes deployment
 // It detects completion/cancellation by watching the Deployment object
 // While waiting, all events for the Deployment, Service, and Pods are logged
-// It will log events and streams events and logs
 type DeployWatcher struct {
 	OsWriters    logging.OsWriters
 	Details      app.Details
@@ -39,14 +39,12 @@ type DeployWatcher struct {
 	NewConfigFn  NewConfiger
 	Timeout      time.Duration
 
-	client        *kubernetes.Clientset
-	tracker       *AppObjectsTracker
-	deployStartCh chan *time.Time
+	client  *kubernetes.Clientset
+	tracker *AppObjectsTracker
 }
 
-func (s *DeployWatcher) Watch(ctx context.Context, reference string) error {
-	stdout := s.OsWriters.Stdout()
-
+func (w *DeployWatcher) Watch(ctx context.Context, reference string) error {
+	stdout := w.OsWriters.Stdout()
 	if reference == "" {
 		fmt.Fprintln(stdout, "This deployment does not have to wait for any resource to become healthy.")
 		return nil
@@ -55,169 +53,170 @@ func (s *DeployWatcher) Watch(ctx context.Context, reference string) error {
 		fmt.Fprintln(stdout, "This deployment did not cause any changes to the app. Skipping check for healthy.")
 		return nil
 	}
-	if err := s.init(ctx); err != nil {
+	if err := w.init(ctx); err != nil {
 		return err
 	}
-	defer close(s.deployStartCh)
 
-	timeout := watchDefaultTimeout
-	if s.Timeout != 0 {
-		timeout = s.Timeout
-	}
-	ctx, cancel := context.WithTimeout(ctx, timeout)
+	started := make(chan *time.Time)
+	ended := make(chan struct{})
 	flushed := make(chan struct{})
-
-	go s.streamEvents(ctx, flushed)()
-	err := s.watchDeployment(ctx, reference)
-	cancel()
+	go w.streamEvents(ctx, reference, started, ended, flushed)
+	err := w.monitorDeployment(ctx, reference, started, ended)
 	<-flushed
-
 	return err
 }
 
-func (s *DeployWatcher) init(ctx context.Context) error {
-	cfg, err := s.NewConfigFn(ctx)
+func (w *DeployWatcher) init(ctx context.Context) error {
+	cfg, err := w.NewConfigFn(ctx)
 	if err != nil {
-		return s.newInitError("There was an error creating kubernetes client", err)
+		return w.newInitError("There was an error creating kubernetes client", err)
 	}
 	client, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		return s.newInitError("There was an error initializing kubernetes client", err)
+		return w.newInitError("There was an error initializing kubernetes client", err)
 	}
-	s.client = client
+	w.client = client
 	dyn, err := dynamic.NewForConfig(cfg)
 	if err != nil {
-		return s.newInitError("There was an error initializing kubernetes dynamic client", err)
+		return w.newInitError("There was an error initializing kubernetes dynamic client", err)
 	}
 	discovery, err := discovery.NewDiscoveryClientForConfig(cfg)
 	if err != nil {
-		return s.newInitError("There was an error initializing kubernetes discovery client", err)
+		return w.newInitError("There was an error initializing kubernetes discovery client", err)
 	}
-	s.tracker = NewObjectTracker(s.AppName, dyn, discovery)
-	s.deployStartCh = make(chan *time.Time)
+	w.tracker = NewObjectTracker(w.AppName, dyn, discovery)
 	return nil
 }
 
-func (s *DeployWatcher) streamEvents(ctx context.Context, flushed chan struct{}) func() {
-	_, stderr := s.OsWriters.Stdout(), s.OsWriters.Stderr()
-	return func() {
-		defer close(flushed)
-		earliest := time.Now()
-		// Wait for initial fetch of deployment to acquire the start time of the deployment revision
-		select {
-		case <-ctx.Done():
-			s.emitEvents(earliest)
-			return
-		case start := <-s.deployStartCh:
-			if start != nil {
-				earliest = *start
-			}
-		}
-
-		watcher, err := s.client.CoreV1().Events(s.AppNamespace).Watch(ctx, metav1.ListOptions{})
-		if err != nil {
-			if errors.Is(err, context.Canceled) {
-				s.emitEvents(earliest)
-				return
-			}
-			fmt.Fprintf(stderr, "There was an error streaming events for app: %s\n", err)
-			return
-		}
-		defer watcher.Stop()
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case ev := <-watcher.ResultChan():
-				if event, ok := ev.Object.(*corev1.Event); ok && event != nil {
-					s.emitEvent(ctx, earliest, *event)
-				}
-			}
-		}
-	}
+func (w *DeployWatcher) newInitError(msg string, err error) app.LogInitError {
+	return app.NewLogInitError("k8s", fmt.Sprintf("%s/%s", w.AppNamespace, w.AppName), msg, err)
 }
 
-func (s *DeployWatcher) watchDeployment(ctx context.Context, reference string) error {
-	appLabel := fmt.Sprintf("nullstone.io/app=%s", s.AppName)
-	watcher, err := s.client.AppsV1().Deployments(s.AppNamespace).Watch(ctx, metav1.ListOptions{LabelSelector: appLabel})
-	if err != nil {
-		return fmt.Errorf("error watching deployment: %w", err)
+// monitorDeployment polls Kubernetes for updates on the deployment
+// This will run until the deployment completes, fails, or times out
+func (w *DeployWatcher) monitorDeployment(ctx context.Context, reference string, started chan *time.Time, ended chan struct{}) error {
+	defer close(ended)
+	defer close(started)
+	timeout := watchDefaultTimeout
+	if w.Timeout != 0 {
+		timeout = w.Timeout
 	}
-	defer watcher.Stop()
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
 
-	stdout := s.OsWriters.Stdout()
+	stdout := w.OsWriters.Stdout()
+	init := sync.Once{}
+
 	for {
+		deployment, status, err := w.getDeployment(ctx, reference)
+		switch status {
+		case app.RolloutStatusComplete:
+			return nil
+		case app.RolloutStatusFailed:
+			return err
+		case app.RolloutStatusPending:
+		case app.RolloutStatusInProgress:
+			init.Do(func() {
+				start := FindDeploymentReplicaSet(context.Background(), w.client, w.AppNamespace, deployment, reference)
+				if start != nil {
+					obj := fmt.Sprintf("deployment/%s", w.AppName)
+					colorstring.Fprintln(stdout, DeployEvent{
+						Timestamp: *start,
+						Type:      EventTypeNormal,
+						Reason:    "Created",
+						Object:    obj,
+						Message:   fmt.Sprintf("Created deployment revision %s", reference),
+					}.String())
+				}
+				started <- start
+			})
+		}
+
+		// Pause 3s between polling
+		delay := 3 * time.Second
 		select {
+		case <-time.After(delay):
 		case <-ctx.Done():
 			if err := ctx.Err(); err != nil {
-				if errors.Is(err, context.DeadlineExceeded) {
+				if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 					return app.ErrTimeout
 				}
 				return &app.CancelError{Reason: err.Error()}
 			}
 			return &app.CancelError{}
+		}
+	}
+}
+
+// streamEvents runs indefinitely and streams Kubernetes events associated with the app deployment
+// This won't start streaming events until a deployment has started (expects message from `started` channel)
+// If deployment never starts, this will flush events before completing
+// Once started, events will be filtered appropriately and stream until `ended` channel is closed
+func (w *DeployWatcher) streamEvents(ctx context.Context, reference string, started chan *time.Time, ended chan struct{}, flushed chan struct{}) {
+	defer close(flushed)
+	_, stderr := w.OsWriters.Stdout(), w.OsWriters.Stderr()
+	earliest := time.Now()
+
+	// Wait for initial fetch of deployment to acquire the start time of the deployment revision
+	// If the deployment completes/cancels/fails, we're going to flush all events and quit
+	// Otherwise, capture the revision creation time so that we can filter out previous events
+	if start, ok := <-started; !ok {
+		w.emitAllEvents(earliest)
+		return
+	} else if start != nil {
+		earliest = *start
+	}
+
+	// Start watcher on all events in the namespace (there's no way to filter on just the events we want)
+	watcher, err := w.client.CoreV1().Events(w.AppNamespace).Watch(ctx, metav1.ListOptions{})
+	if err != nil {
+		fmt.Fprintf(stderr, "There was an error watching events for app: %s\n", err)
+		return
+	}
+	defer watcher.Stop()
+
+	// Read events from watcher and translate those events into log messages on user stdout
+	// If the deployment completes/cancels/fails
+	for {
+		select {
+		case <-ended:
 		case ev := <-watcher.ResultChan():
-			deployment, ok := ev.Object.(*appsv1.Deployment)
-			if ok {
-				ready, status := VerifyRevision(deployment, reference, stdout)
-				if status == app.RolloutStatusFailed {
-					return app.ErrFailed
-				} else if ready {
-					status, err := MapRolloutStatus(*deployment)
-					if err != nil {
-						return err
-					} else if status == app.RolloutStatusComplete {
-						return nil
-					}
-					start := FindDeploymentReplicaSet(ctx, s.client, s.AppNamespace, deployment, reference)
-					if start != nil {
-						obj := fmt.Sprintf("deployment/%s", s.AppName)
-						colorstring.Fprintln(stdout, DeployEvent{
-							Timestamp: *start,
-							Type:      EventTypeNormal,
-							Reason:    "Created",
-							Object:    obj,
-							Message:   fmt.Sprintf("Created deployment revision %s", reference),
-						}.String())
-					}
-					s.deployStartCh <- start
-				}
+			if event, ok := ev.Object.(*corev1.Event); ok && event != nil {
+				w.emitEvent(ctx, earliest, *event)
 			}
 		}
 	}
 }
 
-func (s *DeployWatcher) emitEvents(earliest time.Time) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-	events, err := s.client.CoreV1().Events(s.AppNamespace).List(ctx, metav1.ListOptions{})
+func (w *DeployWatcher) emitAllEvents(earliest time.Time) {
+	ctx := context.Background()
+	stderr := w.OsWriters.Stderr()
+	timeoutSec := int64(2)
+	opts := metav1.ListOptions{TimeoutSeconds: &timeoutSec}
+	events, err := w.client.CoreV1().Events(w.AppNamespace).List(ctx, opts)
 	if err != nil {
-		if errors.Is(err, context.Canceled) {
-			return nil
-		}
-		return fmt.Errorf("error retrieving events: %w", err)
+		fmt.Fprintf(stderr, "There was an error retrieving events for app: %s\n", err)
+		return
 	}
 	for _, event := range events.Items {
-		s.emitEvent(ctx, earliest, event)
+		w.emitEvent(ctx, earliest, event)
 	}
-	return nil
 }
 
-func (s *DeployWatcher) emitEvent(ctx context.Context, earliest time.Time, event corev1.Event) {
-	stdout, stderr := s.OsWriters.Stdout(), s.OsWriters.Stderr()
+func (w *DeployWatcher) emitEvent(ctx context.Context, earliest time.Time, event corev1.Event) {
+	stdout, stderr := w.OsWriters.Stdout(), w.OsWriters.Stderr()
 	if event.LastTimestamp.Time.Before(earliest) {
 		// Skip events that occurred before this deployment revision
 		return
 	}
-	if err := s.tracker.Load(ctx, event.InvolvedObject); err != nil {
+	if err := w.tracker.Load(ctx, event.InvolvedObject); err != nil {
 		if errors.Is(err, context.Canceled) {
 			return
 		}
 		fmt.Fprintf(stderr, "There was an error loading object for event: %s\n", err)
 		return
 	}
-	if !s.tracker.IsTracking(event.InvolvedObject) {
+	if !w.tracker.IsTracking(event.InvolvedObject) {
 		return
 	}
 	obj := fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
@@ -230,6 +229,23 @@ func (s *DeployWatcher) emitEvent(ctx context.Context, earliest time.Time, event
 	}.String())
 }
 
-func (s *DeployWatcher) newInitError(msg string, err error) app.LogInitError {
-	return app.NewLogInitError("k8s", fmt.Sprintf("%s/%s", s.AppNamespace, s.AppName), msg, err)
+func (w *DeployWatcher) getDeployment(ctx context.Context, reference string) (*appsv1.Deployment, app.RolloutStatus, error) {
+	deployment, err := w.client.AppsV1().Deployments(w.AppNamespace).Get(ctx, w.AppName, metav1.GetOptions{})
+	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return nil, app.RolloutStatusFailed, app.ErrTimeout
+		}
+		return nil, app.RolloutStatusFailed, fmt.Errorf("error retrieving deployment: %w", err)
+	}
+
+	stdout := w.OsWriters.Stdout()
+	switch VerifyRevision(deployment, reference, stdout) {
+	case app.RolloutStatusFailed:
+		return deployment, app.RolloutStatusFailed, app.ErrFailed
+	case app.RolloutStatusPending:
+		return deployment, app.RolloutStatusPending, nil
+	}
+
+	status, err := MapRolloutStatus(*deployment)
+	return deployment, status, err
 }
