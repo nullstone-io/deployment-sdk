@@ -66,10 +66,12 @@ func (s *DeployWatcher) Watch(ctx context.Context, reference string) error {
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	flushed := make(chan struct{})
+
 	go s.streamEvents(ctx, flushed)()
 	err := s.watchDeployment(ctx, reference)
 	cancel()
 	<-flushed
+
 	return err
 }
 
@@ -97,9 +99,9 @@ func (s *DeployWatcher) init(ctx context.Context) error {
 }
 
 func (s *DeployWatcher) streamEvents(ctx context.Context, flushed chan struct{}) func() {
-	defer close(flushed)
 	_, stderr := s.OsWriters.Stdout(), s.OsWriters.Stderr()
 	return func() {
+		defer close(flushed)
 		earliest := time.Now()
 		// Wait for initial fetch of deployment to acquire the start time of the deployment revision
 		select {
