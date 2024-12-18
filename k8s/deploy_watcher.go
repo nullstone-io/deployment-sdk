@@ -97,6 +97,7 @@ func (w *DeployWatcher) newInitError(msg string, err error) app.LogInitError {
 func (w *DeployWatcher) monitorDeployment(ctx context.Context, reference string, started chan *time.Time, ended chan struct{}) error {
 	defer close(ended)
 	defer close(started)
+
 	timeout := watchDefaultTimeout
 	if w.Timeout != 0 {
 		timeout = w.Timeout
@@ -117,7 +118,7 @@ func (w *DeployWatcher) monitorDeployment(ctx context.Context, reference string,
 		case app.RolloutStatusPending:
 		case app.RolloutStatusInProgress:
 			init.Do(func() {
-				start := FindDeploymentReplicaSet(context.Background(), w.client, w.AppNamespace, deployment, reference)
+				start := FindDeploymentStartTime(ctx, w.client, w.AppNamespace, deployment, reference)
 				if start != nil {
 					obj := fmt.Sprintf("deployment/%s", w.AppName)
 					colorstring.Fprintln(stdout, DeployEvent{

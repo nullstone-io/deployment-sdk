@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func FindDeploymentReplicaSet(ctx context.Context, client *kubernetes.Clientset, namespace string, deployment *appsv1.Deployment, revision string) *time.Time {
+func FindDeploymentStartTime(ctx context.Context, client *kubernetes.Clientset, namespace string, deployment *appsv1.Deployment, revision string) *time.Time {
 	replicaSets, err := client.AppsV1().ReplicaSets(namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: metav1.FormatLabelSelector(deployment.Spec.Selector),
 	})
