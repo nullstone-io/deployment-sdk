@@ -113,6 +113,9 @@ func (s *DeployWatcher) streamEvents(ctx context.Context) func() {
 
 		watcher, err := s.client.CoreV1().Events(s.AppNamespace).Watch(ctx, metav1.ListOptions{})
 		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return
+			}
 			fmt.Fprintf(stderr, "There was an error streaming events for app: %s\n", err)
 			return
 		}
@@ -127,6 +130,9 @@ func (s *DeployWatcher) streamEvents(ctx context.Context) func() {
 						continue
 					}
 					if err := s.tracker.Load(ctx, event.InvolvedObject); err != nil {
+						if errors.Is(err, context.Canceled) {
+							return
+						}
 						fmt.Fprintf(stderr, "There was an error loading object for event: %s\n", err)
 						continue
 					}
