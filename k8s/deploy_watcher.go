@@ -110,13 +110,7 @@ func (w *DeployWatcher) monitorDeployment(ctx context.Context, reference string,
 
 	for {
 		deployment, status, err := w.getDeployment(ctx, reference)
-		switch status {
-		case app.RolloutStatusComplete:
-			return nil
-		case app.RolloutStatusFailed:
-			return err
-		case app.RolloutStatusPending:
-		case app.RolloutStatusInProgress:
+		if deployment != nil {
 			init.Do(func() {
 				start := FindDeploymentStartTime(ctx, w.client, w.AppNamespace, deployment, reference)
 				if start != nil {
@@ -131,6 +125,14 @@ func (w *DeployWatcher) monitorDeployment(ctx context.Context, reference string,
 				}
 				started <- start
 			})
+		}
+		switch status {
+		case app.RolloutStatusComplete:
+			return nil
+		case app.RolloutStatusFailed:
+			return err
+		case app.RolloutStatusPending:
+		case app.RolloutStatusInProgress:
 		}
 
 		// Pause 3s between polling
@@ -161,11 +163,13 @@ func (w *DeployWatcher) streamEvents(ctx context.Context, reference string, star
 	// Wait for initial fetch of deployment to acquire the start time of the deployment revision
 	// If the deployment completes/cancels/fails, we're going to flush all events and quit
 	// Otherwise, capture the revision creation time so that we can filter out previous events
-	if start, ok := <-started; !ok {
-		w.emitAllEvents(earliest)
-		return
-	} else if start != nil {
+	start, ok := <-started
+	if start != nil {
 		earliest = *start
+	}
+	w.emitAllEvents(earliest)
+	if !ok {
+		return
 	}
 
 	// Start watcher on all events in the namespace (there's no way to filter on just the events we want)
@@ -181,6 +185,7 @@ func (w *DeployWatcher) streamEvents(ctx context.Context, reference string, star
 	for {
 		select {
 		case <-ended:
+			return
 		case ev := <-watcher.ResultChan():
 			if event, ok := ev.Object.(*corev1.Event); ok && event != nil {
 				w.emitEvent(ctx, earliest, *event)
