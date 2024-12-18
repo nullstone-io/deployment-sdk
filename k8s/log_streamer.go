@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubectl/pkg/polymorphichelpers"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -116,6 +117,7 @@ func (l LogStreamer) writeRequest(ctx context.Context, emitter app.LogEmitter, r
 		for {
 			str, readErr := r.ReadString('\n')
 			if str != "" {
+				str = strings.TrimSuffix(str, "\n")
 				emitter(LogMessageFromLine(l.AppNamespace, l.AppName, podName, containerName, str))
 			}
 			if readErr != nil {

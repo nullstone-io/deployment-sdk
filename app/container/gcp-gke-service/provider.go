@@ -19,7 +19,7 @@ var Provider = app.Provider{
 	CanDeployImmediate: false,
 	NewPusher:          gar.NewPusher,
 	NewDeployer:        gke.NewDeployer,
-	NewDeployWatcher:   app.NewPollingDeployWatcher(gke.NewDeployStatusGetter),
+	NewDeployWatcher:   gke.NewDeployWatcher,
 	NewStatuser:        nil,
 	NewLogStreamer:     gke.NewLogStreamer,
 }

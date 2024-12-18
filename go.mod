@@ -37,7 +37,7 @@ require (
 	golang.org/x/oauth2 v0.23.0
 	golang.org/x/sync v0.8.0
 	google.golang.org/api v0.203.0
-	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20241126225657-182d3304f2df
+	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20241213224916-66a525701805
 	k8s.io/api v0.27.2
 	k8s.io/apimachinery v0.27.2
 	k8s.io/client-go v0.27.2
