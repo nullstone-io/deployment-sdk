@@ -19,7 +19,7 @@ var Provider = app.Provider{
 	CanDeployImmediate: false,
 	NewPusher:          ecr.NewPusher,
 	NewDeployer:        eks.NewDeployer,
-	NewDeployWatcher:   app.NewPollingDeployWatcher(eks.NewDeployStatusGetter),
+	NewDeployWatcher:   eks.NewDeployWatcher,
 	NewStatuser:        nil,
 	NewLogStreamer:     eks.NewLogStreamer,
 }
