@@ -1,6 +1,6 @@
 module github.com/nullstone-io/deployment-sdk
 
-go 1.22.0
+go 1.22.7
 
 toolchain go1.22.9
 
@@ -8,7 +8,8 @@ require (
 	cloud.google.com/go/compute v1.28.1
 	cloud.google.com/go/logging v1.11.0
 	cloud.google.com/go/storage v1.47.0
-	github.com/aws/aws-sdk-go-v2 v1.26.0
+	github.com/aws/aws-sdk-go v1.54.6
+	github.com/aws/aws-sdk-go-v2 v1.30.4
 	github.com/aws/aws-sdk-go-v2/credentials v1.16.16
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.15.13
 	github.com/aws/aws-sdk-go-v2/service/batch v1.35.1
@@ -21,7 +22,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.26.7
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.49.7
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.48.0
-	github.com/aws/smithy-go v1.20.1
+	github.com/aws/smithy-go v1.20.4
 	github.com/docker/cli v20.10.9+incompatible
 	github.com/docker/docker v20.10.17+incompatible
 	github.com/fatih/color v1.13.0
@@ -42,6 +43,7 @@ require (
 	k8s.io/apimachinery v0.27.2
 	k8s.io/client-go v0.27.2
 	k8s.io/kubectl v0.27.1
+	sigs.k8s.io/aws-iam-authenticator v0.6.16
 )
 
 require (
@@ -97,6 +99,7 @@ require (
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/go-openapi/jsonreference v0.20.1 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
+	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
