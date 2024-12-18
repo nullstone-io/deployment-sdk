@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	v1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/discovery"
@@ -48,6 +49,9 @@ func (t *AppObjectsTracker) Load(ctx context.Context, object v1.ObjectReference)
 	}
 	resource, err := t.client.Resource(gvr).Namespace(object.Namespace).Get(ctx, object.Name, metav1.GetOptions{})
 	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
 		return fmt.Errorf("error retrieving information about event object: %w", err)
 	}
 	labels := resource.GetLabels()
