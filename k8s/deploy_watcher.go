@@ -65,11 +65,10 @@ func (s *DeployWatcher) Watch(ctx context.Context, reference string) error {
 		timeout = s.Timeout
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
 	flushed := make(chan struct{})
 	go s.streamEvents(ctx, flushed)()
 	err := s.watchDeployment(ctx, reference)
+	cancel()
 	<-flushed
 	return err
 }
@@ -166,7 +165,18 @@ func (s *DeployWatcher) watchDeployment(ctx context.Context, reference string) e
 					} else if status == app.RolloutStatusComplete {
 						return nil
 					}
-					s.deployStartCh <- FindDeploymentReplicaSet(ctx, s.client, s.AppNamespace, deployment, reference)
+					start := FindDeploymentReplicaSet(ctx, s.client, s.AppNamespace, deployment, reference)
+					if start != nil {
+						obj := fmt.Sprintf("deployment/%s", s.AppName)
+						colorstring.Fprintln(stdout, DeployEvent{
+							Timestamp: *start,
+							Type:      EventTypeNormal,
+							Reason:    "Created",
+							Object:    obj,
+							Message:   fmt.Sprintf("Created deployment revision %s", reference),
+						}.String())
+					}
+					s.deployStartCh <- start
 				}
 			}
 		}
@@ -174,9 +184,13 @@ func (s *DeployWatcher) watchDeployment(ctx context.Context, reference string) e
 }
 
 func (s *DeployWatcher) emitEvents(earliest time.Time) error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
 	events, err := s.client.CoreV1().Events(s.AppNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return nil
+		}
 		return fmt.Errorf("error retrieving events: %w", err)
 	}
 	for _, event := range events.Items {
