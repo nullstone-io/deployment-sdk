@@ -123,6 +123,8 @@ func (s *DeployWatcher) streamEvents(ctx context.Context, flushed chan struct{})
 			fmt.Fprintf(stderr, "There was an error streaming events for app: %s\n", err)
 			return
 		}
+		defer watcher.Stop()
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -142,6 +144,7 @@ func (s *DeployWatcher) watchDeployment(ctx context.Context, reference string) e
 	if err != nil {
 		return fmt.Errorf("error watching deployment: %w", err)
 	}
+	defer watcher.Stop()
 
 	stdout := s.OsWriters.Stdout()
 	for {
