@@ -1,11 +1,10 @@
 package cloudmonitoring
 
 import (
-	"github.com/nullstone-io/deployment-sdk/aws/cloudwatch/metrics"
 	"github.com/nullstone-io/deployment-sdk/workspace"
 )
 
-type MappingGroups []metrics.MappingGroup
+type MappingGroups []MappingGroup
 
 type MappingGroup struct {
 	Name     string                      `json:"name"`

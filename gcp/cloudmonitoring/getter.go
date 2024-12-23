@@ -2,16 +2,14 @@ package cloudmonitoring
 
 import (
 	monitoring "cloud.google.com/go/monitoring/apiv3/v2"
-	"cloud.google.com/go/monitoring/apiv3/v2/monitoringpb"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"github.com/nullstone-io/deployment-sdk/workspace"
 	"google.golang.org/api/option"
-	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
-	"time"
+	"sync"
 )
 
 var (
@@ -52,69 +50,28 @@ func (g Getter) GetMetrics(ctx context.Context, options workspace.MetricsGetterO
 	}
 	defer client.Close()
 
-	//TODO implement me
-	panic("implement me")
-}
-
-func (g Getter) fetchGroupData() workspace.MetricDataset {
-	monitoringpb.ListTimeSeriesRequest{}
-}
-
-func (g Getter) fetchSeries(ctx context.Context, client *monitoring.MetricClient, id string, mapping MetricMapping, options workspace.MetricsGetterOptions) (*workspace.MetricSeries, error) {
-	req := &monitoringpb.ListTimeSeriesRequest{
-		Name: fmt.Sprintf("projects/%s", mapping.ProjectId),
-		Interval: &monitoringpb.TimeInterval{
-			EndTime:   timestampPtr(options.EndTime),
-			StartTime: timestampPtr(options.StartTime),
-		},
-		Filter: mapping.ResourceFilter,
-		Aggregation: &monitoringpb.Aggregation{
-			AlignmentPeriod: durationpb.New(CalcPeriod(options.StartTime, options.EndTime)),
-		},
-		View: monitoringpb.ListTimeSeriesRequest_FULL,
-	}
-	switch mapping.Aggregation {
-	case "sum":
-		req.Aggregation.PerSeriesAligner = monitoringpb.Aggregation_ALIGN_SUM
-	case "average":
-		req.Aggregation.PerSeriesAligner = monitoringpb.Aggregation_ALIGN_MEAN
-	case "max":
-		req.Aggregation.PerSeriesAligner = monitoringpb.Aggregation_ALIGN_MAX
-	case "min":
-		req.Aggregation.PerSeriesAligner = monitoringpb.Aggregation_ALIGN_MIN
-	}
-
-	curSeries := workspace.NewMetricSeries(id)
-	//curSeries := result.GetDataset(metricGroup.Name, metricGroup.Type, metricGroup.Unit).GetSeries(id, metricId)
-	for resp, err := range client.ListTimeSeries(ctx, req).All() {
-		if err != nil {
-			return nil, fmt.Errorf("error retrieving metrics data: %w", err)
-		}
-		for _, p := range resp.Points {
-			endTime := time.Now()
-			if p.Interval.EndTime != nil {
-				endTime = p.Interval.EndTime.AsTime()
-			}
-			curSeries.AddPoint(endTime, mapPointValue(p.Value))
+	result := workspace.NewMetricsData()
+	wg := &sync.WaitGroup{}
+	fetchers := make([]*TimeSeriesFetcher, 0)
+	for i, grp := range g.Infra.MetricsMappings {
+		ds := result.GetDataset(grp.Name, grp.Type, grp.Unit)
+		for id, mapping := range grp.Mappings {
+			wg.Add(1)
+			curSeries := ds.GetSeries(id, fmt.Sprintf("group_%d_%s", i, id))
+			fetcher := TimeSeriesFetcherFromMapping(mapping, options, curSeries)
+			fetchers = append(fetchers, fetcher)
+			go fetcher.Fetch(ctx, wg, client)
 		}
 	}
-	return curSeries, nil
-}
-
-func timestampPtr(t *time.Time) *timestamppb.Timestamp {
-	if t == nil {
-		return nil
+	wg.Wait()
+	errs := make([]error, 0)
+	for _, fetcher := range fetchers {
+		if fetcher.Error != nil {
+			errs = append(errs, fetcher.Error)
+		}
 	}
-	return timestamppb.New(*t)
-}
-
-func mapPointValue(typedValue *monitoringpb.TypedValue) float64 {
-	switch val := typedValue.Value.(type) {
-	case *monitoringpb.TypedValue_DoubleValue:
-		return val.DoubleValue
-	case *monitoringpb.TypedValue_Int64Value:
-		return float64(val.Int64Value)
-	default:
-		return 0
+	if len(errs) > 0 {
+		return result, errors.Join(errs...)
 	}
+	return result, nil
 }
