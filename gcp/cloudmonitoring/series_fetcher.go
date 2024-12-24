@@ -19,12 +19,13 @@ func TimeSeriesFetcherFromMapping(mapping MetricMapping, options workspace.Metri
 			EndTime:   timestampPtr(options.EndTime),
 			StartTime: timestampPtr(options.StartTime),
 		},
-		Filter: mapping.ResourceFilter,
 		Aggregation: &monitoringpb.Aggregation{
 			AlignmentPeriod: durationpb.New(CalcPeriod(options.StartTime, options.EndTime)),
 		},
 		View: monitoringpb.ListTimeSeriesRequest_FULL,
 	}
+	req.Filter = fmt.Sprintf("(metric.type = %q) AND (%s)", mapping.MetricName, mapping.ResourceFilter)
+
 	switch mapping.Aggregation {
 	case "sum":
 		req.Aggregation.PerSeriesAligner = monitoringpb.Aggregation_ALIGN_SUM

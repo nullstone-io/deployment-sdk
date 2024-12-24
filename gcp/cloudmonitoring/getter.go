@@ -1,5 +1,8 @@
 package cloudmonitoring
 
+// Resources:
+// - https://cloud.google.com/monitoring/api/metrics_kubernetes
+
 import (
 	monitoring "cloud.google.com/go/monitoring/apiv3/v2"
 	"context"
