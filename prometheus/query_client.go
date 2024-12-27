@@ -8,9 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"path"
 	"strconv"
@@ -47,8 +45,6 @@ func (c *QueryClient) Query(ctx context.Context, query string, options QueryOpti
 	if err != nil {
 		return nil, fmt.Errorf("error creating prometheus query request: %w", err)
 	}
-	raw, err := httputil.DumpRequestOut(req, true)
-	log.Println(string(raw))
 	res, err := c.HttpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error making prometheus query request: %w", err)
