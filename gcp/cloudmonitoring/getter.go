@@ -47,7 +47,7 @@ func (g Getter) GetMetrics(ctx context.Context, options workspace.MetricsGetterO
 	if err != nil {
 		return nil, fmt.Errorf("error creating token source from service account: %w", err)
 	}
-	client, err := monitoring.NewMetricClient(ctx, option.WithTokenSource(tokenSource))
+	client, err := monitoring.NewQueryClient(ctx, option.WithTokenSource(tokenSource))
 	if err != nil {
 		return nil, fmt.Errorf("error initializing metrics client: %w", err)
 	}
