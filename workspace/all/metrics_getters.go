@@ -2,6 +2,7 @@ package all
 
 import (
 	cwMetrics "github.com/nullstone-io/deployment-sdk/aws/cloudwatch/metrics"
+	"github.com/nullstone-io/deployment-sdk/gcp/cloudmonitoring"
 	"github.com/nullstone-io/deployment-sdk/workspace"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
 )
@@ -12,17 +13,15 @@ var (
 		Provider: "aws",
 		Platform: "*",
 	}
-	GcpGke = types.ModuleContractName{
-		Category:    string(types.CategoryApp),
-		Subcategory: string(types.SubcategoryAppContainer),
-		Provider:    "gcp",
-		Platform:    "k8s",
-		Subplatform: "gke",
+	Gcp = types.ModuleContractName{
+		Category: "*",
+		Provider: "gcp",
+		Platform: "*",
 	}
 	// MetricsGetters is a factory for creating a new MetricsGetter from a workspace
 	// If the factory method returns an error, it is wrapped with MetricsNotSupportedError
 	MetricsGetters = workspace.MetricsGetters{
-		Aws:    cwMetrics.NewGetter,
-		GcpGke: nil,
+		Aws: cwMetrics.NewGetter,
+		Gcp: cloudmonitoring.NewGetter,
 	}
 )
