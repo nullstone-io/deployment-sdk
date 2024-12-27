@@ -1,12 +1,9 @@
 package cloudmonitoring
 
 import (
-	monitoring "cloud.google.com/go/monitoring/apiv3/v2"
-	"cloud.google.com/go/monitoring/apiv3/v2/monitoringpb"
 	"context"
-	"fmt"
+	"github.com/nullstone-io/deployment-sdk/prometheus"
 	"github.com/nullstone-io/deployment-sdk/workspace"
-	"log"
 	"sync"
 	"time"
 )
@@ -15,58 +12,47 @@ import (
 // This fetcher utilizes the QueryClient to fetch metrics using MQL
 func TimeSeriesFetcherFromMapping(mapping MetricMapping, options workspace.MetricsGetterOptions, series *workspace.MetricSeries) *TimeSeriesFetcher {
 	interval := CalcPeriod(options.StartTime, options.EndTime)
-	end := time.Now()
-	if options.EndTime != nil {
-		end = *options.EndTime
+	steps := int(interval / time.Second)
+	qo := prometheus.QueryOptions{
+		Start: options.StartTime,
+		End:   options.EndTime,
+		Step:  steps,
 	}
-	start := end.Add(-time.Hour)
-	if options.StartTime != nil {
-		start = *options.StartTime
+	if qo.Start == nil {
+		start := time.Now().Add(-time.Hour)
+		qo.Start = &start
 	}
-	req := &monitoringpb.QueryTimeSeriesRequest{
-		Name:  fmt.Sprintf("projects/%s", mapping.ProjectId),
-		Query: mapping.ConstructMQL(interval, start, end),
-	}
-	log.Println(req.Query)
+
 	return &TimeSeriesFetcher{
-		Request: req,
+		Query:   mapping.Query,
+		Options: qo,
 		Series:  series,
 	}
 }
 
 type TimeSeriesFetcher struct {
-	Request *monitoringpb.QueryTimeSeriesRequest
+	Query   string
+	Options prometheus.QueryOptions
 	Series  *workspace.MetricSeries
 	Error   error
 }
 
-func (f *TimeSeriesFetcher) Fetch(ctx context.Context, wg *sync.WaitGroup, client *monitoring.QueryClient) {
+func (f *TimeSeriesFetcher) Fetch(ctx context.Context, wg *sync.WaitGroup, client *prometheus.QueryClient) {
 	defer wg.Done()
 
-	for resp, err := range client.QueryTimeSeries(ctx, f.Request).All() {
-		if err != nil {
-			f.Error = fmt.Errorf("error fetching metrics: %w", err)
-			return
-		}
-		for _, p := range resp.PointData {
-			endTime := time.Now()
-			if p.TimeInterval.EndTime != nil {
-				endTime = p.TimeInterval.EndTime.AsTime()
-			}
-			for _, tv := range p.Values {
-				f.Series.AddPoint(endTime, mapPointValue(tv))
-			}
-		}
+	res, err := client.Query(ctx, f.Query, f.Options)
+	if err != nil {
+		f.Error = err
+		return
 	}
-}
-
-func mapPointValue(typedValue *monitoringpb.TypedValue) float64 {
-	switch val := typedValue.Value.(type) {
-	case *monitoringpb.TypedValue_DoubleValue:
-		return val.DoubleValue
-	case *monitoringpb.TypedValue_Int64Value:
-		return float64(val.Int64Value)
-	default:
-		return 0
+	for _, set := range res.Data.Result {
+		for i, _ := range set.Values {
+			tp, err := set.GetTimePoint(i)
+			if err != nil {
+				f.Error = err
+				return
+			}
+			f.Series.AddPoint(tp.Timestamp, tp.Value)
+		}
 	}
 }

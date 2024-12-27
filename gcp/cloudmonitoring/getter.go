@@ -4,14 +4,12 @@ package cloudmonitoring
 // - https://cloud.google.com/monitoring/api/metrics_kubernetes
 
 import (
-	monitoring "cloud.google.com/go/monitoring/apiv3/v2"
 	"context"
 	"errors"
 	"fmt"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"github.com/nullstone-io/deployment-sdk/workspace"
-	"google.golang.org/api/option"
 	"sync"
 )
 
@@ -47,11 +45,7 @@ func (g Getter) GetMetrics(ctx context.Context, options workspace.MetricsGetterO
 	if err != nil {
 		return nil, fmt.Errorf("error creating token source from service account: %w", err)
 	}
-	client, err := monitoring.NewQueryClient(ctx, option.WithTokenSource(tokenSource))
-	if err != nil {
-		return nil, fmt.Errorf("error initializing metrics client: %w", err)
-	}
-	defer client.Close()
+	client := NewPrometheusClient(ctx, g.Infra.ProjectId, tokenSource)
 
 	result := workspace.NewMetricsData()
 	wg := &sync.WaitGroup{}
