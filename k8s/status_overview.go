@@ -7,10 +7,10 @@ import (
 )
 
 type AppStatusOverview struct {
-	Revisions []AppStatusOverviewRevision `json:"revisions"`
+	ReplicaSets []AppStatusOverviewReplicaSet `json:"replicaSets"`
 }
 
-type AppStatusOverviewRevision struct {
+type AppStatusOverviewReplicaSet struct {
 	Name              string    `json:"name"`
 	Revision          string    `json:"revision"`
 	Generation        int64     `json:"generation"`
@@ -21,13 +21,13 @@ type AppStatusOverviewRevision struct {
 	Replicas          int       `json:"replicas"`
 }
 
-func RevisionFromReplicaSet(rs appsv1.ReplicaSet) AppStatusOverviewRevision {
+func AppStatusOverviewReplicaSetFromK8s(rs appsv1.ReplicaSet) AppStatusOverviewReplicaSet {
 	desired := 0
 	if val, err := strconv.Atoi(rs.Annotations["deployment.kubernetes.io/desired-replicas"]); err == nil {
 		desired = val
 	}
 
-	return AppStatusOverviewRevision{
+	return AppStatusOverviewReplicaSet{
 		Name:              rs.Name,
 		Revision:          rs.Annotations["deployment.kubernetes.io/revision"],
 		Generation:        rs.Status.ObservedGeneration,

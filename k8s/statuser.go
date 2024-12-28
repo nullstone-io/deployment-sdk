@@ -18,7 +18,7 @@ type Statuser struct {
 }
 
 func (s Statuser) StatusOverview(ctx context.Context) (any, error) {
-	so := AppStatusOverview{Revisions: make([]AppStatusOverviewRevision, 0)}
+	so := AppStatusOverview{ReplicaSets: make([]AppStatusOverviewReplicaSet, 0)}
 	if s.AppName == "" {
 		return so, nil
 	}
@@ -38,21 +38,57 @@ func (s Statuser) StatusOverview(ctx context.Context) (any, error) {
 		return so, fmt.Errorf("error retrieving app replica sets: %w", err)
 	}
 	for _, replicaSet := range replicaSets.Items {
-		revision := RevisionFromReplicaSet(replicaSet)
+		revision := AppStatusOverviewReplicaSetFromK8s(replicaSet)
 		if revision.DesiredReplicas == 0 && revision.Replicas == 0 {
 			// Don't show old revisions that have scaled down
 			continue
 		}
-		so.Revisions = append(so.Revisions, revision)
+		so.ReplicaSets = append(so.ReplicaSets, revision)
 	}
 	return so, nil
 }
 
 func (s Statuser) Status(ctx context.Context) (any, error) {
-	status := AppStatus{}
+	st := AppStatus{ReplicaSets: make([]AppStatusReplicaSet, 0)}
+	if s.AppName == "" {
+		return st, nil
+	}
 
-	return status, nil
-}
+	cfg, err := s.NewConfigFn(ctx)
+	if err != nil {
+		return st, fmt.Errorf("error creating kubernetes client: %w", err)
+	}
+	client, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return st, fmt.Errorf("error initializing kubernetes client: %w", err)
+	}
 
-type AppStatus struct {
+	appLabel := fmt.Sprintf("nullstone.io/app=%s", s.AppName)
+	replicaSets, err := client.AppsV1().ReplicaSets(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
+	if err != nil {
+		return st, fmt.Errorf("error retrieving app replica sets: %w", err)
+	}
+	svcs, err := client.CoreV1().Services(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
+	if err != nil {
+		return st, fmt.Errorf("error retrieving app services: %w", err)
+	}
+	pods, err := client.CoreV1().Pods(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
+	if err != nil {
+		return st, fmt.Errorf("error retrieving app pods: %w", err)
+	}
+	statusPods := make(AppStatusPods, 0)
+	for _, pod := range pods.Items {
+		statusPods = append(statusPods, AppStatusPodFromK8s(pod, svcs.Items))
+	}
+	for _, replicaSet := range replicaSets.Items {
+		revision := AppStatusReplicaSetFromK8s(replicaSet)
+		if revision.DesiredReplicas == 0 && revision.Replicas == 0 {
+			// Don't show old revisions that have scaled down
+			continue
+		}
+		revision.Pods = statusPods.ListByReplicaSet(revision.Name)
+		st.ReplicaSets = append(st.ReplicaSets, revision)
+	}
+
+	return st, nil
 }
