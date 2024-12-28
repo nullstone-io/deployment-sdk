@@ -20,6 +20,6 @@ var Provider = app.Provider{
 	NewPusher:          gar.NewPusher,
 	NewDeployer:        gke.NewDeployer,
 	NewDeployWatcher:   gke.NewDeployWatcher,
-	NewStatuser:        nil,
+	NewStatuser:        gke.NewStatuser,
 	NewLogStreamer:     gke.NewLogStreamer,
 }
