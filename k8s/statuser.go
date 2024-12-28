@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
+	"k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -33,11 +34,12 @@ func (s Statuser) StatusOverview(ctx context.Context) (any, error) {
 	}
 
 	appLabel := fmt.Sprintf("nullstone.io/app=%s", s.AppName)
-	replicaSets, err := client.AppsV1().ReplicaSets(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
+	replicaSetsResponse, err := client.AppsV1().ReplicaSets(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
 	if err != nil {
 		return so, fmt.Errorf("error retrieving app replica sets: %w", err)
 	}
-	for _, replicaSet := range replicaSets.Items {
+	replicaSets := ExcludeOldReplicaSets(replicaSetsResponse.Items)
+	for _, replicaSet := range replicaSets {
 		revision := AppStatusOverviewReplicaSetFromK8s(replicaSet)
 		if revision.DesiredReplicas == 0 && revision.Replicas == 0 {
 			// Don't show old revisions that have scaled down
@@ -64,23 +66,24 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	}
 
 	appLabel := fmt.Sprintf("nullstone.io/app=%s", s.AppName)
-	replicaSets, err := client.AppsV1().ReplicaSets(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
+	replicaSetsResponse, err := client.AppsV1().ReplicaSets(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
 	if err != nil {
 		return st, fmt.Errorf("error retrieving app replica sets: %w", err)
 	}
-	svcs, err := client.CoreV1().Services(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
+	svcsResponse, err := client.CoreV1().Services(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
 	if err != nil {
 		return st, fmt.Errorf("error retrieving app services: %w", err)
 	}
-	pods, err := client.CoreV1().Pods(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
+	podsResponse, err := client.CoreV1().Pods(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
 	if err != nil {
 		return st, fmt.Errorf("error retrieving app pods: %w", err)
 	}
 	statusPods := make(AppStatusPods, 0)
-	for _, pod := range pods.Items {
-		statusPods = append(statusPods, AppStatusPodFromK8s(pod, svcs.Items))
+	for _, pod := range podsResponse.Items {
+		statusPods = append(statusPods, AppStatusPodFromK8s(pod, svcsResponse.Items))
 	}
-	for _, replicaSet := range replicaSets.Items {
+	replicaSets := ExcludeOldReplicaSets(replicaSetsResponse.Items)
+	for _, replicaSet := range replicaSets {
 		revision := AppStatusReplicaSetFromK8s(replicaSet)
 		if revision.DesiredReplicas == 0 && revision.Replicas == 0 {
 			// Don't show old revisions that have scaled down
@@ -91,4 +94,24 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	}
 
 	return st, nil
+}
+
+// ExcludeOldReplicaSets filters out old replica sets
+// Old replica sets have 0 replicas and aren't the newest deployment revision
+func ExcludeOldReplicaSets(items []v1.ReplicaSet) []v1.ReplicaSet {
+	maxRevision := 0
+	for _, item := range items {
+		if revision := RevisionFromReplicaSet(item); revision > maxRevision {
+			maxRevision = revision
+		}
+	}
+
+	result := make([]v1.ReplicaSet, 0)
+	for _, item := range items {
+		isNewestRevision := RevisionFromReplicaSet(item) == maxRevision
+		if isNewestRevision || item.Status.Replicas > 0 {
+			result = append(result, item)
+		}
+	}
+	return result
 }
