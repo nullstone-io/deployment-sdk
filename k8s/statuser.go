@@ -41,10 +41,6 @@ func (s Statuser) StatusOverview(ctx context.Context) (any, error) {
 	replicaSets := ExcludeOldReplicaSets(replicaSetsResponse.Items)
 	for _, replicaSet := range replicaSets {
 		revision := AppStatusOverviewReplicaSetFromK8s(replicaSet)
-		if revision.DesiredReplicas == 0 && revision.Replicas == 0 {
-			// Don't show old revisions that have scaled down
-			continue
-		}
 		so.ReplicaSets = append(so.ReplicaSets, revision)
 	}
 	return so, nil
@@ -85,10 +81,6 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	replicaSets := ExcludeOldReplicaSets(replicaSetsResponse.Items)
 	for _, replicaSet := range replicaSets {
 		revision := AppStatusReplicaSetFromK8s(replicaSet)
-		if revision.DesiredReplicas == 0 && revision.Replicas == 0 {
-			// Don't show old revisions that have scaled down
-			continue
-		}
 		revision.Pods = statusPods.ListByReplicaSet(revision.Name)
 		st.ReplicaSets = append(st.ReplicaSets, revision)
 	}
