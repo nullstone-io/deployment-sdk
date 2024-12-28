@@ -13,7 +13,7 @@ type AppStatus struct {
 
 type AppStatusReplicaSet struct {
 	Name              string    `json:"name"`
-	Revision          string    `json:"revision"`
+	Revision          int       `json:"revision"`
 	Generation        int64     `json:"generation"`
 	CreatedAt         time.Time `json:"createdAt"`
 	DesiredReplicas   int       `json:"desiredReplicas"`
@@ -32,7 +32,7 @@ func AppStatusReplicaSetFromK8s(rs appsv1.ReplicaSet) AppStatusReplicaSet {
 
 	return AppStatusReplicaSet{
 		Name:              rs.Name,
-		Revision:          rs.Annotations["deployment.kubernetes.io/revision"],
+		Revision:          RevisionFromReplicaSet(rs),
 		Generation:        rs.Status.ObservedGeneration,
 		CreatedAt:         rs.CreationTimestamp.Time,
 		DesiredReplicas:   desired,
