@@ -42,7 +42,7 @@ func (l LogStreamer) Stream(ctx context.Context, options app.LogStreamOptions) e
 
 	selector := fmt.Sprintf("nullstone.io/app=%s", l.AppName)
 	if options.Selector != nil && len(*options.Selector) > 0 {
-		selector = fmt.Sprintf("%s,%s", selector, *options.Selector)
+		selector = *options.Selector
 	}
 
 	cfg, err := l.NewConfigFn(ctx)
