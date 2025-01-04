@@ -20,7 +20,7 @@ func NewLogStreamer(ctx context.Context, osWriters logging.OsWriters, source out
 		OsWriters:    osWriters,
 		Details:      appDetails,
 		AppNamespace: outs.ServiceNamespace,
-		AppName:      outs.ServiceName,
+		AppName:      appDetails.App.Name,
 		NewConfigFn: func(ctx context.Context) (*rest.Config, error) {
 			return CreateKubeConfig(ctx, outs.ClusterNamespace, outs.Deployer)
 		},
