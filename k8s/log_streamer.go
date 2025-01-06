@@ -40,7 +40,10 @@ func (l LogStreamer) Stream(ctx context.Context, options app.LogStreamOptions) e
 		options.Emitter = app.NewWriterLogEmitter(os.Stdout)
 	}
 
-	appLabel := fmt.Sprintf("nullstone.io/app=%s", l.AppName)
+	selector := fmt.Sprintf("nullstone.io/app=%s", l.AppName)
+	if options.Selector != nil && len(*options.Selector) > 0 {
+		selector = *options.Selector
+	}
 
 	cfg, err := l.NewConfigFn(ctx)
 	if err != nil {
@@ -50,7 +53,7 @@ func (l LogStreamer) Stream(ctx context.Context, options app.LogStreamOptions) e
 	if err != nil {
 		return l.newInitError("There was an error initializing kubernetes client", err)
 	}
-	pods, err := client.CoreV1().Pods(l.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
+	pods, err := client.CoreV1().Pods(l.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: selector})
 	if err != nil {
 		return l.newInitError("There was an error looking for application pods", err)
 	}

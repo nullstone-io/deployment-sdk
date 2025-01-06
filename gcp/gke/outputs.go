@@ -20,6 +20,7 @@ type Outputs struct {
 	ImageRepoUrl      docker.ImageUrl    `ns:"image_repo_url,optional"`
 	Deployer          gcp.ServiceAccount `ns:"deployer"`
 	MainContainerName string             `ns:"main_container_name,optional"`
+	JobDefinitionName string             `ns:"job_definition_name,optional"`
 
 	ClusterNamespace ClusterNamespaceOutputs `ns:",connectionContract:cluster-namespace/gcp/k8s:gke"`
 }

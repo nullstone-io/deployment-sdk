@@ -21,6 +21,10 @@ type LogStreamOptions struct {
 	// For AWS Cloudwatch: https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html
 	Pattern *string
 
+	// A filter to apply when querying the log source
+	// For Kubernetes, this is a label selector to further filter down the logs
+	Selector *string
+
 	// WatchInterval dictates how often the log streamer will query AWS for new events
 	// If left unspecified or 0, will use default watch interval of 1s
 	// If a negative value is specified, watching will disable, the log streamer will terminate as soon as logs are emitted

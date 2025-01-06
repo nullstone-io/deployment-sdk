@@ -9,7 +9,8 @@ import (
 	"github.com/nullstone-io/deployment-sdk/k8s"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -39,10 +40,11 @@ type Deployer struct {
 func (d Deployer) Print() {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 	colorstring.Fprintln(stdout, "[bold]Retrieved GKE service outputs")
-	fmt.Fprintf(stdout, "	cluster_endpoint:  %s\n", d.Infra.ClusterNamespace.ClusterEndpoint)
-	fmt.Fprintf(stdout, "	service_namespace: %s\n", d.Infra.ServiceNamespace)
-	fmt.Fprintf(stdout, "	service_name:      %s\n", d.Infra.ServiceName)
-	fmt.Fprintf(stdout, "	image_repo_url:    %s\n", d.Infra.ImageRepoUrl)
+	fmt.Fprintf(stdout, "	cluster_endpoint:    %s\n", d.Infra.ClusterNamespace.ClusterEndpoint)
+	fmt.Fprintf(stdout, "	service_namespace:   %s\n", d.Infra.ServiceNamespace)
+	fmt.Fprintf(stdout, "	service_name:        %s\n", d.Infra.ServiceName)
+	fmt.Fprintf(stdout, "	job_definition_name: %s\n", d.Infra.JobDefinitionName)
+	fmt.Fprintf(stdout, "	image_repo_url:      %s\n", d.Infra.ImageRepoUrl)
 }
 
 func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
@@ -55,36 +57,41 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 
 	fmt.Fprintln(stdout)
 	fmt.Fprintf(stdout, "Deploying app %q\n", d.Details.App.Name)
-
 	if d.Infra.ServiceName == "" {
-		fmt.Fprintf(stdout, "No service name in app module. Skipping update service.\n")
-		fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
-		fmt.Fprintln(stdout, "")
-		return "", nil
+		if d.Infra.JobDefinitionName == "" {
+			fmt.Fprintf(stdout, "No service_name or job_definition_name in app module. Skipping update service.\n")
+			fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
+			fmt.Fprintln(stdout, "")
+			return "", nil
+		}
+
+		return d.deployJobTemplate(ctx, meta)
 	}
+	return d.deployService(ctx, meta)
+}
+
+func (d Deployer) deployService(ctx context.Context, meta app.DeployMetadata) (string, error) {
+	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 
 	kubeClient, err := CreateKubeClient(ctx, d.Infra.ClusterNamespace, d.Infra.Deployer)
 	if err != nil {
 		return "", err
 	}
 
-	deployment, err := kubeClient.AppsV1().Deployments(d.Infra.ServiceNamespace).Get(ctx, d.Infra.ServiceName, meta_v1.GetOptions{})
+	deployment, err := kubeClient.AppsV1().Deployments(d.Infra.ServiceNamespace).Get(ctx, d.Infra.ServiceName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
 	curRevisionNum := deployment.Generation
 
-	k8s.UpdateVersionLabel(deployment, meta.Version)
-
-	mainContainerIndex, mainContainer := k8s.GetContainerByName(*deployment, d.Infra.MainContainerName)
-	if mainContainerIndex < 0 {
-		return "", fmt.Errorf("cannot find main container %q in spec", d.Infra.MainContainerName)
+	// Update deployment definition
+	deployment.ObjectMeta = k8s.UpdateVersionLabel(deployment.ObjectMeta, meta.Version)
+	deployment.Spec.Template, err = d.updatePodTemplate(deployment.Spec.Template, meta)
+	if err != nil {
+		return "", err
 	}
-	k8s.SetContainerImageTag(mainContainer, meta.Version)
-	k8s.ReplaceEnvVars(mainContainer, env_vars.GetStandard(meta))
-	deployment.Spec.Template.Spec.Containers[mainContainerIndex] = *mainContainer
 
-	updated, err := kubeClient.AppsV1().Deployments(d.Infra.ServiceNamespace).Update(ctx, deployment, meta_v1.UpdateOptions{})
+	updated, err := kubeClient.AppsV1().Deployments(d.Infra.ServiceNamespace).Update(ctx, deployment, metav1.UpdateOptions{})
 	if err != nil {
 		return "", fmt.Errorf("error deploying app: %w", err)
 	}
@@ -101,4 +108,41 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 
 	fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
 	return revision, nil
+}
+
+func (d Deployer) deployJobTemplate(ctx context.Context, meta app.DeployMetadata) (string, error) {
+	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
+
+	kubeClient, err := CreateKubeClient(ctx, d.Infra.ClusterNamespace, d.Infra.Deployer)
+	if err != nil {
+		return "", err
+	}
+
+	// Retrieve and update job definition
+	jobDef, configMap, err := k8s.GetJobDefinition(ctx, kubeClient, d.Infra.ServiceNamespace, d.Infra.JobDefinitionName)
+	if err != nil {
+		return "", err
+	}
+	jobDef.ObjectMeta = k8s.UpdateVersionLabel(jobDef.ObjectMeta, meta.Version)
+	jobDef.Spec.Template, err = d.updatePodTemplate(jobDef.Spec.Template, meta)
+	if err != nil {
+		return "", fmt.Errorf("cannot find main container %q in spec", d.Infra.MainContainerName)
+	}
+	if err := k8s.UpdateJobDefinition(ctx, kubeClient, d.Infra.ServiceNamespace, jobDef, configMap); err != nil {
+		return "", err
+	}
+
+	fmt.Fprintf(stdout, "Updated job template with new application version (%s) and environment variables\n", meta.Version)
+	return "", nil
+}
+
+func (d Deployer) updatePodTemplate(template v1.PodTemplateSpec, meta app.DeployMetadata) (v1.PodTemplateSpec, error) {
+	mainContainerIndex, mainContainer := k8s.GetContainerByName(template, d.Infra.MainContainerName)
+	if mainContainerIndex < 0 {
+		return template, fmt.Errorf("cannot find main container %q in spec", d.Infra.MainContainerName)
+	}
+	k8s.SetContainerImageTag(mainContainer, meta.Version)
+	k8s.ReplaceEnvVars(mainContainer, env_vars.GetStandard(meta))
+	template.Spec.Containers[mainContainerIndex] = *mainContainer
+	return template, nil
 }
