@@ -142,10 +142,17 @@ func AppStatusContainerFromK8s(container corev1.Container, status *corev1.Contai
 		}
 	}
 
+	var ready bool
+	var started bool
+	if status != nil {
+		ready = status.Ready
+		started = status.Started != nil && *status.Started
+	}
+
 	return AppStatusPodContainer{
 		Name:    container.Name,
-		Ready:   status.Ready,
-		Started: status.Started != nil && *status.Started,
+		Ready:   ready,
+		Started: started,
 		Ports:   ports,
 	}
 }
