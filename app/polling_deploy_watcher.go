@@ -52,7 +52,7 @@ func NewPollingDeployWatcher(statusGetterFn NewDeployStatusGetterFunc) NewDeploy
 // - ErrFailed: Deployment failed as reported by DeployStatusGetter.GetDeployStatus
 // - CancelError: System cancelled by evicted deployment or via ctx
 // - ErrTimeout: ctx reached timeout or watcher reached 15m timeout
-func (s *PollingDeployWatcher) Watch(ctx context.Context, reference string) error {
+func (s *PollingDeployWatcher) Watch(ctx context.Context, reference string, isFirstDeploy bool) error {
 	stdout := s.OsWriters.Stdout()
 	defer s.StatusGetter.Close()
 

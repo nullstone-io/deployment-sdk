@@ -37,7 +37,7 @@ type DeployStatusGetter interface {
 }
 
 type DeployWatcher interface {
-	Watch(ctx context.Context, reference string) error
+	Watch(ctx context.Context, reference string, isFirstDeploy bool) error
 }
 
 type Statuser interface {

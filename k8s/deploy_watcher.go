@@ -43,15 +43,20 @@ type DeployWatcher struct {
 	tracker *AppObjectsTracker
 }
 
-func (w *DeployWatcher) Watch(ctx context.Context, reference string) error {
+func (w *DeployWatcher) Watch(ctx context.Context, reference string, isFirstDeploy bool) error {
 	stdout := w.OsWriters.Stdout()
 	if reference == "" {
 		fmt.Fprintln(stdout, "This deployment does not have to wait for any resource to become healthy.")
 		return nil
 	}
 	if reference == DeployReferenceNoop {
-		fmt.Fprintln(stdout, "This deployment did not cause any changes to the app. Skipping check for healthy.")
-		return nil
+		if isFirstDeploy {
+			fmt.Fprintln(stdout, "Watching initial deployment.")
+			reference = "1"
+		} else {
+			fmt.Fprintln(stdout, "This deployment did not cause any changes to the app. Skipping check for healthy.")
+			return nil
+		}
 	}
 	if err := w.init(ctx); err != nil {
 		return err

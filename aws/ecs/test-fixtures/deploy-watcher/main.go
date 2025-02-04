@@ -59,7 +59,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	err = watcher.Watch(ctx, *deployment.Id)
+	err = watcher.Watch(ctx, *deployment.Id, false)
 	if err != nil {
 		log.Fatalln(err)
 	}
