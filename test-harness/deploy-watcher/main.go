@@ -58,7 +58,7 @@ func main() {
 	}
 
 	dw, err := gke.NewDeployWatcher(ctx, osWriters, rs, appDetails)
-	if err := dw.Watch(ctx, reference); err != nil {
+	if err := dw.Watch(ctx, reference, false); err != nil {
 		log.Fatalln(err)
 	}
 }

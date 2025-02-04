@@ -110,7 +110,7 @@ func TestPollingDeployWatcher(t *testing.T) {
 			}
 			mockGetter.On("Close")
 
-			err := mockWatcher.Watch(ctx, "stub")
+			err := mockWatcher.Watch(ctx, "stub", false)
 			mockGetter.AssertExpectations(t)
 
 			if test.expects == nil {
