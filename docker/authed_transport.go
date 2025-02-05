@@ -3,13 +3,13 @@ package docker
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/registry"
 	"net/http"
 )
 
 type AuthedTransport struct {
 	Transport http.RoundTripper
-	Auth      types.AuthConfig
+	Auth      registry.AuthConfig
 }
 
 func (t AuthedTransport) RoundTrip(req *http.Request) (*http.Response, error) {

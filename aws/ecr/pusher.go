@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
-	dockertypes "github.com/docker/docker/api/types"
+	dockerregistry "github.com/docker/docker/api/types/registry"
 	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/aws"
@@ -129,7 +129,7 @@ func (p Pusher) validate(targetUrl docker.ImageUrl) error {
 	return nil
 }
 
-func (p Pusher) getEcrLoginAuth(ctx context.Context) (dockertypes.AuthConfig, error) {
+func (p Pusher) getEcrLoginAuth(ctx context.Context) (dockerregistry.AuthConfig, error) {
 	retryOpts := func(options *ecr.Options) {
 		// Set retryer to backoff 0s-20s with max attempts of 5s
 		// This has a retry window of 0s-100s
@@ -142,20 +142,20 @@ func (p Pusher) getEcrLoginAuth(ctx context.Context) (dockertypes.AuthConfig, er
 	ecrClient := ecr.NewFromConfig(nsaws.NewConfig(p.Infra.ImagePusher, p.Infra.Region), retryOpts)
 	out, err := ecrClient.GetAuthorizationToken(ctx, &ecr.GetAuthorizationTokenInput{})
 	if err != nil {
-		return dockertypes.AuthConfig{}, err
+		return dockerregistry.AuthConfig{}, err
 	}
 	if len(out.AuthorizationData) > 0 {
 		authData := out.AuthorizationData[0]
 		token, err := base64.StdEncoding.DecodeString(*authData.AuthorizationToken)
 		if err != nil {
-			return dockertypes.AuthConfig{}, fmt.Errorf("invalid authorization token: %w", err)
+			return dockerregistry.AuthConfig{}, fmt.Errorf("invalid authorization token: %w", err)
 		}
 		tokens := strings.SplitN(string(token), ":", 2)
-		return dockertypes.AuthConfig{
+		return dockerregistry.AuthConfig{
 			Username:      tokens[0],
 			Password:      tokens[1],
 			ServerAddress: *authData.ProxyEndpoint,
 		}, nil
 	}
-	return dockertypes.AuthConfig{}, nil
+	return dockerregistry.AuthConfig{}, nil
 }
