@@ -10,6 +10,7 @@ import (
 const (
 	EventTypeNormal  = "Normal"
 	EventTypeWarning = "Warning"
+	EventTypeError   = "Error"
 )
 
 type DeployEvent struct {
@@ -33,9 +34,11 @@ func (e DeployEvent) String() string {
 	buf.WriteString(") ")
 	if e.Type == EventTypeWarning {
 		buf.WriteString("[yellow]")
+	} else if e.Type == EventTypeError {
+		buf.WriteString("[red]")
 	}
 	buf.WriteString(e.Message)
-	if e.Type == EventTypeWarning {
+	if e.Type == EventTypeWarning || e.Type == EventTypeError {
 		buf.WriteString("[reset]")
 	}
 	return buf.String()

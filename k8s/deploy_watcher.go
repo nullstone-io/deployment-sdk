@@ -7,9 +7,9 @@ import (
 	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -68,11 +68,14 @@ func (w *DeployWatcher) Watch(ctx context.Context, reference string, isFirstDepl
 		return err
 	}
 
+	sw := NewServiceWatcher(w.client, w.AppNamespace, w.AppName, w.OsWriters)
+
 	started := make(chan *time.Time)
 	ended := make(chan struct{})
 	flushed := make(chan struct{})
-	go w.streamEvents(ctx, reference, started, ended, flushed)
-	err := w.monitorDeployment(ctx, reference, started, ended)
+	go w.streamEvents(ctx, started, ended, flushed)
+	defer sw.Stream()()
+	err = w.monitorDeployment(ctx, revision, started, ended)
 	<-flushed
 	return err
 }
