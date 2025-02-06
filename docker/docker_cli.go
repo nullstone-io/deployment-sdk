@@ -8,7 +8,7 @@ import (
 )
 
 func DiscoverDockerCli(osWriters logging.OsWriters) (*command.DockerCli, error) {
-	cliOpts := make([]command.DockerCliOption, 0)
+	cliOpts := make([]command.CLIOption, 0)
 	if osWriters != nil {
 		if outWriter := osWriters.Stdout(); outWriter != nil {
 			cliOpts = append(cliOpts, command.WithOutputStream(outWriter))
@@ -21,11 +21,9 @@ func DiscoverDockerCli(osWriters logging.OsWriters) (*command.DockerCli, error) 
 	if err != nil {
 		return nil, err
 	}
-	opts := &flags.ClientOptions{
-		Common: &flags.CommonOptions{},
-	}
-	opts.Common.InstallFlags(pflag.NewFlagSet("", pflag.ContinueOnError))
-	opts.Common.SetDefaultOptions(&pflag.FlagSet{})
+	opts := &flags.ClientOptions{}
+	opts.InstallFlags(pflag.NewFlagSet("", pflag.ContinueOnError))
+	opts.SetDefaultOptions(&pflag.FlagSet{})
 	if err := dockerCli.Initialize(opts); err != nil {
 		return nil, err
 	}

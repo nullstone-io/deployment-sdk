@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/registry"
 	"github.com/tomnomnom/linkheader"
 	"io"
 	"net/http"
@@ -16,7 +16,7 @@ type ListRemoteTagsResponse struct {
 	Tags []string `json:"tags"`
 }
 
-func ListRemoteTags(ctx context.Context, targetUrl ImageUrl, targetAuth types.AuthConfig) ([]string, error) {
+func ListRemoteTags(ctx context.Context, targetUrl ImageUrl, targetAuth registry.AuthConfig) ([]string, error) {
 	reqUrl := (&url.URL{
 		Scheme: targetUrl.Scheme(),
 		Host:   targetUrl.Registry,
@@ -39,7 +39,7 @@ func ListRemoteTags(ctx context.Context, targetUrl ImageUrl, targetAuth types.Au
 	}
 }
 
-func doListRemoteTags(ctx context.Context, reqUrl string, targetAuth types.AuthConfig) ([]string, *http.Response, error) {
+func doListRemoteTags(ctx context.Context, reqUrl string, targetAuth registry.AuthConfig) ([]string, *http.Response, error) {
 	client := &http.Client{Transport: AuthedTransport{Auth: targetAuth}}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, nil)
 	if err != nil {

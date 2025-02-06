@@ -4,16 +4,17 @@ import (
 	"context"
 	"fmt"
 	"github.com/docker/cli/cli/command"
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/pkg/jsonmessage"
 )
 
-func PushImage(ctx context.Context, dockerCli *command.DockerCli, targetUrl ImageUrl, targetAuth types.AuthConfig) error {
+func PushImage(ctx context.Context, dockerCli *command.DockerCli, targetUrl ImageUrl, targetAuth registry.AuthConfig) error {
 	encodedAuth, err := EncodeAuthToBase64(targetAuth)
 	if err != nil {
 		return fmt.Errorf("error encoding remote auth configuration: %w", err)
 	}
-	options := types.ImagePushOptions{
+	options := image.PushOptions{
 		All:          false,
 		RegistryAuth: encodedAuth,
 	}

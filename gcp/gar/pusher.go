@@ -3,7 +3,7 @@ package gar
 import (
 	"context"
 	"fmt"
-	dockertypes "github.com/docker/docker/api/types"
+	dockerregistry "github.com/docker/docker/api/types/registry"
 	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/docker"
@@ -125,24 +125,24 @@ func (p Pusher) validate(targetUrl docker.ImageUrl) error {
 	return nil
 }
 
-func (p Pusher) getGcrLoginAuth(ctx context.Context) (dockertypes.AuthConfig, error) {
+func (p Pusher) getGcrLoginAuth(ctx context.Context) (dockerregistry.AuthConfig, error) {
 	ts, err := p.Infra.ImagePusher.TokenSource(ctx, GARScopes...)
 	if err != nil {
-		return dockertypes.AuthConfig{}, fmt.Errorf("error creating access token source: %w", err)
+		return dockerregistry.AuthConfig{}, fmt.Errorf("error creating access token source: %w", err)
 	}
 	token, err := ts.Token()
 	if err != nil {
-		return dockertypes.AuthConfig{}, fmt.Errorf("error retrieving access token: %w", err)
+		return dockerregistry.AuthConfig{}, fmt.Errorf("error retrieving access token: %w", err)
 	}
 	if token == nil || token.AccessToken == "" {
-		return dockertypes.AuthConfig{}, nil
+		return dockerregistry.AuthConfig{}, nil
 	}
 
 	serverAddr := p.Infra.ImageRepoUrl.Registry
 	if serverAddr == "" {
 		serverAddr = "docker.pkg.dev"
 	}
-	return dockertypes.AuthConfig{
+	return dockerregistry.AuthConfig{
 		ServerAddress: serverAddr,
 		Username:      "oauth2accesstoken",
 		Password:      token.AccessToken,
