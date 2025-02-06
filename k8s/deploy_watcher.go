@@ -8,8 +8,8 @@ import (
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -126,6 +126,15 @@ func (w *DeployWatcher) monitorDeployment(ctx context.Context, revision int64, s
 	for {
 		deployment, err := w.client.AppsV1().Deployments(w.AppNamespace).Get(ctx, w.AppName, metav1.GetOptions{})
 		if err != nil {
+			if apierrors.IsNotFound(err) {
+				colorstring.Fprintln(stdout, DeployEvent{
+					Timestamp: time.Now(),
+					Type:      EventTypeError,
+					Object:    fmt.Sprintf("deployment/%s", w.AppName),
+					Message:   "Deployment failed because it was deleted.",
+				}.String())
+				return app.ErrFailed
+			}
 			if errors.Is(err, context.Canceled) {
 				return w.translateCancellation(ctx)
 			}
