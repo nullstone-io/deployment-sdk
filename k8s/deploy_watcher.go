@@ -58,9 +58,9 @@ func (w *DeployWatcher) Watch(ctx context.Context, reference string, isFirstDepl
 			return nil
 		}
 	}
-	revision, err := strconv.ParseInt(reference, 10, 64)
+	generation, err := strconv.ParseInt(reference, 10, 64)
 	if err != nil {
-		fmt.Fprintln(stdout, "Invalid deployment reference. Expected a deployment revision number.")
+		fmt.Fprintln(stdout, "Invalid deployment reference. Expected a deployment generation.")
 		return app.ErrFailed
 	}
 	if err := w.init(ctx); err != nil {
@@ -74,7 +74,7 @@ func (w *DeployWatcher) Watch(ctx context.Context, reference string, isFirstDepl
 	flushed := make(chan struct{})
 	go w.streamEvents(ctx, started, ended, flushed)
 	defer sw.Stream()()
-	err = w.monitorDeployment(ctx, revision, started, ended)
+	err = w.monitorDeployment(ctx, generation, started, ended)
 	<-flushed
 	return err
 }
@@ -103,7 +103,7 @@ func (w *DeployWatcher) newInitError(msg string, err error) app.LogInitError {
 
 // monitorDeployment polls Kubernetes for updates on the deployment
 // This will run until the deployment completes, fails, or times out
-func (w *DeployWatcher) monitorDeployment(ctx context.Context, revision int64, started chan *time.Time, ended chan struct{}) error {
+func (w *DeployWatcher) monitorDeployment(ctx context.Context, generation int64, started chan *time.Time, ended chan struct{}) error {
 	defer close(ended)
 	defer close(started)
 
@@ -117,7 +117,6 @@ func (w *DeployWatcher) monitorDeployment(ctx context.Context, revision int64, s
 	stdout := w.OsWriters.Stdout()
 	init := sync.Once{}
 
-	lastEventMsg := ""
 	for {
 		deployment, err := w.client.AppsV1().Deployments(w.AppNamespace).Get(ctx, w.AppName, metav1.GetOptions{})
 		if err != nil {
@@ -137,29 +136,32 @@ func (w *DeployWatcher) monitorDeployment(ctx context.Context, revision int64, s
 		}
 		if deployment != nil {
 			init.Do(func() {
-				if revision == 0 {
-					revision, _ = Revision(deployment)
-				}
-				start := FindDeploymentStartTime(ctx, w.client, w.AppNamespace, deployment, revision)
+				start := FindDeploymentStartTime(ctx, w.client, w.AppNamespace, deployment, generation)
 				if start != nil {
 					colorstring.Fprintln(stdout, DeployEvent{
 						Timestamp: *start,
 						Type:      EventTypeNormal,
 						Reason:    "Created",
 						Object:    fmt.Sprintf("deployment/%s", w.AppName),
-						Message:   fmt.Sprintf("Created deployment revision %d", revision),
+						Message:   fmt.Sprintf("Created deployment revision %s", deployment.Annotations[RevisionAnnotation]),
 					}.String())
 				}
 				started <- start
 			})
-		}
-
-		evt, status, err := CheckDeployment(deployment, revision)
-		if evt != nil {
-			if msg := evt.String(); lastEventMsg != msg {
-				colorstring.Fprintln(stdout, msg)
+			if generation != 0 && deployment.Generation > generation {
+				// If the deployment has a new generation, there must be a new deployment that invalidates this one
+				msg := fmt.Sprintf("A new deployment (generation = %d) was triggered which invalidates this deployment.", deployment.Generation)
+				colorstring.Fprintln(stdout, DeployEvent{
+					Timestamp: time.Now(),
+					Type:      EventTypeWarning,
+					Object:    fmt.Sprintf("deployment/%s", deployment.Name),
+					Message:   msg,
+				}.String())
+				return fmt.Errorf(msg)
 			}
 		}
+
+		status, err := CheckDeployment(deployment)
 		if err != nil {
 			return err
 		}

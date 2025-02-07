@@ -96,24 +96,17 @@ func (d Deployer) deployService(ctx context.Context, meta app.DeployMetadata) (s
 		return "", fmt.Errorf("error deploying app: %w", err)
 	}
 	updGeneration := updated.Generation
+	reference := fmt.Sprintf("%d", updGeneration)
 
-	var revision string
 	if curGeneration == updGeneration {
-		revision = DeployReferenceNoop
+		reference = DeployReferenceNoop
 		fmt.Fprintln(stdout, "No changes made to deployment.")
 	} else {
-		// The revision annotation is not updated in the return of Update
-		// Fetch the deployment again to get the updated revision annotation
-		final, err := kubeClient.AppsV1().Deployments(d.Infra.ServiceNamespace).Get(ctx, d.Infra.ServiceName, metav1.GetOptions{})
-		if err != nil {
-			return "", err
-		}
-		revision = final.Annotations[k8s.RevisionAnnotation]
-		fmt.Fprintf(stdout, "Created new deployment revision %s.\n", revision)
+		fmt.Fprintf(stdout, "Created new deployment (generation = %s).\n", reference)
 	}
 
 	fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
-	return revision, nil
+	return reference, nil
 }
 
 func (d Deployer) deployJobTemplate(ctx context.Context, meta app.DeployMetadata) (string, error) {

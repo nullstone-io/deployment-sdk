@@ -30,7 +30,7 @@ func (e DeployEvent) String() string {
 		buf.WriteString(strings.Repeat(" ", 32-len(e.Object)))
 	}
 	if e.Reason != "" {
-		buf.WriteString(" (")
+		buf.WriteString("(")
 		buf.WriteString(e.Reason)
 		buf.WriteString(") ")
 	}
