@@ -53,7 +53,7 @@ func (w *DeployWatcher) Watch(ctx context.Context, reference string, isFirstDepl
 	if reference == DeployReferenceNoop {
 		if isFirstDeploy {
 			fmt.Fprintln(stdout, "Watching initial deployment.")
-			reference = "1"
+			reference = "0"
 		} else {
 			fmt.Fprintln(stdout, "This deployment did not cause any changes to the app. Skipping check for healthy.")
 			return nil
@@ -142,6 +142,9 @@ func (w *DeployWatcher) monitorDeployment(ctx context.Context, revision int64, s
 		}
 		if deployment != nil {
 			init.Do(func() {
+				if revision == 0 {
+					revision, _ = Revision(deployment)
+				}
 				start := FindDeploymentStartTime(ctx, w.client, w.AppNamespace, deployment, revision)
 				if start != nil {
 					colorstring.Fprintln(stdout, DeployEvent{

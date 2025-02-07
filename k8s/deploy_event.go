@@ -29,9 +29,11 @@ func (e DeployEvent) String() string {
 	if len(e.Object) < 32 {
 		buf.WriteString(strings.Repeat(" ", 32-len(e.Object)))
 	}
-	buf.WriteString(" (")
-	buf.WriteString(e.Reason)
-	buf.WriteString(") ")
+	if e.Reason != "" {
+		buf.WriteString(" (")
+		buf.WriteString(e.Reason)
+		buf.WriteString(") ")
+	}
 	if e.Type == EventTypeWarning {
 		buf.WriteString("[yellow]")
 	} else if e.Type == EventTypeError {
