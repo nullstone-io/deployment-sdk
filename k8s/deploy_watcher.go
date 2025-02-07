@@ -10,7 +10,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"strconv"
@@ -94,11 +93,7 @@ func (w *DeployWatcher) init(ctx context.Context) error {
 	if err != nil {
 		return w.newInitError("There was an error initializing kubernetes dynamic client", err)
 	}
-	discovery, err := discovery.NewDiscoveryClientForConfig(cfg)
-	if err != nil {
-		return w.newInitError("There was an error initializing kubernetes discovery client", err)
-	}
-	w.tracker = NewObjectTracker(w.AppName, dyn, discovery)
+	w.tracker = NewObjectTracker(w.AppName, dyn)
 	return nil
 }
 
