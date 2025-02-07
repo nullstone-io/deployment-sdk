@@ -82,7 +82,7 @@ func (d Deployer) deployService(ctx context.Context, meta app.DeployMetadata) (s
 	if err != nil {
 		return "", err
 	}
-	curRevision := deployment.Annotations[k8s.RevisionAnnotation]
+	curGeneration := deployment.Generation
 
 	// Update deployment definition
 	deployment.ObjectMeta = k8s.UpdateVersionLabel(deployment.ObjectMeta, meta.Version)
@@ -95,15 +95,20 @@ func (d Deployer) deployService(ctx context.Context, meta app.DeployMetadata) (s
 	if err != nil {
 		return "", fmt.Errorf("error deploying app: %w", err)
 	}
+	updGeneration := updated.Generation
 
 	var revision string
-	updatedRevision := updated.Annotations[k8s.RevisionAnnotation]
-	fmt.Fprintf(stdout, "cur = %s, updated = %s", curRevision, updatedRevision)
-	if curRevision == updatedRevision {
+	if curGeneration == updGeneration {
 		revision = DeployReferenceNoop
 		fmt.Fprintln(stdout, "No changes made to deployment.")
 	} else {
-		revision = updatedRevision
+		// The revision annotation is not updated in the return of Update
+		// Fetch the deployment again to get the updated revision annotation
+		final, err := kubeClient.AppsV1().Deployments(d.Infra.ServiceNamespace).Get(ctx, d.Infra.ServiceName, metav1.GetOptions{})
+		if err != nil {
+			return "", err
+		}
+		revision = final.Annotations[k8s.RevisionAnnotation]
 		fmt.Fprintf(stdout, "Created new deployment revision %s.\n", revision)
 	}
 
