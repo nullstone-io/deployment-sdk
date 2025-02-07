@@ -98,6 +98,7 @@ func (d Deployer) deployService(ctx context.Context, meta app.DeployMetadata) (s
 
 	var revision string
 	updatedRevision := updated.Annotations[k8s.RevisionAnnotation]
+	fmt.Fprintf(stdout, "cur = %s, updated = %s", curRevision, updatedRevision)
 	if curRevision == updatedRevision {
 		revision = DeployReferenceNoop
 		fmt.Fprintln(stdout, "No changes made to deployment.")
