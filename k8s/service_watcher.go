@@ -167,8 +167,8 @@ func (a EndpointsState) Diff(b EndpointsState) EndpointsDiff {
 	}
 
 	// Detect removed addresses
-	for key := range prev {
-		if ea, ok := cur[key]; !ok {
+	for key, ea := range prev {
+		if _, ok := cur[key]; !ok {
 			diff.Removed[key] = ea
 		}
 	}
