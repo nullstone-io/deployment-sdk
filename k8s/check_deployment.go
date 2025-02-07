@@ -11,7 +11,7 @@ import (
 // CheckDeployment maps the Deployment status to a friendly app.RolloutStatus
 // This performs the same code as `kubectl rollout status` without revision checking
 func CheckDeployment(deployment *appsv1.Deployment, expectedRevision int64) (*DeployEvent, app.RolloutStatus, error) {
-	evt := &DeployEvent{Timestamp: time.Now(), Type: EventTypeNormal, Object: "Deployment"}
+	evt := &DeployEvent{Timestamp: time.Now(), Type: EventTypeNormal, Object: fmt.Sprintf("deployment/%s", deployment.Name)}
 
 	latestRevision, err := Revision(deployment)
 	if err != nil {
