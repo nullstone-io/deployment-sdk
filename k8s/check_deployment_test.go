@@ -17,24 +17,9 @@ func TestCheckDeployment(t *testing.T) {
 	tests := []struct {
 		name       string
 		deployment v1.Deployment
-		wantEvt    *DeployEvent
-		wantStatus app.RolloutStatus
+		want       app.RolloutStatus
 		err        error
 	}{
-		{
-			name: "waiting to start",
-			deployment: v1.Deployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{RevisionAnnotation: "1"},
-				},
-			},
-			wantEvt: &DeployEvent{
-				Type:    EventTypeNormal,
-				Object:  "Deployment",
-				Message: "Waiting for deployment to start",
-			},
-			wantStatus: app.RolloutStatusPending,
-		},
 		{
 			name: "timed out",
 			deployment: v1.Deployment{
@@ -55,8 +40,8 @@ func TestCheckDeployment(t *testing.T) {
 					},
 				},
 			},
-			wantStatus: app.RolloutStatusFailed,
-			err:        fmt.Errorf("deployment failed because of timeout (exceeding its deadline)"),
+			want: app.RolloutStatusFailed,
+			err:  fmt.Errorf("deployment failed because of timeout (exceeding its deadline)"),
 		},
 		{
 			name: "not fully available",
@@ -72,8 +57,7 @@ func TestCheckDeployment(t *testing.T) {
 					AvailableReplicas: 1,
 				},
 			},
-			wantEvt:    nil,
-			wantStatus: app.RolloutStatusInProgress,
+			want: app.RolloutStatusInProgress,
 		},
 		{
 			name: "completed",
@@ -89,22 +73,15 @@ func TestCheckDeployment(t *testing.T) {
 					AvailableReplicas: 2,
 				},
 			},
-			wantEvt:    nil,
-			wantStatus: app.RolloutStatusComplete,
+			want: app.RolloutStatusComplete,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			gotEvt, gotStatus, err := CheckDeployment(&test.deployment, 2)
+			got, err := CheckDeployment(&test.deployment)
 			assert.Equal(t, test.err, err)
-			if test.wantEvt == nil {
-				assert.Nil(t, gotEvt)
-			} else if assert.NotNil(t, gotEvt) {
-				gotEvt.Timestamp = test.wantEvt.Timestamp
-				assert.Equal(t, *test.wantEvt, *gotEvt)
-			}
-			assert.Equal(t, test.wantStatus, gotStatus)
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
