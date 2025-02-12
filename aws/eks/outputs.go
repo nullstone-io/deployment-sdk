@@ -18,6 +18,7 @@ type Outputs struct {
 	ImagePusher       nsaws.User      `ns:"image_pusher,optional"`
 	Deployer          nsaws.User      `ns:"deployer,optional"`
 	MainContainerName string          `ns:"main_container_name,optional"`
+	JobDefinitionName string          `ns:"job_definition_name,optional"`
 
 	Region           string                  `ns:"region"`
 	ClusterNamespace ClusterNamespaceOutputs `ns:",connectionContract:cluster-namespace/aws/kubernetes:eks,optional"`

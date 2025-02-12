@@ -9,7 +9,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/k8s"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -135,7 +135,7 @@ func (d Deployer) deployJobTemplate(ctx context.Context, meta app.DeployMetadata
 	return "", nil
 }
 
-func (d Deployer) updatePodTemplate(template v1.PodTemplateSpec, meta app.DeployMetadata) (v1.PodTemplateSpec, error) {
+func (d Deployer) updatePodTemplate(template corev1.PodTemplateSpec, meta app.DeployMetadata) (corev1.PodTemplateSpec, error) {
 	mainContainerIndex, mainContainer := k8s.GetContainerByName(template, d.Infra.MainContainerName)
 	if mainContainerIndex < 0 {
 		return template, fmt.Errorf("cannot find main container %q in spec", d.Infra.MainContainerName)
