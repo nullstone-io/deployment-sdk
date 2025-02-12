@@ -82,7 +82,7 @@ func (d Deployer) deployService(ctx context.Context, meta app.DeployMetadata) (s
 	if err != nil {
 		return "", err
 	}
-	curRevision := deployment.Annotations[k8s.RevisionAnnotation]
+	curGeneration := deployment.Generation
 
 	// Update deployment definition
 	deployment.ObjectMeta = k8s.UpdateVersionLabel(deployment.ObjectMeta, meta.Version)
@@ -95,19 +95,18 @@ func (d Deployer) deployService(ctx context.Context, meta app.DeployMetadata) (s
 	if err != nil {
 		return "", fmt.Errorf("error deploying app: %w", err)
 	}
+	updGeneration := updated.Generation
+	reference := fmt.Sprintf("%d", updGeneration)
 
-	var revision string
-	updatedRevision := updated.Annotations[k8s.RevisionAnnotation]
-	if curRevision == updatedRevision {
-		revision = DeployReferenceNoop
+	if curGeneration == updGeneration {
+		reference = DeployReferenceNoop
 		fmt.Fprintln(stdout, "No changes made to deployment.")
 	} else {
-		revision = updatedRevision
-		fmt.Fprintf(stdout, "Created new deployment revision %s.\n", revision)
+		fmt.Fprintf(stdout, "Created new deployment (generation = %s).\n", reference)
 	}
 
 	fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
-	return revision, nil
+	return reference, nil
 }
 
 func (d Deployer) deployJobTemplate(ctx context.Context, meta app.DeployMetadata) (string, error) {

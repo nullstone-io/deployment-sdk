@@ -7,12 +7,12 @@ import (
 	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -52,21 +52,29 @@ func (w *DeployWatcher) Watch(ctx context.Context, reference string, isFirstDepl
 	if reference == DeployReferenceNoop {
 		if isFirstDeploy {
 			fmt.Fprintln(stdout, "Watching initial deployment.")
-			reference = "1"
+			reference = "0"
 		} else {
 			fmt.Fprintln(stdout, "This deployment did not cause any changes to the app. Skipping check for healthy.")
 			return nil
 		}
 	}
+	generation, err := strconv.ParseInt(reference, 10, 64)
+	if err != nil {
+		fmt.Fprintln(stdout, "Invalid deployment reference. Expected a deployment generation.")
+		return app.ErrFailed
+	}
 	if err := w.init(ctx); err != nil {
 		return err
 	}
 
+	sw := NewServiceWatcher(w.client, w.AppNamespace, w.AppName, w.OsWriters)
+
 	started := make(chan *time.Time)
 	ended := make(chan struct{})
 	flushed := make(chan struct{})
-	go w.streamEvents(ctx, reference, started, ended, flushed)
-	err := w.monitorDeployment(ctx, reference, started, ended)
+	go w.streamEvents(ctx, started, ended, flushed)
+	defer sw.Stream()()
+	err = w.monitorDeployment(ctx, generation, started, ended)
 	<-flushed
 	return err
 }
@@ -85,11 +93,7 @@ func (w *DeployWatcher) init(ctx context.Context) error {
 	if err != nil {
 		return w.newInitError("There was an error initializing kubernetes dynamic client", err)
 	}
-	discovery, err := discovery.NewDiscoveryClientForConfig(cfg)
-	if err != nil {
-		return w.newInitError("There was an error initializing kubernetes discovery client", err)
-	}
-	w.tracker = NewObjectTracker(w.AppName, dyn, discovery)
+	w.tracker = NewObjectTracker(w.AppName, dyn)
 	return nil
 }
 
@@ -99,7 +103,7 @@ func (w *DeployWatcher) newInitError(msg string, err error) app.LogInitError {
 
 // monitorDeployment polls Kubernetes for updates on the deployment
 // This will run until the deployment completes, fails, or times out
-func (w *DeployWatcher) monitorDeployment(ctx context.Context, reference string, started chan *time.Time, ended chan struct{}) error {
+func (w *DeployWatcher) monitorDeployment(ctx context.Context, generation int64, started chan *time.Time, ended chan struct{}) error {
 	defer close(ended)
 	defer close(started)
 
@@ -114,30 +118,55 @@ func (w *DeployWatcher) monitorDeployment(ctx context.Context, reference string,
 	init := sync.Once{}
 
 	for {
-		deployment, status, err := w.getDeployment(ctx, reference)
+		deployment, err := w.client.AppsV1().Deployments(w.AppNamespace).Get(ctx, w.AppName, metav1.GetOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				colorstring.Fprintln(stdout, DeployEvent{
+					Timestamp: time.Now(),
+					Type:      EventTypeError,
+					Object:    fmt.Sprintf("deployment/%s", w.AppName),
+					Message:   "Deployment failed because it was deleted.",
+				}.String())
+				return app.ErrFailed
+			}
+			if errors.Is(err, context.Canceled) {
+				return w.translateCancellation(ctx)
+			}
+			return fmt.Errorf("error retrieving deployment: %w", err)
+		}
 		if deployment != nil {
 			init.Do(func() {
-				start := FindDeploymentStartTime(ctx, w.client, w.AppNamespace, deployment, reference)
+				start := FindDeploymentStartTime(ctx, w.client, w.AppNamespace, deployment, generation)
 				if start != nil {
-					obj := fmt.Sprintf("deployment/%s", w.AppName)
 					colorstring.Fprintln(stdout, DeployEvent{
 						Timestamp: *start,
 						Type:      EventTypeNormal,
 						Reason:    "Created",
-						Object:    obj,
-						Message:   fmt.Sprintf("Created deployment revision %s", reference),
+						Object:    fmt.Sprintf("deployment/%s", w.AppName),
+						Message:   fmt.Sprintf("Created deployment revision %s", deployment.Annotations[RevisionAnnotation]),
 					}.String())
 				}
 				started <- start
 			})
+			if generation != 0 && deployment.Generation > generation {
+				// If the deployment has a new generation, there must be a new deployment that invalidates this one
+				msg := fmt.Sprintf("A new deployment (generation = %d) was triggered which invalidates this deployment.", deployment.Generation)
+				colorstring.Fprintln(stdout, DeployEvent{
+					Timestamp: time.Now(),
+					Type:      EventTypeWarning,
+					Object:    fmt.Sprintf("deployment/%s", deployment.Name),
+					Message:   msg,
+				}.String())
+				return fmt.Errorf(msg)
+			}
 		}
-		switch status {
-		case app.RolloutStatusComplete:
-			return nil
-		case app.RolloutStatusFailed:
+
+		status, err := CheckDeployment(deployment)
+		if err != nil {
 			return err
-		case app.RolloutStatusPending:
-		case app.RolloutStatusInProgress:
+		}
+		if status == app.RolloutStatusComplete {
+			return nil
 		}
 
 		// Pause 3s between polling
@@ -145,22 +174,26 @@ func (w *DeployWatcher) monitorDeployment(ctx context.Context, reference string,
 		select {
 		case <-time.After(delay):
 		case <-ctx.Done():
-			if err := ctx.Err(); err != nil {
-				if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-					return app.ErrTimeout
-				}
-				return &app.CancelError{Reason: err.Error()}
-			}
-			return &app.CancelError{}
+			return w.translateCancellation(ctx)
 		}
 	}
+}
+
+func (w *DeployWatcher) translateCancellation(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return app.ErrTimeout
+		}
+		return &app.CancelError{Reason: err.Error()}
+	}
+	return &app.CancelError{}
 }
 
 // streamEvents runs indefinitely and streams Kubernetes events associated with the app deployment
 // This won't start streaming events until a deployment has started (expects message from `started` channel)
 // If deployment never starts, this will flush events before completing
 // Once started, events will be filtered appropriately and stream until `ended` channel is closed
-func (w *DeployWatcher) streamEvents(ctx context.Context, reference string, started chan *time.Time, ended chan struct{}, flushed chan struct{}) {
+func (w *DeployWatcher) streamEvents(ctx context.Context, started chan *time.Time, ended chan struct{}, flushed chan struct{}) {
 	defer close(flushed)
 	_, stderr := w.OsWriters.Stdout(), w.OsWriters.Stderr()
 	earliest := time.Now()
@@ -238,25 +271,4 @@ func (w *DeployWatcher) emitEvent(ctx context.Context, earliest time.Time, event
 		Object:    obj,
 		Message:   event.Message,
 	}.String())
-}
-
-func (w *DeployWatcher) getDeployment(ctx context.Context, reference string) (*appsv1.Deployment, app.RolloutStatus, error) {
-	deployment, err := w.client.AppsV1().Deployments(w.AppNamespace).Get(ctx, w.AppName, metav1.GetOptions{})
-	if err != nil {
-		if errors.Is(err, context.Canceled) {
-			return nil, app.RolloutStatusFailed, app.ErrTimeout
-		}
-		return nil, app.RolloutStatusFailed, fmt.Errorf("error retrieving deployment: %w", err)
-	}
-
-	stdout := w.OsWriters.Stdout()
-	switch VerifyRevision(deployment, reference, stdout) {
-	case app.RolloutStatusFailed:
-		return deployment, app.RolloutStatusFailed, app.ErrFailed
-	case app.RolloutStatusPending:
-		return deployment, app.RolloutStatusPending, nil
-	}
-
-	status, err := MapRolloutStatus(*deployment)
-	return deployment, status, err
 }

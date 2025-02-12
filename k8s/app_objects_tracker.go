@@ -7,7 +7,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/discovery"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 )
 
@@ -19,8 +19,7 @@ type AppObjectsTracker struct {
 	AppName string
 	Objects map[string]ObjectToTrack
 
-	client     *dynamic.DynamicClient
-	gvrBuilder *GroupVersionResourceBuilder
+	client *dynamic.DynamicClient
 }
 
 type ObjectToTrack struct {
@@ -29,12 +28,11 @@ type ObjectToTrack struct {
 	IsTracking bool
 }
 
-func NewObjectTracker(appName string, client *dynamic.DynamicClient, disc *discovery.DiscoveryClient) *AppObjectsTracker {
+func NewObjectTracker(appName string, client *dynamic.DynamicClient) *AppObjectsTracker {
 	return &AppObjectsTracker{
-		Objects:    make(map[string]ObjectToTrack),
-		AppName:    appName,
-		client:     client,
-		gvrBuilder: &GroupVersionResourceBuilder{Client: disc},
+		Objects: make(map[string]ObjectToTrack),
+		AppName: appName,
+		client:  client,
 	}
 }
 
@@ -43,9 +41,11 @@ func (t *AppObjectsTracker) Load(ctx context.Context, object v1.ObjectReference)
 		return nil
 	}
 
-	gvr, err := t.gvrBuilder.Build(object)
-	if err != nil {
-		return fmt.Errorf("error building group version resource: %w", err)
+	group, version := parseGroupVersion(object.APIVersion)
+	gvr := schema.GroupVersionResource{
+		Group:    group,
+		Version:  version,
+		Resource: object.Name,
 	}
 	resource, err := t.client.Resource(gvr).Namespace(object.Namespace).Get(ctx, object.Name, metav1.GetOptions{})
 	if err != nil {
