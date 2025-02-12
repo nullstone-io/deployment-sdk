@@ -1,4 +1,4 @@
-package gke
+package eks
 
 import (
 	"context"
@@ -22,7 +22,6 @@ func NewDeployer(ctx context.Context, osWriters logging.OsWriters, source output
 	if err != nil {
 		return nil, err
 	}
-	outs.InitializeCreds(source, appDetails.Workspace)
 
 	return Deployer{
 		OsWriters: osWriters,
@@ -40,11 +39,10 @@ type Deployer struct {
 func (d Deployer) Print() {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 	colorstring.Fprintln(stdout, "[bold]Retrieved GKE service outputs")
-	fmt.Fprintf(stdout, "	cluster_endpoint:    %s\n", d.Infra.ClusterNamespace.ClusterEndpoint)
-	fmt.Fprintf(stdout, "	service_namespace:   %s\n", d.Infra.ServiceNamespace)
-	fmt.Fprintf(stdout, "	service_name:        %s\n", d.Infra.ServiceName)
-	fmt.Fprintf(stdout, "	job_definition_name: %s\n", d.Infra.JobDefinitionName)
-	fmt.Fprintf(stdout, "	image_repo_url:      %s\n", d.Infra.ImageRepoUrl)
+	fmt.Fprintf(stdout, "	cluster_endpoint:  %s\n", d.Infra.ClusterNamespace.ClusterEndpoint)
+	fmt.Fprintf(stdout, "	service_namespace: %s\n", d.Infra.ServiceNamespace)
+	fmt.Fprintf(stdout, "	service_name:      %s\n", d.Infra.ServiceName)
+	fmt.Fprintf(stdout, "	image_repo_url:    %s\n", d.Infra.ImageRepoUrl)
 }
 
 func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
@@ -73,7 +71,7 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 func (d Deployer) deployService(ctx context.Context, meta app.DeployMetadata) (string, error) {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 
-	kubeClient, err := CreateKubeClient(ctx, d.Infra.ClusterNamespace, d.Infra.Deployer)
+	kubeClient, err := CreateKubeClient(ctx, d.Infra.Region, d.Infra.ClusterNamespace, d.Infra.Deployer)
 	if err != nil {
 		return "", err
 	}
@@ -112,7 +110,7 @@ func (d Deployer) deployService(ctx context.Context, meta app.DeployMetadata) (s
 func (d Deployer) deployJobTemplate(ctx context.Context, meta app.DeployMetadata) (string, error) {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 
-	kubeClient, err := CreateKubeClient(ctx, d.Infra.ClusterNamespace, d.Infra.Deployer)
+	kubeClient, err := CreateKubeClient(ctx, d.Infra.Region, d.Infra.ClusterNamespace, d.Infra.Deployer)
 	if err != nil {
 		return "", err
 	}
