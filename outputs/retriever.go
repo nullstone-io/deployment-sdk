@@ -157,7 +157,7 @@ func (r *Retriever) GetConnectionWorkspace(ctx context.Context, source *Retrieve
 	conn, err := findConnection(source, connectionName, connectionType, connectionContract)
 	if err != nil {
 		return nil, err
-	} else if conn == nil || conn.Reference == nil {
+	} else if conn == nil || conn.EffectiveTarget == nil {
 		return nil, nil
 	}
 
@@ -166,7 +166,7 @@ func (r *Retriever) GetConnectionWorkspace(ctx context.Context, source *Retrieve
 		BlockId: source.BlockId,
 		EnvId:   source.EnvId,
 	}
-	destTarget := sourceTarget.FindRelativeConnection(*conn.Reference)
+	destTarget := sourceTarget.FindRelativeConnection(*conn.EffectiveTarget)
 
 	workspace, err := r.Source.GetWorkspace(ctx, destTarget.StackId, destTarget.BlockId, destTarget.EnvId)
 	if err != nil {

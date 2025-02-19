@@ -86,32 +86,34 @@ func TestRetriever_Retrieve(t *testing.T) {
 		EnvId:           15,
 		LastFinishedRun: &types.Run{
 			Config: &types.RunConfig{
-				Connections: map[string]types.Connection{
-					"deep": {
-						Connection: config.Connection{
-							Type:     "aws-flat",
-							Optional: false,
+				WorkspaceConfig: types.WorkspaceConfig{
+					Connections: map[string]types.Connection{
+						"deep": {
+							Connection: config.Connection{
+								Type:     "aws-flat",
+								Optional: false,
+							},
+							Target: &types.ConnectionTargetString{ConnectionTarget: types.ConnectionTarget{BlockName: "deep0"}},
+							EffectiveTarget: &types.ConnectionTarget{
+								StackId: 1,
+								BlockId: 5,
+								EnvId:   nil,
+							},
+							Unused: false,
 						},
-						Target: "deep0",
-						Reference: &types.ConnectionTarget{
-							StackId: 1,
-							BlockId: 5,
-							EnvId:   nil,
+						"deep2": {
+							Connection: config.Connection{
+								Contract: "app/aws/flat",
+								Optional: false,
+							},
+							Target: &types.ConnectionTargetString{ConnectionTarget: types.ConnectionTarget{BlockName: "deep2"}},
+							EffectiveTarget: &types.ConnectionTarget{
+								StackId: 1,
+								BlockId: 7,
+								EnvId:   nil,
+							},
+							Unused: false,
 						},
-						Unused: false,
-					},
-					"deep2": {
-						Connection: config.Connection{
-							Contract: "app/aws/flat",
-							Optional: false,
-						},
-						Target: "deep2",
-						Reference: &types.ConnectionTarget{
-							StackId: 1,
-							BlockId: 7,
-							EnvId:   nil,
-						},
-						Unused: false,
 					},
 				},
 			},
