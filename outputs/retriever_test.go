@@ -93,7 +93,7 @@ func TestRetriever_Retrieve(t *testing.T) {
 								Type:     "aws-flat",
 								Optional: false,
 							},
-							Target: &types.ConnectionTargetString{ConnectionTarget: types.ConnectionTarget{BlockName: "deep0"}},
+							DesiredTarget: &types.ConnectionTarget{BlockName: "deep0"},
 							EffectiveTarget: &types.ConnectionTarget{
 								StackId: 1,
 								BlockId: 5,
@@ -106,7 +106,7 @@ func TestRetriever_Retrieve(t *testing.T) {
 								Contract: "app/aws/flat",
 								Optional: false,
 							},
-							Target: &types.ConnectionTargetString{ConnectionTarget: types.ConnectionTarget{BlockName: "deep2"}},
+							DesiredTarget: &types.ConnectionTarget{BlockName: "deep2"},
 							EffectiveTarget: &types.ConnectionTarget{
 								StackId: 1,
 								BlockId: 7,
