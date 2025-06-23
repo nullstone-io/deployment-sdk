@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/nullstone-io/deployment-sdk/workspace"
 	"slices"
+	"sort"
 )
 
 type MappingGroups []MappingGroup
@@ -72,6 +73,14 @@ func (g MappingGroups) BuildMetricQueries(metrics []string, periodSec int32) []t
 			}
 		}
 	}
+	sort.SliceStable(queries, func(i, j int) bool {
+		hasExpr1 := queries[i].Expression != nil
+		hasExpr2 := queries[j].Expression != nil
+		if hasExpr1 == hasExpr2 {
+			return *queries[i].Id < *queries[j].Id
+		}
+		return !hasExpr1
+	})
 	return queries
 }
 
