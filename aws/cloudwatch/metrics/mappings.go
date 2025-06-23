@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/nullstone-io/deployment-sdk/workspace"
+	"regexp"
 	"slices"
 	"sort"
 )
@@ -68,9 +69,17 @@ func (g MappingGroups) BuildMetricQueries(metrics []string, periodSec int32) []t
 		if len(metrics) < 1 || slices.Contains(metrics, grp.Name) {
 			// This Metric Group was specified in the list of requested metrics
 			// Let's build a query and add it
+			grpQueries := make([]types.MetricDataQuery, 0)
+			// metricIdMappings provides a mapping of the original metric id to the generated metric id (e.g. "cpu_reserved" -> "group_0_cpu_reserved")
+			// For queries that are expressions, we will replace the metric id with the generated metric id
+			metricIdMappings := map[string]string{}
 			for id, mapping := range grp.Mappings {
-				queries = append(queries, mapping.ToMetricDateQuery(g.genMetricId(i, id), periodSec))
+				query := mapping.ToMetricDateQuery(g.genMetricId(i, id), periodSec)
+				metricIdMappings[id] = *query.Id
+				grpQueries = append(grpQueries, query)
 			}
+			grpQueries = updateQueryExpressions(grpQueries, metricIdMappings)
+			queries = append(queries, grpQueries...)
 		}
 	}
 	sort.SliceStable(queries, func(i, j int) bool {
@@ -97,4 +106,29 @@ func (g MappingGroups) FindByMetricId(metricId string) (*MappingGroup, string, M
 
 func (g MappingGroups) genMetricId(i int, id string) string {
 	return fmt.Sprintf("group_%d_%s", i, id)
+}
+
+// updateQueryExpressions alters any query expressions so that they use the correct metric id
+// We have to do this because the "id" in our metric queries has a generated prefix
+// We have to prefix the metric id to make each metric query unique to the API call
+func updateQueryExpressions(grpQueries []types.MetricDataQuery, metricIdMappings map[string]string) []types.MetricDataQuery {
+	for j, query := range grpQueries {
+		if query.Expression != nil {
+			modified := replaceExpressionWithGeneratedIds(*query.Expression, metricIdMappings)
+			grpQueries[j].Expression = &modified
+		}
+	}
+	return grpQueries
+}
+
+func replaceExpressionWithGeneratedIds(expr string, metricIdMappings map[string]string) string {
+	result := expr
+	for originalId, generatedId := range metricIdMappings {
+		pattern := fmt.Sprintf(`(^|[^a-zA-Z0-9_])(%s)([^a-zA-Z0-9_]|$)`, regexp.QuoteMeta(originalId))
+		if re, err := regexp.Compile(pattern); err == nil {
+			// We are going to skip any bad regexes, the user must have a bad id anyways
+			result = re.ReplaceAllString(result, fmt.Sprintf("${1}%s${3}", generatedId))
+		}
+	}
+	return result
 }
