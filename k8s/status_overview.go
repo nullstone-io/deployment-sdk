@@ -46,6 +46,7 @@ func AppStatusOverviewReplicaSetFromK8s(rs appsv1.ReplicaSet) AppStatusOverviewR
 		Name:              rs.Name,
 		Revision:          RevisionFromReplicaSet(rs),
 		Generation:        rs.Status.ObservedGeneration,
+		AppVersion:        rs.Labels[StandardVersionLabel],
 		CreatedAt:         rs.CreationTimestamp.Time,
 		DesiredReplicas:   desired,
 		AvailableReplicas: int(rs.Status.AvailableReplicas),
