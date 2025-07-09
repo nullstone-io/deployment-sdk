@@ -77,9 +77,16 @@ func (s Statuser) StatusOverview(ctx context.Context) (app.StatusOverviewResult,
 		return so, nil
 	}
 
+	tagsCache := &ResourceTagsCache{Infra: s.Infra}
 	for _, deployment := range svc.Deployments {
+		appVersion, err := tagsCache.Get(ctx, *deployment.TaskDefinition, VersionTagKey)
+		if err != nil {
+			// NOTE: We're silently ignoring retrieval of app version
+		}
+
 		so.Deployments = append(so.Deployments, StatusOverviewDeployment{
 			Id:                 aws.ToString(deployment.Id),
+			AppVersion:         appVersion,
 			CreatedAt:          aws.ToTime(deployment.CreatedAt),
 			Status:             aws.ToString(deployment.Status),
 			RolloutState:       string(deployment.RolloutState),

@@ -9,10 +9,14 @@ import (
 )
 
 func GetTaskDefinitionTags(ctx context.Context, infra Outputs) ([]ecstypes.Tag, error) {
+	return GetTaskDefinitionTagsByArn(ctx, infra, infra.TaskArn)
+}
+
+func GetTaskDefinitionTagsByArn(ctx context.Context, infra Outputs, taskDefArn string) ([]ecstypes.Tag, error) {
 	ecsClient := ecs.NewFromConfig(nsaws.NewConfig(infra.Deployer, infra.Region))
 
 	out2, err := ecsClient.ListTagsForResource(ctx, &ecs.ListTagsForResourceInput{
-		ResourceArn: aws.String(infra.TaskArn),
+		ResourceArn: aws.String(taskDefArn),
 	})
 	if err != nil {
 		return nil, err
