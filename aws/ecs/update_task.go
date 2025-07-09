@@ -7,7 +7,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/aws"
 )
 
-func UpdateTask(ctx context.Context, infra Outputs, taskDefinition *ecstypes.TaskDefinition, previousTaskDefArn string) (*ecstypes.TaskDefinition, error) {
+func UpdateTask(ctx context.Context, infra Outputs, taskDefinition *ecstypes.TaskDefinition, taskDefTags []ecstypes.Tag, previousTaskDefArn string) (*ecstypes.TaskDefinition, error) {
 	ecsClient := ecs.NewFromConfig(nsaws.NewConfig(infra.Deployer, infra.Region))
 
 	input := &ecs.RegisterTaskDefinitionInput{
@@ -27,6 +27,7 @@ func UpdateTask(ctx context.Context, infra Outputs, taskDefinition *ecstypes.Tas
 		RuntimePlatform:         taskDefinition.RuntimePlatform,
 		TaskRoleArn:             taskDefinition.TaskRoleArn,
 		Volumes:                 taskDefinition.Volumes,
+		Tags:                    taskDefTags,
 	}
 	out, err := ecsClient.RegisterTaskDefinition(ctx, input)
 	if err != nil {

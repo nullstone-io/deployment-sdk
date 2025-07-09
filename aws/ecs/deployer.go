@@ -62,6 +62,12 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 		return "", fmt.Errorf("could not find task definition")
 	}
 
+	taskDefTags, err := GetTaskDefinitionTags(ctx, d.Infra)
+	if err != nil {
+		return "", fmt.Errorf("error retrieving task definition tags: %w", err)
+	}
+	taskDefTags = UpdateTaskDefTagVersion(taskDefTags, meta.Version)
+
 	updatedTaskDef, err := ReplaceTaskImageTag(d.Infra, *taskDef, meta.Version)
 	if err != nil {
 		return "", fmt.Errorf("error updating container version: %w", err)
@@ -69,7 +75,7 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	updatedTaskDef = ReplaceEnvVars(*updatedTaskDef, meta)
 
 	fmt.Fprintf(stdout, "Updating task definition version and environment variables\n")
-	newTaskDef, err := UpdateTask(ctx, d.Infra, updatedTaskDef, *taskDef.TaskDefinitionArn)
+	newTaskDef, err := UpdateTask(ctx, d.Infra, updatedTaskDef, taskDefTags, *taskDef.TaskDefinitionArn)
 	if err != nil {
 		return "", fmt.Errorf("error updating task with new image tag: %w", err)
 	}
