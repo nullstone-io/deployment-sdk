@@ -15,6 +15,7 @@ type AppStatusReplicaSet struct {
 	Name              string    `json:"name"`
 	Revision          int       `json:"revision"`
 	Generation        int64     `json:"generation"`
+	AppVersion        string    `json:"appVersion"`
 	CreatedAt         time.Time `json:"createdAt"`
 	DesiredReplicas   int       `json:"desiredReplicas"`
 	AvailableReplicas int       `json:"availableReplicas"`
@@ -34,6 +35,7 @@ func AppStatusReplicaSetFromK8s(rs appsv1.ReplicaSet) AppStatusReplicaSet {
 		Name:              rs.Name,
 		Revision:          RevisionFromReplicaSet(rs),
 		Generation:        rs.Status.ObservedGeneration,
+		AppVersion:        rs.Labels[StandardVersionLabel],
 		CreatedAt:         rs.CreationTimestamp.Time,
 		DesiredReplicas:   desired,
 		AvailableReplicas: int(rs.Status.AvailableReplicas),
