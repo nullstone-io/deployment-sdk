@@ -1,7 +1,6 @@
 package k8s
 
 import (
-	"fmt"
 	"github.com/nullstone-io/deployment-sdk/app"
 	appsv1 "k8s.io/api/apps/v1"
 	"strconv"
@@ -19,7 +18,7 @@ type AppStatusOverview struct {
 func (a AppStatusOverview) GetDeploymentVersions() []string {
 	refs := make([]string, 0)
 	for _, rs := range a.ReplicaSets {
-		refs = append(refs, fmt.Sprintf("%d", rs.AppVersion))
+		refs = append(refs, rs.AppVersion)
 	}
 	return refs
 }
