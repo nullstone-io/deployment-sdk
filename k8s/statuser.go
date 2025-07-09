@@ -18,7 +18,7 @@ type Statuser struct {
 	NewConfigFn  NewConfiger
 }
 
-func (s Statuser) StatusOverview(ctx context.Context) (any, error) {
+func (s Statuser) StatusOverview(ctx context.Context) (app.StatusOverviewResult, error) {
 	so := AppStatusOverview{ReplicaSets: make([]AppStatusOverviewReplicaSet, 0)}
 	if s.AppName == "" {
 		return so, nil

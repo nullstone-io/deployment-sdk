@@ -10,12 +10,25 @@ import (
 	"time"
 )
 
+var (
+	_ app.StatusOverviewResult = StatusOverview{}
+)
+
 type StatusOverview struct {
 	Deployments []StatusOverviewDeployment `json:"deployments"`
 }
 
+func (s StatusOverview) GetDeploymentVersions() []string {
+	refs := make([]string, 0)
+	for _, d := range s.Deployments {
+		refs = append(refs, d.AppVersion)
+	}
+	return refs
+}
+
 type StatusOverviewDeployment struct {
 	Id                 string    `json:"id"`
+	AppVersion         string    `json:"appVersion"`
 	CreatedAt          time.Time `json:"createdAt"`
 	Status             string    `json:"status"`
 	RolloutState       string    `json:"rolloutState"`
@@ -50,7 +63,7 @@ type Statuser struct {
 	Infra     Outputs
 }
 
-func (s Statuser) StatusOverview(ctx context.Context) (any, error) {
+func (s Statuser) StatusOverview(ctx context.Context) (app.StatusOverviewResult, error) {
 	so := StatusOverview{Deployments: make([]StatusOverviewDeployment, 0)}
 	if s.Infra.ServiceName == "" {
 		// no service name means this is an ecs task and there are no deployments
