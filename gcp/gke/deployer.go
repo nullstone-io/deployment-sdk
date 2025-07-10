@@ -136,6 +136,7 @@ func (d Deployer) deployJobTemplate(ctx context.Context, meta app.DeployMetadata
 }
 
 func (d Deployer) updatePodTemplate(template v1.PodTemplateSpec, meta app.DeployMetadata) (v1.PodTemplateSpec, error) {
+	template.ObjectMeta = k8s.UpdateVersionLabel(template.ObjectMeta, meta.Version)
 	mainContainerIndex, mainContainer := k8s.GetContainerByName(template, d.Infra.MainContainerName)
 	if mainContainerIndex < 0 {
 		return template, fmt.Errorf("cannot find main container %q in spec", d.Infra.MainContainerName)

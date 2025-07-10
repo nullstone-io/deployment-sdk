@@ -40,7 +40,11 @@ type DeployWatcher interface {
 	Watch(ctx context.Context, reference string, isFirstDeploy bool) error
 }
 
+type StatusOverviewResult interface {
+	GetDeploymentVersions() []string
+}
+
 type Statuser interface {
-	StatusOverview(ctx context.Context) (any, error)
+	StatusOverview(ctx context.Context) (StatusOverviewResult, error)
 	Status(ctx context.Context) (any, error)
 }

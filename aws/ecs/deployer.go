@@ -45,7 +45,7 @@ func (d Deployer) Print() {
 //	Deregister old task definition
 //	Update ECS Service (This always causes deployment)
 func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
-	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
+	stdout, stderr := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 	d.Print()
 
 	if meta.Version == "" {
@@ -62,6 +62,16 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 		return "", fmt.Errorf("could not find task definition")
 	}
 
+	taskDefTags, err := GetTaskDefinitionTags(ctx, d.Infra)
+	if err != nil {
+		// As we roll this out, the deployer user doesn't have permission to tag the task definition
+		// If we cannot fetch them, leave tags nil so we don't try to update them
+		fmt.Fprintln(stderr, "task definition tags will be cleared because of an error that occurred retrieving the existing tags:")
+		fmt.Fprintln(stderr, err.Error())
+	} else {
+		taskDefTags = UpdateTaskDefTagVersion(taskDefTags, meta.Version)
+	}
+
 	updatedTaskDef, err := ReplaceTaskImageTag(d.Infra, *taskDef, meta.Version)
 	if err != nil {
 		return "", fmt.Errorf("error updating container version: %w", err)
@@ -69,7 +79,7 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	updatedTaskDef = ReplaceEnvVars(*updatedTaskDef, meta)
 
 	fmt.Fprintf(stdout, "Updating task definition version and environment variables\n")
-	newTaskDef, err := UpdateTask(ctx, d.Infra, updatedTaskDef, *taskDef.TaskDefinitionArn)
+	newTaskDef, err := UpdateTask(ctx, d.Infra, updatedTaskDef, taskDefTags, *taskDef.TaskDefinitionArn)
 	if err != nil {
 		return "", fmt.Errorf("error updating task with new image tag: %w", err)
 	}

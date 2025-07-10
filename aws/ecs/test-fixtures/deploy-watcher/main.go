@@ -75,7 +75,7 @@ func updateTaskDef(ctx context.Context, infra ecs.Outputs, taskDefArn string, fn
 
 	updatedTaskDef := fn(*taskDef)
 
-	newTaskDef, err := ecs.UpdateTask(ctx, infra, &updatedTaskDef, *taskDef.TaskDefinitionArn)
+	newTaskDef, err := ecs.UpdateTask(ctx, infra, &updatedTaskDef, nil, *taskDef.TaskDefinitionArn)
 	if err != nil {
 		log.Fatalln(err)
 	}
