@@ -17,6 +17,13 @@ type ResourceTagsCache struct {
 	cache  map[string]map[string]string
 }
 
+func (c *ResourceTagsCache) init() {
+	c.once.Do(func() {
+		c.client = ecs.NewFromConfig(nsaws.NewConfig(c.Infra.Deployer, c.Infra.Region))
+		c.cache = map[string]map[string]string{}
+	})
+}
+
 func (c *ResourceTagsCache) Get(ctx context.Context, resourceArn string, key string) (string, error) {
 	tags, err := c.GetAll(ctx, resourceArn)
 	if err != nil {
@@ -26,6 +33,7 @@ func (c *ResourceTagsCache) Get(ctx context.Context, resourceArn string, key str
 }
 
 func (c *ResourceTagsCache) GetAll(ctx context.Context, resourceArn string) (map[string]string, error) {
+	c.init()
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -46,10 +54,6 @@ func (c *ResourceTagsCache) GetAll(ctx context.Context, resourceArn string) (map
 }
 
 func (c *ResourceTagsCache) get(ctx context.Context, resourceArn string) ([]ecstypes.Tag, error) {
-	c.once.Do(func() {
-		c.client = ecs.NewFromConfig(nsaws.NewConfig(c.Infra.Deployer, c.Infra.Region))
-	})
-
 	out, err := c.client.ListTagsForResource(ctx, &ecs.ListTagsForResourceInput{
 		ResourceArn: aws.String(resourceArn),
 	})
