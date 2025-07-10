@@ -3,6 +3,7 @@ package ecs
 import (
 	"context"
 	"fmt"
+	ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
@@ -45,7 +46,7 @@ func (d Deployer) Print() {
 //	Deregister old task definition
 //	Update ECS Service (This always causes deployment)
 func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
-	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
+	stdout, stderr := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 	d.Print()
 
 	if meta.Version == "" {
@@ -64,7 +65,11 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 
 	taskDefTags, err := GetTaskDefinitionTags(ctx, d.Infra)
 	if err != nil {
-		return "", fmt.Errorf("error retrieving task definition tags: %w", err)
+		fmt.Fprintln(stderr, "task definition tags will be cleared because of an error that occurred retrieving the existing tags:")
+		fmt.Fprintln(stderr, err.Error())
+	}
+	if taskDefTags == nil {
+		taskDefTags = []ecstypes.Tag{}
 	}
 	taskDefTags = UpdateTaskDefTagVersion(taskDefTags, meta.Version)
 
