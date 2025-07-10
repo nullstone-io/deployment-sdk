@@ -3,7 +3,6 @@ package ecs
 import (
 	"context"
 	"fmt"
-	ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
@@ -65,13 +64,13 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 
 	taskDefTags, err := GetTaskDefinitionTags(ctx, d.Infra)
 	if err != nil {
+		// As we roll this out, the deployer user doesn't have permission to tag the task definition
+		// If we cannot fetch them, leave tags nil so we don't try to update them
 		fmt.Fprintln(stderr, "task definition tags will be cleared because of an error that occurred retrieving the existing tags:")
 		fmt.Fprintln(stderr, err.Error())
+	} else {
+		taskDefTags = UpdateTaskDefTagVersion(taskDefTags, meta.Version)
 	}
-	if taskDefTags == nil {
-		taskDefTags = []ecstypes.Tag{}
-	}
-	taskDefTags = UpdateTaskDefTagVersion(taskDefTags, meta.Version)
 
 	updatedTaskDef, err := ReplaceTaskImageTag(d.Infra, *taskDef, meta.Version)
 	if err != nil {
