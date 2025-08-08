@@ -28,7 +28,7 @@ require (
 	github.com/mattn/go-colorable v0.1.9
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/nullstone-io/module v0.2.9
-	github.com/sethvargo/go-retry v0.2.3
+	github.com/sethvargo/go-retry v0.3.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.10.0
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80
