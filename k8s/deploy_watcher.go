@@ -4,6 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
@@ -12,10 +17,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 )
 
 const (
@@ -157,7 +158,7 @@ func (w *DeployWatcher) monitorDeployment(ctx context.Context, generation int64,
 					Object:    fmt.Sprintf("deployment/%s", deployment.Name),
 					Message:   msg,
 				}.String())
-				return fmt.Errorf(msg)
+				return fmt.Errorf("%s", msg)
 			}
 		}
 
