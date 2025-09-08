@@ -22,10 +22,10 @@ require (
 	github.com/aws/smithy-go v1.20.1
 	github.com/docker/cli v27.5.1+incompatible
 	github.com/docker/docker v28.4.0+incompatible
-	github.com/fatih/color v1.13.0
+	github.com/fatih/color v1.18.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
-	github.com/mattn/go-colorable v0.1.9
+	github.com/mattn/go-colorable v0.1.13
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/nullstone-io/module v0.2.9
 	github.com/sethvargo/go-retry v0.3.0
@@ -122,7 +122,7 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/miekg/pkcs11 v1.0.3 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
