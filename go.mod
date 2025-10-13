@@ -33,7 +33,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80
 	github.com/vmihailenco/tagparser v0.1.2
-	golang.org/x/oauth2 v0.30.0
+	golang.org/x/oauth2 v0.32.0
 	golang.org/x/sync v0.16.0
 	google.golang.org/api v0.218.0
 	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20250709154356-cb9244d88756
