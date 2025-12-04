@@ -20,6 +20,14 @@ func NewJobsClient(ctx context.Context, account gcp.ServiceAccount) (*run.JobsCl
 	return run.NewJobsClient(ctx, option.WithTokenSource(tokenSource))
 }
 
+func NewExecutionsClient(ctx context.Context, account gcp.ServiceAccount) (*run.ExecutionsClient, error) {
+	tokenSource, err := account.TokenSource(ctx, GcpScopes...)
+	if err != nil {
+		return nil, err
+	}
+	return run.NewExecutionsClient(ctx, option.WithTokenSource(tokenSource))
+}
+
 func NewServicesClient(ctx context.Context, account gcp.ServiceAccount) (*run.ServicesClient, error) {
 	tokenSource, err := account.TokenSource(ctx, GcpScopes...)
 	if err != nil {
