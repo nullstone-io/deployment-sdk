@@ -19,7 +19,7 @@ var Provider = app.Provider{
 	CanDeployImmediate: false,
 	NewPusher:          gar.NewPusher,
 	NewDeployer:        cloudrun.NewDeployer,
-	//NewDeployWatcher:   cloudrun.NewDeployWatcher,
+	NewDeployWatcher:   cloudrun.NewDeployWatcher,
 	//NewStatuser:        cloudrun.NewStatuser,
 	//NewLogStreamer:     cloudrun.NewLogStreamer,
 }
