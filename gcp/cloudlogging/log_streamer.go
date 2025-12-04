@@ -1,21 +1,22 @@
 package cloudlogging
 
 import (
-	gcplogging "cloud.google.com/go/logging"
-	"cloud.google.com/go/logging/logadmin"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"os"
+	"strings"
+	"time"
+
+	gcplogging "cloud.google.com/go/logging"
+	"cloud.google.com/go/logging/logadmin"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
-	"log"
-	"os"
-	"strings"
-	"time"
 )
 
 var (
@@ -25,7 +26,6 @@ var (
 	}
 )
 
-// FIXME: This log streamer hasn't been tested yet
 func NewLogStreamer(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.LogStreamer, error) {
 	outs, err := outputs.Retrieve[Outputs](ctx, source, appDetails.Workspace, appDetails.WorkspaceConfig)
 	if err != nil {
