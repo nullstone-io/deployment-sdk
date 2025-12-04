@@ -21,6 +21,6 @@ var Provider = app.Provider{
 	NewPusher:          gar.NewPusher,
 	NewDeployer:        cloudrun.NewDeployer,
 	NewDeployWatcher:   cloudrun.NewDeployWatcher,
-	//NewStatuser:        cloudrun.NewStatuser,
-	NewLogStreamer: cloudlogging.NewLogStreamer,
+	NewStatuser:        cloudrun.NewStatuser,
+	NewLogStreamer:     cloudlogging.NewLogStreamer,
 }
