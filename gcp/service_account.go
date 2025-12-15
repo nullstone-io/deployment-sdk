@@ -4,14 +4,16 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+
 	"github.com/nullstone-io/deployment-sdk/gcp/creds"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
 
 type ServiceAccount struct {
-	Email      string `json:"email"`
-	PrivateKey string `json:"private_key"`
+	Email       string `json:"email"`
+	PrivateKey  string `json:"private_key,optional"`
+	Impersonate bool   `json:"impersonate,optional"`
 
 	RemoteTokenSourcer creds.TokenSourcer `json:"-"`
 }

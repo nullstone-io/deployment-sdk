@@ -3,6 +3,8 @@ package gar
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	dockerregistry "github.com/docker/docker/api/types/registry"
 	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
@@ -12,7 +14,6 @@ import (
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
-	"strings"
 )
 
 var (
@@ -118,8 +119,8 @@ func (p Pusher) validate(targetUrl docker.ImageUrl) error {
 	}
 	// NOTE: For now, we are assuming that the production docker image is hosted in GAR or GCR
 	// This will likely need to be refactored to support pushing to other image registries
-	if p.Infra.ImagePusher.PrivateKey == "" {
-		return fmt.Errorf("cannot push without an authorized user, make sure 'image_pusher' output is not empty")
+	if p.Infra.ImagePusher.PrivateKey == "" && !p.Infra.ImagePusher.Impersonate {
+		return fmt.Errorf("cannot push without an authorized user, make sure 'image_pusher' has 'private_key' or 'impersonate=true' in output")
 	}
 
 	return nil
