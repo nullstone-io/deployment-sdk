@@ -4,11 +4,15 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	dockerregistry "github.com/docker/docker/api/types/registry"
 	"github.com/mitchellh/colorstring"
+	"github.com/moby/moby/client"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/aws"
 	"github.com/nullstone-io/deployment-sdk/aws/creds"
@@ -16,8 +20,6 @@ import (
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
-	"strings"
-	"time"
 )
 
 type Outputs struct {
@@ -82,7 +84,8 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 	}
 
 	fmt.Fprintf(stdout, "Retagging source image %s => %s\n", sourceUrl, targetUrl)
-	if err := dockerCli.Client().ImageTag(ctx, sourceUrl.String(), targetUrl.String()); err != nil {
+	opts := client.ImageTagOptions{Source: sourceUrl.String(), Target: targetUrl.String()}
+	if _, err := dockerCli.Client().ImageTag(ctx, opts); err != nil {
 		return fmt.Errorf("error retagging image: %w", err)
 	}
 
