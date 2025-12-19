@@ -7,6 +7,7 @@ import (
 
 	dockerregistry "github.com/docker/docker/api/types/registry"
 	"github.com/mitchellh/colorstring"
+	"github.com/moby/moby/client"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/docker"
 	"github.com/nullstone-io/deployment-sdk/gcp"
@@ -80,7 +81,8 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 	}
 
 	fmt.Fprintf(stdout, "Retagging source image %s => %s\n", sourceUrl, targetUrl)
-	if err := dockerCli.Client().ImageTag(ctx, sourceUrl.String(), targetUrl.String()); err != nil {
+	opts := client.ImageTagOptions{Source: sourceUrl.String(), Target: targetUrl.String()}
+	if _, err := dockerCli.Client().ImageTag(ctx, opts); err != nil {
 		return fmt.Errorf("error retagging image: %w", err)
 	}
 
