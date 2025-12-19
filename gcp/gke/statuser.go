@@ -2,6 +2,7 @@ package gke
 
 import (
 	"context"
+
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/k8s"
 	"github.com/nullstone-io/deployment-sdk/logging"
@@ -14,6 +15,7 @@ func NewStatuser(ctx context.Context, osWriters logging.OsWriters, source output
 	if err != nil {
 		return nil, err
 	}
+	outs.InitializeCreds(source, appDetails.Workspace)
 
 	return k8s.Statuser{
 		OsWriters:    osWriters,
