@@ -1,21 +1,22 @@
 package cloudlogging
 
 import (
-	gcplogging "cloud.google.com/go/logging"
-	"cloud.google.com/go/logging/logadmin"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"os"
+	"strings"
+	"time"
+
+	gcplogging "cloud.google.com/go/logging"
+	"cloud.google.com/go/logging/logadmin"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
-	"log"
-	"os"
-	"strings"
-	"time"
 )
 
 var (
@@ -25,7 +26,6 @@ var (
 	}
 )
 
-// FIXME: This log streamer hasn't been tested yet
 func NewLogStreamer(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.LogStreamer, error) {
 	outs, err := outputs.Retrieve[Outputs](ctx, source, appDetails.Workspace, appDetails.WorkspaceConfig)
 	if err != nil {
@@ -92,6 +92,7 @@ func (s LogStreamer) Stream(ctx context.Context, options app.LogStreamOptions) e
 
 func (s LogStreamer) writeLatestEventsFunc(filter string, options app.LogStreamOptions) func(ctx context.Context, client *logadmin.Client) error {
 	startTime := options.StartTime
+	selector := options.Selector
 	var lastEventTime *time.Time
 	visitedSpans := map[string]bool{}
 
@@ -99,7 +100,7 @@ func (s LogStreamer) writeLatestEventsFunc(filter string, options app.LogStreamO
 		if lastEventTime != nil {
 			startTime = lastEventTime
 		}
-		it := client.Entries(ctx, logadmin.Filter(buildFilter(filter, startTime, options.EndTime)))
+		it := client.Entries(ctx, logadmin.Filter(buildFilter(filter, selector, startTime, options.EndTime)))
 		for {
 			select {
 			case <-ctx.Done():
@@ -124,8 +125,11 @@ func (s LogStreamer) writeLatestEventsFunc(filter string, options app.LogStreamO
 	}
 }
 
-func buildFilter(initialFilter string, startTime *time.Time, endTime *time.Time) string {
+func buildFilter(initialFilter string, selector *string, startTime *time.Time, endTime *time.Time) string {
 	filters := []string{fmt.Sprintf("(%s)", initialFilter)}
+	if selector != nil {
+		filters = append(filters, *selector)
+	}
 	if startTime != nil {
 		filters = append(filters, fmt.Sprintf("timestamp >= %q", startTime.Format(time.RFC3339)))
 	}
