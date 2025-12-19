@@ -7,10 +7,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
+
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"github.com/nullstone-io/deployment-sdk/workspace"
-	"sync"
 )
 
 var (
@@ -26,6 +27,7 @@ func NewGetter(ctx context.Context, osWriters logging.OsWriters, source outputs.
 	if err != nil {
 		return nil, err
 	}
+	outs.InitializeCreds(source, blockDetails.Workspace)
 
 	return Getter{
 		OsWriters: osWriters,
