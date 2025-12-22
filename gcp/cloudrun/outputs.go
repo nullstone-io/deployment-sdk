@@ -10,6 +10,7 @@ import (
 
 type Outputs struct {
 	ServiceName       string             `ns:"service_name,optional"`
+	JobId             string             `ns:"job_id,optional"`
 	JobName           string             `ns:"job_name,optional"`
 	ImageRepoUrl      docker.ImageUrl    `ns:"image_repo_url,optional"`
 	Deployer          gcp.ServiceAccount `ns:"deployer"`

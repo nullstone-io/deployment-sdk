@@ -36,9 +36,9 @@ type Deployer struct {
 func (d Deployer) Print() {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 	colorstring.Fprintln(stdout, "[bold]Retrieved Cloud Run service outputs")
-	fmt.Fprintf(stdout, "\tservice_name:    %s\n", d.Infra.ServiceName)
-	fmt.Fprintf(stdout, "\tjob_name:        %s\n", d.Infra.JobName)
-	fmt.Fprintf(stdout, "\timage_repo_url:  %s\n", d.Infra.ImageRepoUrl)
+	fmt.Fprintf(stdout, "\tservice_name:   %s\n", d.Infra.ServiceName)
+	fmt.Fprintf(stdout, "\tjob_id:         %s\n", d.Infra.JobId)
+	fmt.Fprintf(stdout, "\timage_repo_url: %s\n", d.Infra.ImageRepoUrl)
 }
 
 func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
@@ -53,7 +53,7 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	fmt.Fprintf(stdout, "Deploying app %q\n", d.Details.App.Name)
 	if d.Infra.ServiceName != "" {
 		return d.deployService(ctx, meta)
-	} else if d.Infra.JobName != "" {
+	} else if d.Infra.JobId != "" {
 		return d.deployJob(ctx, meta)
 	} else {
 		fmt.Fprintf(stdout, "No service_name or job_name in app module. Skipping deployment.\n")
@@ -100,11 +100,11 @@ func (d Deployer) deployJob(ctx context.Context, meta app.DeployMetadata) (strin
 		return "", err
 	}
 
-	job, err := client.GetJob(ctx, &runpb.GetJobRequest{Name: d.Infra.JobName})
+	job, err := client.GetJob(ctx, &runpb.GetJobRequest{Name: d.Infra.JobId})
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error retrieving job definition: %w", err)
 	} else if job == nil {
-		return "", fmt.Errorf("cloud run job %q not found", d.Infra.JobName)
+		return "", fmt.Errorf("cloud run job %q not found", d.Infra.JobId)
 	}
 
 	mainContainerIndex, mainContainer := GetContainerByName(job.Template.Template.Containers, d.Infra.MainContainerName)
@@ -118,7 +118,7 @@ func (d Deployer) deployJob(ctx context.Context, meta app.DeployMetadata) (strin
 	fmt.Fprintf(stdout, "Updating job with new application version (%s) and environment variables...\n", meta.Version)
 	op, err := client.UpdateJob(ctx, &runpb.UpdateJobRequest{Job: job})
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error updating job definition: %w", err)
 	}
 	return op.Name(), nil
 }
