@@ -124,9 +124,11 @@ func (s *WorkloadLogStreamer) Stream(ctx context.Context) error {
 			}
 
 			switch event.Type {
-			case watch.Added, watch.Modified:
-				if pod.Status.Phase == corev1.PodRunning {
-					s.addPod(ctx, pod, cfg)
+			case watch.Added:
+				s.addPod(ctx, pod, cfg)
+			case watch.Modified:
+				if pod.Status.Phase == corev1.PodFailed || pod.Status.Phase == corev1.PodSucceeded {
+					s.removePod(pod.Name)
 				}
 			case watch.Deleted:
 				s.removePod(pod.Name)
