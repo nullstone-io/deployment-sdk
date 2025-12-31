@@ -3,12 +3,16 @@ package k8s
 import (
 	"context"
 	"fmt"
+
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
+
+type NewConfiger func(ctx context.Context) (*rest.Config, error)
 
 type Statuser struct {
 	OsWriters    logging.OsWriters

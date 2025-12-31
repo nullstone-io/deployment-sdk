@@ -1,4 +1,4 @@
-package k8s
+package logs
 
 import (
 	"k8s.io/apimachinery/pkg/api/meta"

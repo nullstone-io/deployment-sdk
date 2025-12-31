@@ -2,33 +2,37 @@ package k8s
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/nullstone-io/deployment-sdk/app"
+	"github.com/nullstone-io/deployment-sdk/k8s/logs"
 	"github.com/nullstone-io/deployment-sdk/logging"
-	"k8s.io/client-go/rest"
 )
-
-type NewConfiger func(ctx context.Context) (*rest.Config, error)
 
 type LogStreamer struct {
 	OsWriters    logging.OsWriters
 	Details      app.Details
 	AppNamespace string
 	AppName      string
-	NewConfigFn  NewConfiger
+	NewConfigFn  logs.NewConfiger
 }
 
 func (l LogStreamer) Stream(ctx context.Context, options app.LogStreamOptions) error {
 	if options.Emitter == nil {
 		options.Emitter = app.NewWriterLogEmitter(os.Stdout)
 	}
-
-	streamer := NewWorkloadLogStreamer(l.NewConfigFn, options, l.AppNamespace, l.AppName)
-	streamer.IsDebugEnabled = options.IsDebugEnabled
-	if err := streamer.Stream(ctx); err != nil {
-		return err
+	selector := fmt.Sprintf("nullstone.io/app=%s", l.AppName)
+	if options.Selector != nil && *options.Selector != "" {
+		selector = *options.Selector
 	}
 
-	return nil
+	streamer := logs.WorkloadStreamer{
+		Namespace:    l.AppNamespace,
+		WorkloadName: l.AppName,
+		NewConfigFn:  l.NewConfigFn,
+		Options:      options,
+		Selector:     selector,
+	}
+	return streamer.Stream(ctx)
 }

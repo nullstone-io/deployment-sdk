@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/nullstone-io/deployment-sdk/display"
@@ -44,7 +45,7 @@ type LogStreamOptions struct {
 	// Specify 0 to skip flushing logs
 	StopFlushTimeout *time.Duration
 
-	IsDebugEnabled bool
+	DebugLogger *log.Logger
 }
 
 func (o LogStreamOptions) QueryTimeMessage() string {
