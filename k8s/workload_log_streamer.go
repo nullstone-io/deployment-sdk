@@ -16,7 +16,9 @@ import (
 )
 
 var (
-	getPodTimeout = 20 * time.Second
+	getPodTimeout             = 20 * time.Second
+	defaultCancelFlushTimeout = 0 * time.Millisecond
+	defaultStopFlushTimeout   = 250 * time.Millisecond
 )
 
 func NewWorkloadLogStreamer(newConfigFn NewConfiger, options app.LogStreamOptions, namespace, name string) *WorkloadLogStreamer {
@@ -25,13 +27,23 @@ func NewWorkloadLogStreamer(newConfigFn NewConfiger, options app.LogStreamOption
 		selector = *options.Selector
 	}
 
+	cancelFlushTimeout, stopFlushTimeout := defaultCancelFlushTimeout, defaultStopFlushTimeout
+	if options.CancelFlushTimeout != nil {
+		cancelFlushTimeout = *options.CancelFlushTimeout
+	}
+	if options.StopFlushTimeout != nil {
+		stopFlushTimeout = *options.StopFlushTimeout
+	}
+
 	return &WorkloadLogStreamer{
-		NewConfigFn:   newConfigFn,
-		Selector:      selector,
-		Emitter:       options.Emitter,
-		PodLogOptions: NewPodLogOptions(options),
-		Namespace:     namespace,
-		Name:          name,
+		NewConfigFn:        newConfigFn,
+		Selector:           selector,
+		Emitter:            options.Emitter,
+		PodLogOptions:      NewPodLogOptions(options),
+		CancelFlushTimeout: cancelFlushTimeout,
+		StopFlushTimeout:   stopFlushTimeout,
+		Namespace:          namespace,
+		Name:               name,
 
 		streamers: map[string]*PodLogStreamer{},
 	}
@@ -44,8 +56,14 @@ type WorkloadLogStreamer struct {
 	Selector      string
 	Emitter       app.LogEmitter
 	PodLogOptions *corev1.PodLogOptions
-	Namespace     string
-	Name          string
+	// CancelFlushTimeout provides a way to configure how long to wait when flushing logs after a cancellation
+	// This occurs when the user cancels or when a runner is done
+	CancelFlushTimeout time.Duration
+	// StopFlushTimeout provides a way to configure how long to wait when flushing logs after a stop
+	// This occurs when a pod stops
+	StopFlushTimeout time.Duration
+	Namespace        string
+	Name             string
 
 	mu        sync.Mutex
 	streamers map[string]*PodLogStreamer
@@ -116,7 +134,7 @@ func (s *WorkloadLogStreamer) addPod(ctx context.Context, pod *corev1.Pod, cfg *
 	if err != nil || len(requests) == 0 {
 		return
 	}
-	streamer := NewPodLogStreamer(s.Namespace, s.Name, pod.Name, requests)
+	streamer := NewPodLogStreamer(s.Namespace, s.Name, pod.Name, requests, s.CancelFlushTimeout, s.StopFlushTimeout)
 	s.streamers[pod.Name] = streamer
 	go streamer.Stream(ctx, &SimpleLogBuffer{Emitter: s.Emitter})
 }
