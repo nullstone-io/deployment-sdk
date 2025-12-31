@@ -51,6 +51,7 @@ type PodLogStreamer struct {
 
 func (s *PodLogStreamer) Stream(ctx context.Context, buffer LogBuffer) {
 	defer s.Stop()
+	s.debug(fmt.Sprintf("Starting log streamer for pod %q", s.PodName))
 
 	var wg sync.WaitGroup
 
@@ -97,9 +98,11 @@ func (s *PodLogStreamer) streamContainerLogs(ctx context.Context, ref corev1.Obj
 	for {
 		select {
 		case <-ctx.Done():
+			s.debug(fmt.Sprintf("Canceling log streamer for %s/%s", podName, containerName))
 			s.drainContainerLogs(podName, containerName, request, writer, s.CancelFlushTimeout)
 			return
 		case <-s.stopCh:
+			s.debug(fmt.Sprintf("Stopping log streamer for pod %q", podName))
 			s.drainContainerLogs(podName, containerName, request, writer, s.StopFlushTimeout)
 			return
 		default:
