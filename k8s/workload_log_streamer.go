@@ -65,6 +65,8 @@ type WorkloadLogStreamer struct {
 	Namespace        string
 	Name             string
 
+	IsDebugEnabled bool
+
 	mu        sync.Mutex
 	streamers map[string]*PodLogStreamer
 }
@@ -135,6 +137,7 @@ func (s *WorkloadLogStreamer) addPod(ctx context.Context, pod *corev1.Pod, cfg *
 		return
 	}
 	streamer := NewPodLogStreamer(s.Namespace, s.Name, pod.Name, requests, s.CancelFlushTimeout, s.StopFlushTimeout)
+	streamer.IsDebugEnabled = s.IsDebugEnabled
 	s.streamers[pod.Name] = streamer
 	go streamer.Stream(ctx, &SimpleLogBuffer{Emitter: s.Emitter})
 }

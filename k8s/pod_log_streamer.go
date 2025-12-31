@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -42,6 +43,8 @@ type PodLogStreamer struct {
 	// This occurs when a pod stops
 	StopFlushTimeout time.Duration
 
+	IsDebugEnabled bool
+
 	mu     sync.Mutex
 	stopCh chan struct{}
 }
@@ -77,13 +80,14 @@ func (s *PodLogStreamer) Stop() {
 }
 
 func (s *PodLogStreamer) streamContainerLogs(ctx context.Context, ref corev1.ObjectReference, request rest.ResponseWrapper, buffer LogBuffer) {
+	podName, containerName := s.parseRef(ref)
+
 	readCloser, err := request.Stream(ctx)
 	if err != nil {
+		s.debug(fmt.Sprintf("Failed to open container logs for %s/%s: %s\n", podName, containerName, err))
 		return
 	}
 	defer readCloser.Close()
-
-	podName, containerName := s.parseRef(ref)
 
 	writer := buffer.NewWriter(fmt.Sprintf("%s/%s", podName, containerName))
 	defer writer.Close()
@@ -108,6 +112,7 @@ func (s *PodLogStreamer) streamContainerLogs(ctx context.Context, ref corev1.Obj
 				if readErr != io.EOF {
 					// Log the error if needed
 				}
+				s.debug(fmt.Sprintf("Failed to read container logs for %s/%s: %s\n", podName, containerName, err))
 				return
 			}
 		}
@@ -126,6 +131,7 @@ func (s *PodLogStreamer) drainContainerLogs(podName, containerName string, reque
 	readCloser, err := request.Stream(ctx)
 	if err != nil {
 		// ignore failed attempts to stream logs, we're done
+		s.debug(fmt.Sprintf("Failed to open container logs during drain for %s/%s: %s\n", podName, containerName, err))
 		return
 	}
 	defer readCloser.Close()
@@ -140,6 +146,7 @@ func (s *PodLogStreamer) drainContainerLogs(podName, containerName string, reque
 		}
 		if readErr != nil {
 			// any error stops draining the logs, including io.EOF error
+			s.debug(fmt.Sprintf("Failed to read container logs during drain for %s/%s: %s\n", podName, containerName, err))
 			return
 		}
 	}
@@ -160,4 +167,10 @@ func (s *PodLogStreamer) parseRef(ref corev1.ObjectReference) (string, string) {
 	}
 
 	return ref.Name, containerName
+}
+
+func (s *PodLogStreamer) debug(msg string) {
+	if s.IsDebugEnabled {
+		fmt.Fprintf(os.Stderr, "[debug] %s", msg)
+	}
 }

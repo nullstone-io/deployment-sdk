@@ -25,6 +25,7 @@ func (l LogStreamer) Stream(ctx context.Context, options app.LogStreamOptions) e
 	}
 
 	streamer := NewWorkloadLogStreamer(l.NewConfigFn, options, l.AppNamespace, l.AppName)
+	streamer.IsDebugEnabled = options.IsDebugEnabled
 	if err := streamer.Stream(ctx); err != nil {
 		return err
 	}

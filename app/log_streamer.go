@@ -43,6 +43,8 @@ type LogStreamOptions struct {
 	// This is currently supported for Kubernetes only
 	// Specify 0 to skip flushing logs
 	StopFlushTimeout *time.Duration
+
+	IsDebugEnabled bool
 }
 
 func (o LogStreamOptions) QueryTimeMessage() string {
