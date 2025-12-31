@@ -75,6 +75,51 @@ type WorkloadLogStreamer struct {
 // This watches for pods entering/exiting and starts/stops streaming logs for each
 // This terminates when the input context is canceled
 func (s *WorkloadLogStreamer) Stream(ctx context.Context) error {
+	// Create a channel that we close when we're done watching pod events
+	// This allows us to delay by CancelFlushTimeout after a user cancels
+	stopWatchingCh := make(chan struct{})
+	defer close(stopWatchingCh)
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			if s.CancelFlushTimeout > 0 {
+				// Wait for the cancel flush timeout before stopping
+				time.Sleep(s.CancelFlushTimeout)
+			}
+			close(stopWatchingCh)
+		case <-stopWatchingCh:
+			// stopWatchingCh was closed by the defer, do nothing
+		}
+	}()
+
+	newStreamCh := make(chan *PodLogStreamer)
+	var podWg sync.WaitGroup
+	go func() {
+		for streamer := range newStreamCh {
+			podWg.Add(1)
+			go func(streamer *PodLogStreamer) {
+				defer podWg.Done()
+				streamer.Stream(ctx, &SimpleLogBuffer{Emitter: s.Emitter})
+			}(streamer)
+		}
+	}()
+
+	if err := s.watchPods(ctx, newStreamCh, stopWatchingCh); err != nil {
+		return err
+	}
+
+	podWg.Wait()
+	return nil
+}
+
+func (s *WorkloadLogStreamer) newInitError(msg string, err error) app.LogInitError {
+	return app.NewLogInitError("k8s", fmt.Sprintf("%s/%s", s.Namespace, s.Name), msg, err)
+}
+
+func (s *WorkloadLogStreamer) watchPods(ctx context.Context, newStreamCh chan *PodLogStreamer, stopWatching <-chan struct{}) error {
+	defer close(newStreamCh)
+
 	cfg, err := s.NewConfigFn(ctx)
 	if err != nil {
 		return s.newInitError("There was an error creating kubernetes client", err)
@@ -92,26 +137,9 @@ func (s *WorkloadLogStreamer) Stream(ctx context.Context) error {
 	}
 	defer watcher.Stop()
 
-	// Create a channel that we close when we're done watching pod events
-	// This allows us to delay by CancelFlushTimeout after a user cancels
-	stopWatching := make(chan struct{})
-	defer close(stopWatching)
-
-	go func() {
-		select {
-		case <-ctx.Done():
-			if s.CancelFlushTimeout > 0 {
-				// Wait for the cancel flush timeout before stopping
-				time.Sleep(s.CancelFlushTimeout)
-			}
-			close(stopWatching)
-		case <-stopWatching:
-			// stopWatching was closed by the defer, do nothing
-		}
-	}()
-
 	// Watch for change in pods
 	// When pods are added, we start streaming logs immediately
+
 	for {
 		select {
 		case event, ok := <-watcher.ResultChan():
@@ -125,7 +153,7 @@ func (s *WorkloadLogStreamer) Stream(ctx context.Context) error {
 
 			switch event.Type {
 			case watch.Added:
-				s.addPod(ctx, pod, cfg)
+				s.addPod(pod, cfg, newStreamCh)
 			case watch.Modified:
 				if pod.Status.Phase == corev1.PodFailed || pod.Status.Phase == corev1.PodSucceeded {
 					s.removePod(pod.Name)
@@ -139,11 +167,7 @@ func (s *WorkloadLogStreamer) Stream(ctx context.Context) error {
 	}
 }
 
-func (s *WorkloadLogStreamer) newInitError(msg string, err error) app.LogInitError {
-	return app.NewLogInitError("k8s", fmt.Sprintf("%s/%s", s.Namespace, s.Name), msg, err)
-}
-
-func (s *WorkloadLogStreamer) addPod(ctx context.Context, pod *corev1.Pod, cfg *rest.Config) {
+func (s *WorkloadLogStreamer) addPod(pod *corev1.Pod, cfg *rest.Config, newStreamCh chan *PodLogStreamer) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -159,7 +183,7 @@ func (s *WorkloadLogStreamer) addPod(ctx context.Context, pod *corev1.Pod, cfg *
 	streamer := NewPodLogStreamer(s.Namespace, s.Name, pod.Name, requests, s.CancelFlushTimeout, s.StopFlushTimeout)
 	streamer.IsDebugEnabled = s.IsDebugEnabled
 	s.streamers[pod.Name] = streamer
-	go streamer.Stream(ctx, &SimpleLogBuffer{Emitter: s.Emitter})
+	newStreamCh <- streamer
 }
 
 func (s *WorkloadLogStreamer) removePod(podName string) {
