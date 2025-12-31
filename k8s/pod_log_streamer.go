@@ -83,7 +83,7 @@ func (s *PodLogStreamer) Stop() {
 func (s *PodLogStreamer) streamContainerLogs(ctx context.Context, ref corev1.ObjectReference, request rest.ResponseWrapper, buffer LogBuffer) {
 	podName, containerName := s.parseRef(ref)
 
-	readCloser, err := request.Stream(ctx)
+	readCloser, err := s.startInitialStream(ctx, request, podName, containerName)
 	if err != nil {
 		s.debug(fmt.Sprintf("Failed to open container logs for %s/%s: %s\n", podName, containerName, err))
 		return
@@ -113,12 +113,25 @@ func (s *PodLogStreamer) streamContainerLogs(ctx context.Context, ref corev1.Obj
 			}
 			if readErr != nil {
 				if readErr != io.EOF {
-					// Log the error if needed
+					s.debug(fmt.Sprintf("Failed to read container logs for %s/%s: %s\n", podName, containerName, readErr))
 				}
-				s.debug(fmt.Sprintf("Failed to read container logs for %s/%s: %s\n", podName, containerName, err))
 				return
 			}
 		}
+	}
+}
+
+func (s *PodLogStreamer) startInitialStream(ctx context.Context, request rest.ResponseWrapper, podName, containerName string) (io.ReadCloser, error) {
+	for {
+		stream, err := request.Stream(ctx)
+		if err != nil {
+			// Continue requesting log stream if ContainerCreating
+			if strings.Contains(err.Error(), "ContainerCreating") {
+				continue
+			}
+			return nil, err
+		}
+		return stream, nil
 	}
 }
 
@@ -174,6 +187,6 @@ func (s *PodLogStreamer) parseRef(ref corev1.ObjectReference) (string, string) {
 
 func (s *PodLogStreamer) debug(msg string) {
 	if s.IsDebugEnabled {
-		fmt.Fprintf(os.Stderr, "[debug] %s", msg)
+		fmt.Fprintf(os.Stderr, "[debug] %s\n", msg)
 	}
 }
