@@ -92,6 +92,24 @@ func (s *WorkloadLogStreamer) Stream(ctx context.Context) error {
 	}
 	defer watcher.Stop()
 
+	// Create a channel that we close when we're done watching pod events
+	// This allows us to delay by CancelFlushTimeout after a user cancels
+	stopWatching := make(chan struct{})
+	defer close(stopWatching)
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			if s.CancelFlushTimeout > 0 {
+				// Wait for the cancel flush timeout before stopping
+				time.Sleep(s.CancelFlushTimeout)
+			}
+			close(stopWatching)
+		case <-stopWatching:
+			// stopWatching was closed by the defer, do nothing
+		}
+	}()
+
 	// Watch for change in pods
 	// When pods are added, we start streaming logs immediately
 	for {
@@ -113,7 +131,7 @@ func (s *WorkloadLogStreamer) Stream(ctx context.Context) error {
 			case watch.Deleted:
 				s.removePod(pod.Name)
 			}
-		case <-ctx.Done():
+		case <-stopWatching:
 			return nil
 		}
 	}
