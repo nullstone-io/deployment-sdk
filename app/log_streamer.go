@@ -3,8 +3,10 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/nullstone-io/deployment-sdk/display"
+	"log"
 	"time"
+
+	"github.com/nullstone-io/deployment-sdk/display"
 )
 
 type LogStreamer interface {
@@ -31,6 +33,19 @@ type LogStreamOptions struct {
 	WatchInterval time.Duration
 
 	Emitter LogEmitter
+
+	// CancelFlushTimeout provides a way to configure how long to wait when flushing logs after a cancellation
+	// This occurs when the user cancels or when a runner is done
+	// This is currently supported for Kubernetes only
+	// Specify 0 to skip flushing logs
+	CancelFlushTimeout *time.Duration
+	// StopFlushTimeout provides a way to configure how long to wait when flushing logs after a stop
+	// This occurs when a pod stops
+	// This is currently supported for Kubernetes only
+	// Specify 0 to skip flushing logs
+	StopFlushTimeout *time.Duration
+
+	DebugLogger *log.Logger
 }
 
 func (o LogStreamOptions) QueryTimeMessage() string {

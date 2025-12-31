@@ -1,13 +1,14 @@
-package k8s
+package logs
 
 import (
 	"fmt"
-	"github.com/nullstone-io/deployment-sdk/app"
 	"strings"
 	"time"
+
+	"github.com/nullstone-io/deployment-sdk/app"
 )
 
-func LogMessageFromLine(appNamespace, appName, podName, containerName, line string) app.LogMessage {
+func MessageFromLine(appNamespace, appName, podName, containerName, line string) app.LogMessage {
 	var ts time.Time
 	timestamp, remaining := cutTimestampPrefix(line)
 	if timestamp != nil {
