@@ -19,7 +19,7 @@ var Provider = app.Provider{
 	CanDeployImmediate: true,
 	NewPusher:          gcs.NewZipPusher,
 	NewDeployer:        cloudfunctions.NewDeployer,
-	NewDeployWatcher:   nil, //TODO: cloudfunctions.NewDeployWatcher,
+	NewDeployWatcher:   cloudfunctions.NewDeployWatcher,
 	NewStatuser:        nil,
 	NewLogStreamer:     nil, //TODO: Implement cloudlogging.NewLogStreamer,
 }
