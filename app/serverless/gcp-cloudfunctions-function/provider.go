@@ -3,6 +3,7 @@ package gcp_cloudfunctions_function
 import (
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/gcp/cloudfunctions"
+	"github.com/nullstone-io/deployment-sdk/gcp/cloudlogging"
 	"github.com/nullstone-io/deployment-sdk/gcp/gcs"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
 )
@@ -21,5 +22,5 @@ var Provider = app.Provider{
 	NewDeployer:        cloudfunctions.NewDeployer,
 	NewDeployWatcher:   cloudfunctions.NewDeployWatcher,
 	NewStatuser:        nil,
-	NewLogStreamer:     nil, //TODO: Implement cloudlogging.NewLogStreamer,
+	NewLogStreamer:     cloudlogging.NewLogStreamer,
 }
