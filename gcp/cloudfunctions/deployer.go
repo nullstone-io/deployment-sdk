@@ -68,10 +68,11 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	// Update source code version and replace env vars
 	SetSourceVersion(function, d.Infra.ArtifactsBucketName, d.Infra.ArtifactsKey(meta.Version))
 	ReplaceEnvVars(function, env_vars.GetStandard(meta))
+	SetBuildConfig(function, d.Infra.FunctionRuntime, d.Infra.FunctionEntrypoint)
 
 	// Perform update
 	fmt.Fprintf(stdout, "Updating job with new application version (%s) and environment variables...\n", meta.Version)
-	updateMask := &fieldmaskpb.FieldMask{Paths: []string{"sourceArchiveUrl", "environmentVariables"}}
+	updateMask := &fieldmaskpb.FieldMask{Paths: []string{"sourceArchiveUrl", "environmentVariables", "runtime", "entryPoint"}}
 	op, err := client.UpdateFunction(ctx, &functionspb.UpdateFunctionRequest{
 		Function:   function,
 		UpdateMask: updateMask,
@@ -94,5 +95,14 @@ func ReplaceEnvVars(function *functionspb.CloudFunction, standard map[string]str
 	}
 	for key, val := range standard {
 		function.EnvironmentVariables[key] = val
+	}
+}
+
+func SetBuildConfig(function *functionspb.CloudFunction, runtime string, entrypoint string) {
+	if runtime != "" {
+		function.Runtime = runtime
+	}
+	if entrypoint != "" {
+		function.EntryPoint = entrypoint
 	}
 }

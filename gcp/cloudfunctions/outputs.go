@@ -19,6 +19,8 @@ type Outputs struct {
 	ArtifactsBucketName  string             `ns:"artifacts_bucket_name"`
 	ArtifactsKeyTemplate string             `ns:"artifacts_key_template"`
 	FunctionName         string             `ns:"function_name"`
+	FunctionRuntime      string             `ns:"function_runtime"`
+	FunctionEntrypoint   string             `ns:"function_entrypoint"`
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
