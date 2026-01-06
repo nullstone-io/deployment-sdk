@@ -2,6 +2,7 @@ package gcp_cloudfunctions_function
 
 import (
 	"github.com/nullstone-io/deployment-sdk/app"
+	"github.com/nullstone-io/deployment-sdk/gcp/cloudfunctions"
 	"github.com/nullstone-io/deployment-sdk/gcp/gcs"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
 )
@@ -17,7 +18,7 @@ var ModuleContractName = types.ModuleContractName{
 var Provider = app.Provider{
 	CanDeployImmediate: true,
 	NewPusher:          gcs.NewZipPusher,
-	NewDeployer:        nil, //TODO: cloudfunctions.NewDeployer,
+	NewDeployer:        cloudfunctions.NewDeployer,
 	NewDeployWatcher:   nil, //TODO: cloudfunctions.NewDeployWatcher,
 	NewStatuser:        nil,
 	NewLogStreamer:     nil, //TODO: Implement cloudlogging.NewLogStreamer,
