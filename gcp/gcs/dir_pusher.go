@@ -3,11 +3,12 @@ package gcs
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/artifacts"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
-	"strings"
 )
 
 func NewDirPusher(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Pusher, error) {
@@ -34,7 +35,7 @@ func (p DirPusher) Push(ctx context.Context, source, version string) error {
 	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
 
 	if source == "" {
-		return fmt.Errorf("no source specified, source artifact (directory or achive) is required to push")
+		return fmt.Errorf("no source specified, source artifact (directory or archive) is required to push")
 	}
 	if version == "" {
 		return fmt.Errorf("no version specified, version is required to push")
@@ -45,7 +46,7 @@ func (p DirPusher) Push(ctx context.Context, source, version string) error {
 		return fmt.Errorf("error scanning source: %w", err)
 	}
 
-	fmt.Fprintf(stdout, "Uploading %s to s3 bucket %s...\n", source, p.Infra.ArtifactsBucketName)
+	fmt.Fprintf(stdout, "Uploading %s to GCS bucket %s...\n", source, p.Infra.ArtifactsBucketName)
 	if err := UploadDirArtifact(ctx, p.Infra, source, filepaths, version); err != nil {
 		return fmt.Errorf("error uploading artifact: %w", err)
 	}

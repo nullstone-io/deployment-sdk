@@ -1,16 +1,15 @@
 package gcs
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"fmt"
-	"google.golang.org/api/option"
 	"io"
 	"mime"
 	"os"
-	"path"
 	"path/filepath"
-	"strings"
+
+	"cloud.google.com/go/storage"
+	"google.golang.org/api/option"
 )
 
 var (
@@ -18,9 +17,9 @@ var (
 )
 
 type Uploader struct {
-	BucketName      string
-	ObjectDirectory string
-	OnObjectUpload  func(objectKey string)
+	BucketName     string
+	ObjectKeyFn    func(filename string) string
+	OnObjectUpload func(objectKey string)
 }
 
 func (u *Uploader) UploadDir(ctx context.Context, infra Outputs, baseDir string, filepaths []string) error {
@@ -34,37 +33,34 @@ func (u *Uploader) UploadDir(ctx context.Context, infra Outputs, baseDir string,
 	}
 	defer client.Close()
 	bucket := client.Bucket(u.BucketName)
-	for _, fp := range filepaths {
-		if err := u.uploadOne(ctx, bucket, baseDir, fp); err != nil {
-			return fmt.Errorf("error uploading %q: %w", fp, err)
+	for _, filename := range filepaths {
+		if err := u.uploadOne(ctx, bucket, baseDir, filename); err != nil {
+			return fmt.Errorf("error uploading %q: %w", filename, err)
 		}
 	}
 	return nil
 }
 
-func (u *Uploader) uploadOne(ctx context.Context, bucket *storage.BucketHandle, baseDir string, fp string) error {
-	localFilepath := filepath.Join(baseDir, fp)
+func (u *Uploader) uploadOne(ctx context.Context, bucket *storage.BucketHandle, baseDir string, filename string) error {
+	objectKey := u.ObjectKeyFn(filename)
+
+	localFilepath := filepath.Join(baseDir, filename)
 	file, err := os.Open(localFilepath)
 	if err != nil {
 		return fmt.Errorf("error opening local file %q: %w", localFilepath, err)
 	}
 	defer file.Close()
 
-	objectKey := strings.Replace(fp, string(filepath.Separator), "/", -1)
-	if u.ObjectDirectory != "" {
-		objectKey = path.Join(u.ObjectDirectory, objectKey)
-	}
-
 	writer := bucket.Object(objectKey).NewWriter(ctx)
-	writer.ContentType = mime.TypeByExtension(filepath.Ext(fp))
+	writer.ContentType = mime.TypeByExtension(filepath.Ext(filename))
 	if writer.ContentType == "" {
 		writer.ContentType = "text/plain"
 	}
 	if _, err := io.Copy(writer, file); err != nil {
-		return fmt.Errorf("error uploading file %q: %w", fp, err)
+		return fmt.Errorf("error uploading file %q: %w", filename, err)
 	}
 	if err := writer.Close(); err != nil {
-		return fmt.Errorf("failed to close file uploader %q: %w", fp, err)
+		return fmt.Errorf("failed to close file uploader %q: %w", filename, err)
 	}
 	if u.OnObjectUpload != nil {
 		u.OnObjectUpload(objectKey)
