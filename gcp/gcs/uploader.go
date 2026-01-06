@@ -41,6 +41,25 @@ func (u *Uploader) UploadDir(ctx context.Context, infra Outputs, baseDir string,
 	return nil
 }
 
+func (u *Uploader) UploadFile(ctx context.Context, infra Outputs, fullFilepath string) error {
+	tokenSource, err := infra.Deployer.TokenSource(ctx, ReadWriteScopes...)
+	if err != nil {
+		return fmt.Errorf("error creating token source from service account: %w", err)
+	}
+	client, err := storage.NewClient(ctx, option.WithTokenSource(tokenSource))
+	if err != nil {
+		return fmt.Errorf("error creating google storage client: %w", err)
+	}
+	defer client.Close()
+	bucket := client.Bucket(u.BucketName)
+
+	dir, filename := filepath.Dir(fullFilepath), filepath.Base(fullFilepath)
+	if err := u.uploadOne(ctx, bucket, dir, filename); err != nil {
+		return fmt.Errorf("error uploading %q: %w", filename, err)
+	}
+	return nil
+}
+
 func (u *Uploader) uploadOne(ctx context.Context, bucket *storage.BucketHandle, baseDir string, filename string) error {
 	objectKey := u.ObjectKeyFn(filename)
 
