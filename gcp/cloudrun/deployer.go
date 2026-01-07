@@ -80,7 +80,7 @@ func (d Deployer) deployService(ctx context.Context, meta app.DeployMetadata) (s
 	if mainContainerIndex < 0 {
 		return "", fmt.Errorf("cannot find main container %q in template", d.Infra.MainContainerName)
 	}
-	SetContainerImageTag(mainContainer, meta.Version)
+	SetContainerImageTag(mainContainer, d.Infra.ImageRepoUrl, meta.Version)
 	ReplaceEnvVars(mainContainer, env_vars.GetStandard(meta))
 	svc.Template.Containers[mainContainerIndex] = mainContainer
 
@@ -111,7 +111,7 @@ func (d Deployer) deployJob(ctx context.Context, meta app.DeployMetadata) (strin
 	if mainContainerIndex < 0 {
 		return "", fmt.Errorf("cannot find main container %q in template", d.Infra.MainContainerName)
 	}
-	SetContainerImageTag(mainContainer, meta.Version)
+	SetContainerImageTag(mainContainer, d.Infra.ImageRepoUrl, meta.Version)
 	ReplaceEnvVars(mainContainer, env_vars.GetStandard(meta))
 	job.Template.Template.Containers[mainContainerIndex] = mainContainer
 
@@ -132,8 +132,10 @@ func GetContainerByName(containers []*runpb.Container, name string) (int, *runpb
 	return -1, nil
 }
 
-func SetContainerImageTag(container *runpb.Container, imageTag string) {
-	existingImageUrl := docker.ParseImageUrl(container.Image)
+func SetContainerImageTag(container *runpb.Container, existingImageUrl docker.ImageUrl, imageTag string) {
+	if existingImageUrl.Repo == "" {
+		existingImageUrl = docker.ParseImageUrl(container.Image)
+	}
 	existingImageUrl.Digest = ""
 	existingImageUrl.Tag = imageTag
 	container.Image = existingImageUrl.String()
