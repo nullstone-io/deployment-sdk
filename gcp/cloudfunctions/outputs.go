@@ -1,4 +1,4 @@
-package gcs
+package cloudfunctions
 
 import (
 	"strings"
@@ -18,8 +18,9 @@ type Outputs struct {
 	Deployer             gcp.ServiceAccount `ns:"deployer"`
 	ArtifactsBucketName  string             `ns:"artifacts_bucket_name"`
 	ArtifactsKeyTemplate string             `ns:"artifacts_key_template"`
-	CdnUrlMapNames       []string           `ns:"cdn_url_map_names,optional"`
-	EnvVarsFilename      string             `ns:"env_vars_filename,optional"`
+	FunctionName         string             `ns:"function_name"`
+	FunctionRuntime      string             `ns:"function_runtime"`
+	FunctionEntrypoint   string             `ns:"function_entrypoint"`
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {

@@ -4,6 +4,7 @@ go 1.24.0
 
 require (
 	cloud.google.com/go/compute v1.38.0
+	cloud.google.com/go/functions v1.19.6
 	cloud.google.com/go/logging v1.13.0
 	cloud.google.com/go/run v1.10.0
 	cloud.google.com/go/storage v1.52.0
@@ -38,6 +39,7 @@ require (
 	golang.org/x/oauth2 v0.34.0
 	golang.org/x/sync v0.19.0
 	google.golang.org/api v0.258.0
+	google.golang.org/protobuf v1.36.11
 	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20251209224316-3f2fb93be0ec
 	k8s.io/api v0.34.0
 	k8s.io/apimachinery v0.34.0
@@ -177,7 +179,6 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20251022142026-3a174f9686a8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251213004720-97cd9d5aeac2 // indirect
 	google.golang.org/grpc v1.77.0 // indirect
-	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
