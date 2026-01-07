@@ -1,11 +1,12 @@
 package gcs
 
 import (
+	"strings"
+
 	"github.com/nullstone-io/deployment-sdk/gcp"
 	"github.com/nullstone-io/deployment-sdk/gcp/creds"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
-	"strings"
 )
 
 const (
@@ -17,7 +18,7 @@ type Outputs struct {
 	Deployer             gcp.ServiceAccount `ns:"deployer"`
 	ArtifactsBucketName  string             `ns:"artifacts_bucket_name"`
 	ArtifactsKeyTemplate string             `ns:"artifacts_key_template"`
-	CdnUrlMapNames       []string           `ns:"cdn_url_map_names"`
+	CdnUrlMapNames       []string           `ns:"cdn_url_map_names,optional"`
 	EnvVarsFilename      string             `ns:"env_vars_filename,optional"`
 }
 
