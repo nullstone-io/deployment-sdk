@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/nullstone-io/deployment-sdk/app"
 	env_vars "github.com/nullstone-io/deployment-sdk/env-vars"
+	"github.com/nullstone-io/deployment-sdk/otel"
 )
 
 // ReplaceEnvVars updates every container definition with updated env vars as a result of the deploy
@@ -33,4 +34,21 @@ func ReplaceEnvVars(taskDef types.TaskDefinition, meta app.DeployMetadata) *type
 	}
 
 	return &taskDef
+}
+
+func ReplaceOtelResourceAttributesEnvVar(taskDef *types.TaskDefinition, meta app.DeployMetadata) bool {
+	fn := otel.UpdateResourceAttributes(meta.Version, meta.CommitSha, false)
+
+	for i, cd := range taskDef.ContainerDefinitions {
+		for j, kvp := range cd.Environment {
+			if kvp.Name != nil && *kvp.Name == otel.ResourceAttributesEnvName && kvp.Value != nil {
+				kvp.Value = aws.String(fn(*kvp.Value))
+				cd.Environment[j] = kvp
+				taskDef.ContainerDefinitions[i] = cd
+				return true
+			}
+		}
+	}
+
+	return false
 }
