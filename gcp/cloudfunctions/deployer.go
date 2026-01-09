@@ -107,7 +107,7 @@ func ReplaceEnvVars(function *functionspb.CloudFunction, standard map[string]str
 func ReplaceOtelResourceAttributesEnvVar(function *functionspb.CloudFunction, meta app.DeployMetadata) bool {
 	for name, val := range function.EnvironmentVariables {
 		if name == otel.ResourceAttributesEnvName {
-			function.EnvironmentVariables[name] = otel.UpdateResourceAttributes(meta.Version, meta.CommitSha)(val)
+			function.EnvironmentVariables[name] = otel.UpdateResourceAttributes(meta.Version, meta.CommitSha, false)(val)
 			return true
 		}
 	}

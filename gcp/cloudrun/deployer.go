@@ -163,7 +163,7 @@ func ReplaceEnvVars(container *runpb.Container, standard map[string]string) {
 func ReplaceOtelResourceAttributesEnvVar(container *runpb.Container, meta app.DeployMetadata) bool {
 	for i, cur := range container.Env {
 		if cur.Name == otel.ResourceAttributesEnvName {
-			ReplaceEnvVarValue(container.Env[i], otel.UpdateResourceAttributes(meta.Version, meta.CommitSha))
+			ReplaceEnvVarValue(container.Env[i], otel.UpdateResourceAttributes(meta.Version, meta.CommitSha, false))
 			return true
 		}
 	}

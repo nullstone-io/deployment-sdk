@@ -44,6 +44,11 @@ func ParseResourceAttributes(input string) (ResourceAttributes, error) {
 
 type ResourceAttributes map[string]string
 
+func (a ResourceAttributes) IsExpansion(key string) bool {
+	val, _ := a[key]
+	return strings.HasPrefix(val, "$(") && strings.HasSuffix(val, ")")
+}
+
 func (a ResourceAttributes) String() string {
 	if len(a) == 0 {
 		return ""

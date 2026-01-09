@@ -16,7 +16,7 @@ func ReplaceEnvVars(container *core_v1.Container, std map[string]string) {
 func ReplaceOtelResourceAttributesEnvVar(container *core_v1.Container, appVersion, commitSha string) bool {
 	for i, cur := range container.Env {
 		if cur.Name == otel.ResourceAttributesEnvName {
-			ReplaceEnvVar(container, i, otel.UpdateResourceAttributes(appVersion, commitSha))
+			ReplaceEnvVar(container, i, otel.UpdateResourceAttributes(appVersion, commitSha, true))
 			return true
 		}
 	}
