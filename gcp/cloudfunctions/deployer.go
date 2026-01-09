@@ -71,7 +71,8 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	SetSourceVersion(function, d.Infra.ArtifactsBucketName, d.Infra.ArtifactsKey(meta.Version))
 	fmt.Fprintln(stdout, "Updating environment variables")
 	ReplaceEnvVars(function, env_vars.GetStandard(meta))
-	if ReplaceOtelResourceAttributesEnvVar(function, meta) {
+	if updated, changed := env_vars.ReplaceOtelResourceAttributes(function.EnvironmentVariables, meta, false); changed {
+		function.EnvironmentVariables = updated
 		fmt.Fprintln(d.OsWriters.Stdout(), "Updating OpenTelemetry resource attributes (service.version and service.commit.sha)")
 	}
 	d.SetBuildConfig(function, d.Infra.FunctionRuntime, d.Infra.FunctionEntrypoint)
