@@ -5,6 +5,7 @@ import (
 	batchtypes "github.com/aws/aws-sdk-go-v2/service/batch/types"
 	"github.com/nullstone-io/deployment-sdk/app"
 	env_vars "github.com/nullstone-io/deployment-sdk/env-vars"
+	"github.com/nullstone-io/deployment-sdk/otel"
 )
 
 // ReplaceEnvVars updates the container definition with updated env vars as a result of the deploy
@@ -30,4 +31,18 @@ func ReplaceEnvVars(jobDef batchtypes.JobDefinition, meta app.DeployMetadata) ba
 	jobDef.ContainerProperties.Environment = updateEnv(jobDef.ContainerProperties.Environment)
 
 	return jobDef
+}
+
+func ReplaceOtelResourceAttributesEnvVar(jobDef *batchtypes.JobDefinition, meta app.DeployMetadata) bool {
+	fn := otel.UpdateResourceAttributes(meta.Version, meta.CommitSha, false)
+
+	for i, kvp := range jobDef.ContainerProperties.Environment {
+		if kvp.Name != nil && *kvp.Name == otel.ResourceAttributesEnvName && kvp.Value != nil {
+			kvp.Value = aws.String(fn(*kvp.Value))
+			jobDef.ContainerProperties.Environment[i] = kvp
+			return true
+		}
+	}
+
+	return false
 }
