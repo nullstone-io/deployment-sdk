@@ -3,6 +3,8 @@ package lambda_container
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/aws/lambda"
@@ -10,7 +12,6 @@ import (
 	env_vars "github.com/nullstone-io/deployment-sdk/env-vars"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
-	"time"
 )
 
 func NewDeployer(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Deployer, error) {
@@ -63,6 +64,10 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	}
 	updates := lambda.MapFunctionConfig(config)
 	env_vars.UpdateStandard(updates.Environment.Variables, meta)
+	if updated, changed := env_vars.ReplaceOtelResourceAttributes(updates.Environment.Variables, meta, false); changed {
+		updates.Environment.Variables = updated
+		fmt.Fprintln(d.OsWriters.Stdout(), "Updating OpenTelemetry resource attributes (service.version and service.commit.sha)")
+	}
 	if err := nslambda.UpdateFunctionConfig(ctx, d.Infra, updates); err != nil {
 		return "", fmt.Errorf("error updating lambda configuration: %w", err)
 	}

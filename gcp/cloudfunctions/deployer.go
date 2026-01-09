@@ -9,6 +9,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/app"
 	env_vars "github.com/nullstone-io/deployment-sdk/env-vars"
 	"github.com/nullstone-io/deployment-sdk/logging"
+	"github.com/nullstone-io/deployment-sdk/otel"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
@@ -66,9 +67,15 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	}
 
 	// Update source code version and replace env vars
+	fmt.Fprintln(stdout, fmt.Sprintf("Updating source version to %q", meta.Version))
 	SetSourceVersion(function, d.Infra.ArtifactsBucketName, d.Infra.ArtifactsKey(meta.Version))
+	fmt.Fprintln(stdout, "Updating environment variables")
 	ReplaceEnvVars(function, env_vars.GetStandard(meta))
-	SetBuildConfig(function, d.Infra.FunctionRuntime, d.Infra.FunctionEntrypoint)
+	if updated, changed := env_vars.ReplaceOtelResourceAttributes(function.EnvironmentVariables, meta, false); changed {
+		function.EnvironmentVariables = updated
+		fmt.Fprintln(d.OsWriters.Stdout(), "Updating OpenTelemetry resource attributes (service.version and service.commit.sha)")
+	}
+	d.SetBuildConfig(function, d.Infra.FunctionRuntime, d.Infra.FunctionEntrypoint)
 
 	// Perform update
 	fmt.Fprintf(stdout, "Updating job with new application version (%s) and environment variables...\n", meta.Version)
@@ -98,11 +105,25 @@ func ReplaceEnvVars(function *functionspb.CloudFunction, standard map[string]str
 	}
 }
 
-func SetBuildConfig(function *functionspb.CloudFunction, runtime string, entrypoint string) {
-	if runtime != "" {
-		function.Runtime = runtime
+func ReplaceOtelResourceAttributesEnvVar(function *functionspb.CloudFunction, meta app.DeployMetadata) bool {
+	for name, val := range function.EnvironmentVariables {
+		if name == otel.ResourceAttributesEnvName {
+			function.EnvironmentVariables[name] = otel.UpdateResourceAttributes(meta.Version, meta.CommitSha, false)(val)
+			return true
+		}
 	}
-	if entrypoint != "" {
+	return false
+}
+
+func (d Deployer) SetBuildConfig(function *functionspb.CloudFunction, runtime string, entrypoint string) {
+	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
+
+	if runtime != "" && runtime != function.Runtime {
+		function.Runtime = runtime
+		fmt.Fprintln(stdout, fmt.Sprintf("Updating runtime to %q", runtime))
+	}
+	if entrypoint != "" && entrypoint != function.EntryPoint {
 		function.EntryPoint = entrypoint
+		fmt.Fprintln(stdout, fmt.Sprintf("Updating entryPoint to %q", entrypoint))
 	}
 }

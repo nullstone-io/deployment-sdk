@@ -3,11 +3,12 @@ package batch
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
-	"strings"
 )
 
 func NewDeployer(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Deployer, error) {
@@ -63,13 +64,18 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	fmt.Fprintf(stdout, "Current active job definition revision: %d\n", *jobDef.Revision)
 
 	updatedJobDef := ReplaceJobDefinitionImageTag(d.Infra, *jobDef, meta.Version)
+	fmt.Fprintln(stdout, fmt.Sprintf("Updating main image tag to application version %q", meta.Version))
 	updatedJobDef = ReplaceEnvVars(updatedJobDef, meta)
+	fmt.Fprintln(stdout, "Updating environment variables")
+	if ReplaceOtelResourceAttributesEnvVar(&updatedJobDef, meta) {
+		fmt.Fprintln(stdout, "Updating OpenTelemetry resource attributes (service.version and service.commit.sha)")
+	}
 
-	fmt.Fprintf(stdout, "Updating job definition version and environment variables\n")
 	newJobDefArn, revision, err := CreateJobDefinition(ctx, d.Infra, &updatedJobDef)
 	if err != nil {
 		return "", fmt.Errorf("error updating job definition with new image tag: %w", err)
 	}
+	fmt.Fprintln(stdout, "Updating job definition successfully")
 	if newJobDefArn == nil {
 		return "", fmt.Errorf("new job definition arn is nil")
 	}

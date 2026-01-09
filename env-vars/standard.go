@@ -1,6 +1,9 @@
 package env_vars
 
-import "github.com/nullstone-io/deployment-sdk/app"
+import (
+	"github.com/nullstone-io/deployment-sdk/app"
+	"github.com/nullstone-io/deployment-sdk/otel"
+)
 
 func GetStandard(meta app.DeployMetadata) map[string]string {
 	return map[string]string{
@@ -21,4 +24,14 @@ func UpdateStandard(cur map[string]string, meta app.DeployMetadata) {
 			cur[k] = v
 		}
 	}
+}
+
+func ReplaceOtelResourceAttributes(cur map[string]string, meta app.DeployMetadata, isExpansionSupported bool) (map[string]string, bool) {
+	for name, val := range cur {
+		if name == otel.ResourceAttributesEnvName {
+			cur[name] = otel.UpdateResourceAttributes(meta.Version, meta.CommitSha, isExpansionSupported)(val)
+			return cur, true
+		}
+	}
+	return cur, false
 }

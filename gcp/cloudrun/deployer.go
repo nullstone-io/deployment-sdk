@@ -10,6 +10,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/docker"
 	env_vars "github.com/nullstone-io/deployment-sdk/env-vars"
 	"github.com/nullstone-io/deployment-sdk/logging"
+	"github.com/nullstone-io/deployment-sdk/otel"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 )
 
@@ -81,14 +82,19 @@ func (d Deployer) deployService(ctx context.Context, meta app.DeployMetadata) (s
 		return "", fmt.Errorf("cannot find main container %q in template", d.Infra.MainContainerName)
 	}
 	SetContainerImageTag(mainContainer, d.Infra.ImageRepoUrl, meta.Version)
+	fmt.Fprintln(stdout, fmt.Sprintf("Updating main container image tag to application version %q in service", meta.Version))
 	ReplaceEnvVars(mainContainer, env_vars.GetStandard(meta))
+	fmt.Fprintln(stdout, "Updating environment variables in service")
+	if ReplaceOtelResourceAttributesEnvVar(mainContainer, meta) {
+		fmt.Fprintln(d.OsWriters.Stdout(), "Updating OpenTelemetry resource attributes (service.version and service.commit.sha) in service")
+	}
 	svc.Template.Containers[mainContainerIndex] = mainContainer
 
 	op, err := client.UpdateService(ctx, &runpb.UpdateServiceRequest{Service: svc})
 	if err != nil {
 		return "", err
 	}
-	fmt.Fprintf(stdout, "Updated service with new application version (%s) and environment variables.\n", meta.Version)
+	fmt.Fprintln(stdout, "Updated service successfully")
 	return op.Name(), nil
 }
 
@@ -112,14 +118,19 @@ func (d Deployer) deployJob(ctx context.Context, meta app.DeployMetadata) (strin
 		return "", fmt.Errorf("cannot find main container %q in template", d.Infra.MainContainerName)
 	}
 	SetContainerImageTag(mainContainer, d.Infra.ImageRepoUrl, meta.Version)
+	fmt.Fprintln(stdout, fmt.Sprintf("Updating main container image tag to application version %q in job", meta.Version))
 	ReplaceEnvVars(mainContainer, env_vars.GetStandard(meta))
+	fmt.Fprintln(stdout, "Updating environment variables in job")
+	if ReplaceOtelResourceAttributesEnvVar(mainContainer, meta) {
+		fmt.Fprintln(d.OsWriters.Stdout(), "Updating OpenTelemetry resource attributes (service.version and service.commit.sha) in job")
+	}
 	job.Template.Template.Containers[mainContainerIndex] = mainContainer
 
-	fmt.Fprintf(stdout, "Updating job with new application version (%s) and environment variables...\n", meta.Version)
 	op, err := client.UpdateJob(ctx, &runpb.UpdateJobRequest{Job: job})
 	if err != nil {
 		return "", fmt.Errorf("error updating job definition: %w", err)
 	}
+	fmt.Fprintln(stdout, "Updated job successfully")
 	return op.Name(), nil
 }
 
@@ -144,10 +155,24 @@ func SetContainerImageTag(container *runpb.Container, existingImageUrl docker.Im
 func ReplaceEnvVars(container *runpb.Container, standard map[string]string) {
 	for i, cur := range container.Env {
 		if val, ok := standard[cur.Name]; ok {
-			// We only change env vars that are not secret refs
-			if vs := cur.GetValueSource(); vs == nil || vs.SecretKeyRef == nil {
-				container.Env[i].Values = &runpb.EnvVar_Value{Value: val}
-			}
+			ReplaceEnvVarValue(container.Env[i], func(previous string) string { return val })
 		}
+	}
+}
+
+func ReplaceOtelResourceAttributesEnvVar(container *runpb.Container, meta app.DeployMetadata) bool {
+	for i, cur := range container.Env {
+		if cur.Name == otel.ResourceAttributesEnvName {
+			ReplaceEnvVarValue(container.Env[i], otel.UpdateResourceAttributes(meta.Version, meta.CommitSha, false))
+			return true
+		}
+	}
+	return false
+}
+
+func ReplaceEnvVarValue(cur *runpb.EnvVar, fn func(previous string) string) {
+	// We only change env vars that are not secret refs
+	if vs := cur.GetValueSource(); vs == nil || vs.SecretKeyRef == nil {
+		cur.Values = &runpb.EnvVar_Value{Value: fn(cur.GetValue())}
 	}
 }

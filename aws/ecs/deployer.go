@@ -3,6 +3,7 @@ package ecs
 import (
 	"context"
 	"fmt"
+
 	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
@@ -76,14 +77,18 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	if err != nil {
 		return "", fmt.Errorf("error updating container version: %w", err)
 	}
+	fmt.Fprintln(stdout, fmt.Sprintf("Updating main container image tag to application version %q", meta.Version))
 	updatedTaskDef = ReplaceEnvVars(*updatedTaskDef, meta)
+	fmt.Fprintln(stdout, "Updating environment variables")
+	if ReplaceOtelResourceAttributesEnvVar(updatedTaskDef, meta) {
+		fmt.Fprintln(stdout, "Updating OpenTelemetry resource attributes (service.version and service.commit.sha)")
+	}
 
-	fmt.Fprintf(stdout, "Updating task definition version and environment variables\n")
 	newTaskDef, err := UpdateTask(ctx, d.Infra, updatedTaskDef, taskDefTags, *taskDef.TaskDefinitionArn)
 	if err != nil {
 		return "", fmt.Errorf("error updating task with new image tag: %w", err)
 	}
-	fmt.Fprintf(stdout, "Updated task definition version and environment variables\n")
+	fmt.Fprintln(stdout, "Updated task definition successfully")
 	newTaskDefArn := *newTaskDef.TaskDefinitionArn
 
 	if d.Infra.ServiceName == "" {
@@ -92,6 +97,7 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 		return "", nil
 	}
 
+	fmt.Fprintln(stdout, "Updating service with new task definition")
 	deployment, err := UpdateServiceTask(ctx, d.Infra, newTaskDefArn)
 	if err != nil {
 		return "", fmt.Errorf("error deploying service: %w", err)
