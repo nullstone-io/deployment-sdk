@@ -3,6 +3,7 @@ package gke
 import (
 	"context"
 	"fmt"
+
 	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	env_vars "github.com/nullstone-io/deployment-sdk/env-vars"
@@ -86,7 +87,7 @@ func (d Deployer) deployService(ctx context.Context, meta app.DeployMetadata) (s
 
 	// Update deployment definition
 	deployment.ObjectMeta = k8s.UpdateVersionLabel(deployment.ObjectMeta, meta.Version)
-	deployment.Spec.Template, err = d.updatePodTemplate(deployment.Spec.Template, meta)
+	deployment.Spec.Template, err = d.updatePodTemplate(deployment.Spec.Template, "service", meta)
 	if err != nil {
 		return "", err
 	}
@@ -95,6 +96,7 @@ func (d Deployer) deployService(ctx context.Context, meta app.DeployMetadata) (s
 	if err != nil {
 		return "", fmt.Errorf("error deploying app: %w", err)
 	}
+	fmt.Fprintln(stdout, "Updated deployment successfully")
 	updGeneration := updated.Generation
 	reference := fmt.Sprintf("%d", updGeneration)
 
@@ -123,7 +125,7 @@ func (d Deployer) deployJobTemplate(ctx context.Context, meta app.DeployMetadata
 		return "", err
 	}
 	jobDef.ObjectMeta = k8s.UpdateVersionLabel(jobDef.ObjectMeta, meta.Version)
-	jobDef.Spec.Template, err = d.updatePodTemplate(jobDef.Spec.Template, meta)
+	jobDef.Spec.Template, err = d.updatePodTemplate(jobDef.Spec.Template, "job definition", meta)
 	if err != nil {
 		return "", fmt.Errorf("cannot find main container %q in spec", d.Infra.MainContainerName)
 	}
@@ -131,18 +133,25 @@ func (d Deployer) deployJobTemplate(ctx context.Context, meta app.DeployMetadata
 		return "", err
 	}
 
-	fmt.Fprintf(stdout, "Updated job template with new application version (%s) and environment variables\n", meta.Version)
+	fmt.Fprintln(stdout, "Updated job definition successfully")
 	return "", nil
 }
 
-func (d Deployer) updatePodTemplate(template v1.PodTemplateSpec, meta app.DeployMetadata) (v1.PodTemplateSpec, error) {
+func (d Deployer) updatePodTemplate(template v1.PodTemplateSpec, appType string, meta app.DeployMetadata) (v1.PodTemplateSpec, error) {
+	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
+
 	template.ObjectMeta = k8s.UpdateVersionLabel(template.ObjectMeta, meta.Version)
 	mainContainerIndex, mainContainer := k8s.GetContainerByName(template, d.Infra.MainContainerName)
 	if mainContainerIndex < 0 {
 		return template, fmt.Errorf("cannot find main container %q in spec", d.Infra.MainContainerName)
 	}
 	k8s.SetContainerImageTag(mainContainer, meta.Version)
+	fmt.Fprintln(stdout, fmt.Sprintf("Updating main container image tag to application version %q in %s", meta.Version, appType))
 	k8s.ReplaceEnvVars(mainContainer, env_vars.GetStandard(meta))
+	fmt.Fprintln(stdout, fmt.Sprintf("Updating environment variables in %s", appType))
+	if k8s.ReplaceOtelResourceAttributesEnvVar(mainContainer, meta.Version, meta.CommitSha) {
+		fmt.Fprintln(d.OsWriters.Stdout(), fmt.Sprintf("Updating OpenTelemetry resource attributes (service.version and service.commit.sha) in %s", appType))
+	}
 	template.Spec.Containers[mainContainerIndex] = *mainContainer
 	return template, nil
 }
