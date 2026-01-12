@@ -24,7 +24,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.95.0
 	github.com/aws/smithy-go v1.24.0
 	github.com/docker/cli v29.1.3+incompatible
-	github.com/docker/docker v28.4.0+incompatible
+	github.com/docker/docker v28.5.2+incompatible
 	github.com/fatih/color v1.18.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
