@@ -11,7 +11,7 @@ require (
 	cloud.google.com/go/storage v1.59.1
 	github.com/aws/aws-sdk-go-v2 v1.41.1
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.7
-	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.20.19
+	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.21.0
 	github.com/aws/aws-sdk-go-v2/service/batch v1.58.12
 	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.59.0
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.53.1
