@@ -7,7 +7,7 @@ require (
 	cloud.google.com/go/functions v1.19.7
 	cloud.google.com/go/logging v1.13.1
 	cloud.google.com/go/longrunning v0.8.0
-	cloud.google.com/go/run v1.14.0
+	cloud.google.com/go/run v1.15.0
 	cloud.google.com/go/storage v1.59.1
 	github.com/aws/aws-sdk-go-v2 v1.41.1
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.7
