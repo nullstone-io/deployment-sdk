@@ -2,6 +2,7 @@ package gke
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/mitchellh/colorstring"
@@ -12,6 +13,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -119,22 +121,68 @@ func (d Deployer) deployJobTemplate(ctx context.Context, meta app.DeployMetadata
 		return "", err
 	}
 
+	if err := d.updateJobTemplateConfig(ctx, kubeClient, meta); err != nil {
+		return "", fmt.Errorf("error updating job template: %w", err)
+	}
+	fmt.Fprintln(stdout, "Updated job template successfully")
+
+	if err := d.updateCronJobs(ctx, kubeClient, meta); err != nil {
+		return "", fmt.Errorf("error updating cron jobs: %w", err)
+	}
+
+	return "", nil
+}
+
+// updateJobTemplateConfig updates the job definition that is stored as a ConfigMap
+func (d Deployer) updateJobTemplateConfig(ctx context.Context, kubeClient *kubernetes.Clientset, meta app.DeployMetadata) error {
 	// Retrieve and update job definition
 	jobDef, configMap, err := k8s.GetJobDefinition(ctx, kubeClient, d.Infra.ServiceNamespace, d.Infra.JobDefinitionName)
 	if err != nil {
-		return "", err
+		return err
 	}
 	jobDef.ObjectMeta = k8s.UpdateVersionLabel(jobDef.ObjectMeta, meta.Version)
 	jobDef.Spec.Template, err = d.updatePodTemplate(jobDef.Spec.Template, "job definition", meta)
 	if err != nil {
-		return "", fmt.Errorf("cannot find main container %q in spec", d.Infra.MainContainerName)
+		return fmt.Errorf("cannot find main container %q in spec", d.Infra.MainContainerName)
 	}
 	if err := k8s.UpdateJobDefinition(ctx, kubeClient, d.Infra.ServiceNamespace, jobDef, configMap); err != nil {
-		return "", err
+		return err
+	}
+	return nil
+}
+
+// updateCronJobs updates each batch/v1/CronJob configured on this app
+func (d Deployer) updateCronJobs(ctx context.Context, kubeClient *kubernetes.Clientset, meta app.DeployMetadata) error {
+	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
+
+	appLabel := fmt.Sprintf("nullstone.io/app=%s", d.Infra.ServiceName)
+	jobs, err := kubeClient.BatchV1().CronJobs(d.Infra.ServiceNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
+	if err != nil {
+		return fmt.Errorf("error retrieving CronJobs: %w", err)
 	}
 
-	fmt.Fprintln(stdout, "Updated job definition successfully")
-	return "", nil
+	if len(jobs.Items) < 1 {
+		return nil
+	}
+
+	var errs []error
+	for _, job := range jobs.Items {
+		job.ObjectMeta = k8s.UpdateVersionLabel(job.ObjectMeta, meta.Version)
+		job.Spec.JobTemplate.Spec.Template, err = d.updatePodTemplate(job.Spec.JobTemplate.Spec.Template, "cron job", meta)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("error modifying cron job spec %q: %w", job.Name, err))
+			continue
+		}
+		if _, err := kubeClient.BatchV1().CronJobs(d.Infra.ServiceNamespace).Update(ctx, &job, metav1.UpdateOptions{}); err != nil {
+			errs = append(errs, fmt.Errorf("error updating cron job %q: %w", job.Name, err))
+			continue
+		}
+		fmt.Fprintf(stdout, "Updated cron job %q successfully\n", job.Name)
+	}
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+	return nil
 }
 
 func (d Deployer) updatePodTemplate(template v1.PodTemplateSpec, appType string, meta app.DeployMetadata) (v1.PodTemplateSpec, error) {
