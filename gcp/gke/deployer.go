@@ -155,7 +155,7 @@ func (d Deployer) updateJobTemplateConfig(ctx context.Context, kubeClient *kuber
 func (d Deployer) updateCronJobs(ctx context.Context, kubeClient *kubernetes.Clientset, meta app.DeployMetadata) error {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 
-	appLabel := fmt.Sprintf("nullstone.io/app=%s", d.Infra.ServiceName)
+	appLabel := fmt.Sprintf("nullstone.io/app=%s", d.Details.App.Name)
 	jobs, err := kubeClient.BatchV1().CronJobs(d.Infra.ServiceNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
 	if err != nil {
 		return fmt.Errorf("error retrieving CronJobs: %w", err)
