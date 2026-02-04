@@ -22,7 +22,7 @@ type Outputs struct {
 	MainContainerName string          `ns:"main_container_name,optional"`
 	JobDefinitionName string          `ns:"job_definition_name,optional"`
 
-	ClusterNamespace ClusterNamespaceOutputs `ns:",connectionContract:cluster-namespace/gcp/k8s:gke"`
+	ClusterNamespace ClusterNamespaceOutputs `ns:",connectionContract:cluster-namespace/aws/k8s:eks"`
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
