@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 )
@@ -24,6 +25,7 @@ type NewLogStreamerFunc func(ctx context.Context, osWriters logging.OsWriters, s
 
 type Pusher interface {
 	Push(ctx context.Context, source, version string) error
+	Pull(ctx context.Context, version string) error
 	ListArtifactVersions(ctx context.Context) ([]string, error)
 }
 

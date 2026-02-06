@@ -3,11 +3,12 @@ package s3
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/artifacts"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
-	"strings"
 )
 
 func NewDirPusher(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Pusher, error) {
@@ -18,23 +19,25 @@ func NewDirPusher(ctx context.Context, osWriters logging.OsWriters, source outpu
 	outs.InitializeCreds(source, appDetails.Workspace)
 
 	return &DirPusher{
-		OsWriters: osWriters,
-		Source:    source,
-		Infra:     outs,
+		OsWriters:  osWriters,
+		Source:     source,
+		Infra:      outs,
+		AppDetails: appDetails,
 	}, nil
 }
 
 type DirPusher struct {
-	OsWriters logging.OsWriters
-	Source    outputs.RetrieverSource
-	Infra     Outputs
+	OsWriters  logging.OsWriters
+	Source     outputs.RetrieverSource
+	Infra      Outputs
+	AppDetails app.Details
 }
 
 func (p DirPusher) Push(ctx context.Context, source, version string) error {
 	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
 
 	if source == "" {
-		return fmt.Errorf("no source specified, source artifact (directory or achive) is required to push")
+		return fmt.Errorf("no source specified, source artifact (directory or archive) is required to push")
 	}
 	if version == "" {
 		return fmt.Errorf("no version specified, version is required to push")
@@ -50,6 +53,24 @@ func (p DirPusher) Push(ctx context.Context, source, version string) error {
 		return fmt.Errorf("error uploading artifact: %w", err)
 	}
 
+	return nil
+}
+
+func (p DirPusher) Pull(ctx context.Context, version string) error {
+	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
+
+	if version == "" {
+		return fmt.Errorf("no version specified, version is required to pull")
+	}
+
+	localDir := fmt.Sprintf("./%s-%s-%s", p.AppDetails.App.Name, p.AppDetails.Env.Name, version)
+
+	fmt.Fprintf(stdout, "Downloading from s3 bucket %s to %s...\n", p.Infra.ArtifactsBucketName, localDir)
+	if err := DownloadDirArtifact(ctx, p.Infra, localDir, version); err != nil {
+		return fmt.Errorf("error downloading artifact: %w", err)
+	}
+
+	fmt.Fprintln(stdout, "Download complete")
 	return nil
 }
 
