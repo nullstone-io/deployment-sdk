@@ -24,6 +24,7 @@ func NewPusher(ctx context.Context, osWriters logging.OsWriters, source outputs.
 			ArtifactsBucketName:  outs.ArtifactsBucketName,
 			ArtifactsKeyTemplate: outs.ArtifactsKeyTemplate,
 		},
+		AppDetails: appDetails,
 	}
 
 	return &Pusher{
@@ -52,6 +53,10 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 	fmt.Fprintf(stdout, "Created application version %q\n", version)
 
 	return nil
+}
+
+func (p Pusher) Pull(ctx context.Context, version string) error {
+	return p.zipPusher.Pull(ctx, version)
 }
 
 func (p Pusher) ListArtifactVersions(ctx context.Context) ([]string, error) {

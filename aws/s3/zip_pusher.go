@@ -18,14 +18,16 @@ func NewZipPusher(ctx context.Context, osWriters logging.OsWriters, source outpu
 	outs.InitializeCreds(source, appDetails.Workspace)
 
 	return &ZipPusher{
-		OsWriters: osWriters,
-		Infra:     outs,
+		OsWriters:  osWriters,
+		Infra:      outs,
+		AppDetails: appDetails,
 	}, nil
 }
 
 type ZipPusher struct {
-	OsWriters logging.OsWriters
-	Infra     Outputs
+	OsWriters  logging.OsWriters
+	Infra      Outputs
+	AppDetails app.Details
 }
 
 func (p ZipPusher) Push(ctx context.Context, source, version string) error {
@@ -52,6 +54,24 @@ func (p ZipPusher) Push(ctx context.Context, source, version string) error {
 	}
 
 	fmt.Fprintln(stdout, "Upload complete")
+	return nil
+}
+
+func (p ZipPusher) Pull(ctx context.Context, version string) error {
+	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
+
+	if version == "" {
+		return fmt.Errorf("no version specified, version is required to pull")
+	}
+
+	localPath := fmt.Sprintf("./%s-%s-%s.zip", p.AppDetails.App.Name, p.AppDetails.Env.Name, version)
+
+	fmt.Fprintf(stdout, "Downloading %s from artifacts bucket\n", p.Infra.ArtifactsKey(version))
+	if err := DownloadZipArtifact(ctx, p.Infra, localPath, version); err != nil {
+		return fmt.Errorf("error downloading artifact: %w", err)
+	}
+
+	fmt.Fprintln(stdout, "Download complete")
 	return nil
 }
 

@@ -95,6 +95,38 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 	return nil
 }
 
+func (p Pusher) Pull(ctx context.Context, version string) error {
+	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
+	p.Print()
+
+	sourceUrl := p.Infra.ImageRepoUrl
+	sourceUrl.Tag = version
+	if err := p.validate(sourceUrl); err != nil {
+		return err
+	}
+
+	fmt.Fprintln(stdout)
+	fmt.Fprintln(stdout, "Authenticating with GAR or GCR...")
+	sourceAuth, err := p.getGcrLoginAuth(ctx)
+	if err != nil {
+		return fmt.Errorf("error retrieving image registry credentials: %w", err)
+	}
+	fmt.Fprintln(stdout, "Authenticated")
+
+	dockerCli, err := docker.DiscoverDockerCli(p.OsWriters)
+	if err != nil {
+		return fmt.Errorf("error creating docker client: %w", err)
+	}
+
+	fmt.Fprintln(stdout)
+	colorstring.Fprintf(stdout, "[bold]Pulling docker image %s\n", sourceUrl)
+	if err := docker.PullImage(ctx, dockerCli, sourceUrl, sourceAuth); err != nil {
+		return fmt.Errorf("error pulling image: %w", err)
+	}
+
+	return nil
+}
+
 func (p Pusher) ListArtifactVersions(ctx context.Context) ([]string, error) {
 	targetAuth, err := p.getGcrLoginAuth(ctx)
 	if err != nil {
