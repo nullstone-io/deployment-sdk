@@ -31,7 +31,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
-	github.com/moby/moby/client v0.2.1
+	github.com/moby/moby/client v0.2.2
 	github.com/nullstone-io/module v0.2.10
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/spf13/pflag v1.0.10
@@ -142,7 +142,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.19 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
-	github.com/moby/moby/api v1.52.0 // indirect
+	github.com/moby/moby/api v1.53.0 // indirect
 	github.com/moby/sys/atomicwriter v0.1.0 // indirect
 	github.com/moby/sys/sequential v0.6.0 // indirect
 	github.com/moby/term v0.5.2 // indirect
