@@ -1,4 +1,4 @@
-package gke
+package eks
 
 import (
 	"context"
@@ -33,7 +33,7 @@ type Deployer struct {
 
 func (d Deployer) Print() {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
-	colorstring.Fprintln(stdout, "[bold]Retrieved GKE service outputs")
+	colorstring.Fprintln(stdout, "[bold]Retrieved EKS service outputs")
 	fmt.Fprintf(stdout, "	cluster_endpoint:    %s\n", d.Infra.ClusterNamespace.ClusterEndpoint)
 	fmt.Fprintf(stdout, "	service_namespace:   %s\n", d.Infra.ServiceNamespace)
 	fmt.Fprintf(stdout, "	service_name:        %s\n", d.Infra.ServiceName)
