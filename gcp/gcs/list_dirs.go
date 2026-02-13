@@ -1,11 +1,12 @@
 package gcs
 
 import (
-	control "cloud.google.com/go/storage/control/apiv2"
-	"cloud.google.com/go/storage/control/apiv2/controlpb"
 	"context"
 	"errors"
 	"fmt"
+
+	control "cloud.google.com/go/storage/control/apiv2"
+	"cloud.google.com/go/storage/control/apiv2/controlpb"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
@@ -32,7 +33,7 @@ func ListDirs(ctx context.Context, infra Outputs) ([]string, error) {
 	result := make([]string, 0)
 
 	it := client.ListFolders(ctx, &controlpb.ListFoldersRequest{
-		Parent:    infra.ArtifactsBucketName,
+		Parent:    infra.ArtifactsBucketId,
 		Delimiter: "/",
 	})
 	for {
