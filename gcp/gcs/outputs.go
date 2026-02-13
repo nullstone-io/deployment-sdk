@@ -14,12 +14,14 @@ const (
 )
 
 type Outputs struct {
-	ProjectId            string             `ns:"project_id"`
-	Deployer             gcp.ServiceAccount `ns:"deployer"`
-	ArtifactsBucketName  string             `ns:"artifacts_bucket_name"`
-	ArtifactsKeyTemplate string             `ns:"artifacts_key_template"`
-	CdnUrlMapNames       []string           `ns:"cdn_url_map_names,optional"`
-	EnvVarsFilename      string             `ns:"env_vars_filename,optional"`
+	ProjectId string             `ns:"project_id"`
+	Deployer  gcp.ServiceAccount `ns:"deployer"`
+	// ArtifactsBucketId: projects/{projectId}/buckets/{bucketName}
+	ArtifactsBucketId    string   `ns:"artifacts_bucket_id"`
+	ArtifactsBucketName  string   `ns:"artifacts_bucket_name"`
+	ArtifactsKeyTemplate string   `ns:"artifacts_key_template"`
+	CdnUrlMapNames       []string `ns:"cdn_url_map_names,optional"`
+	EnvVarsFilename      string   `ns:"env_vars_filename,optional"`
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
