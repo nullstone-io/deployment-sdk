@@ -1,10 +1,11 @@
 package operations
 
 import (
-	"cloud.google.com/go/compute/apiv1/computepb"
 	"context"
-	"golang.org/x/oauth2"
 	"strings"
+
+	"cloud.google.com/go/compute/apiv1/computepb"
+	"golang.org/x/oauth2"
 )
 
 type Getter interface {
@@ -24,5 +25,8 @@ func NewGetter(tokenSource oauth2.TokenSource, operationName string) Getter {
 			OperationName: operationName,
 		}
 	}
-	return nil
+	return &GlobalGetter{
+		TokenSource:   tokenSource,
+		OperationName: operationName,
+	}
 }
