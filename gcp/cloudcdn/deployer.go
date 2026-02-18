@@ -3,6 +3,8 @@ package cloudcdn
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
@@ -58,6 +60,10 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 		//       The first iteration of the loop will return the first one
 		for _, invalidationName := range invalidationNames {
 			fmt.Fprintf(stdout, "Deployed app %q\n", d.Details.App.Name)
+			if !strings.Contains(invalidationName, "/") {
+				// If this is just a raw operation id, we need to create a format that operations.GlobalGetter can parse
+				invalidationName = fmt.Sprintf("projects/%s/global/operations/%s", d.Infra.ProjectId, invalidationName)
+			}
 			return invalidationName, nil
 		}
 	}
