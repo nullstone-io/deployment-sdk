@@ -1,14 +1,15 @@
 package operations
 
 import (
-	compute "cloud.google.com/go/compute/apiv1"
-	"cloud.google.com/go/compute/apiv1/computepb"
 	"context"
 	"fmt"
-	"golang.org/x/oauth2"
-	"google.golang.org/api/option"
 	"strings"
 	"sync"
+
+	compute "cloud.google.com/go/compute/apiv1"
+	"cloud.google.com/go/compute/apiv1/computepb"
+	"golang.org/x/oauth2"
+	"google.golang.org/api/option"
 )
 
 type RegionalGetter struct {
@@ -35,6 +36,9 @@ func (g *RegionalGetter) Get(ctx context.Context) (*computepb.Operation, error) 
 	}
 
 	tokens := strings.Split(g.OperationName, "/")
+	if len(tokens) < 6 {
+		return nil, fmt.Errorf("invalid operation name %q", g.OperationName)
+	}
 	projectId := tokens[1]
 	region := tokens[3]
 	opId := tokens[5]
