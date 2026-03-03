@@ -3,7 +3,7 @@ module github.com/nullstone-io/deployment-sdk
 go 1.25.3
 
 require (
-	cloud.google.com/go/compute v1.53.0
+	cloud.google.com/go/compute v1.54.0
 	cloud.google.com/go/functions v1.19.7
 	cloud.google.com/go/logging v1.13.1
 	cloud.google.com/go/longrunning v0.8.0
