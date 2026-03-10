@@ -8,10 +8,10 @@ import (
 )
 
 type Outputs struct {
-	Region          string        `ns:"region"`
-	MetricsReader   nsaws.User    `ns:"metrics_reader,optional"`
-	LogReader       nsaws.User    `ns:"log_reader,optional"`
-	MetricsMappings MappingGroups `ns:"metrics_mappings"`
+	Region          string            `ns:"region"`
+	MetricsReader   nsaws.IamIdentity `ns:"metrics_reader,optional"`
+	LogReader       nsaws.IamIdentity `ns:"log_reader,optional"`
+	MetricsMappings MappingGroups     `ns:"metrics_mappings"`
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {

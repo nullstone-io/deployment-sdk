@@ -10,12 +10,12 @@ import (
 )
 
 type Outputs struct {
-	Region            string          `ns:"region"`
-	ServiceName       string          `ns:"service_name"`
-	TaskArn           string          `ns:"task_arn"`
-	ImageRepoUrl      docker.ImageUrl `ns:"image_repo_url,optional"`
-	MainContainerName string          `ns:"main_container_name,optional"`
-	Deployer          nsaws.User      `ns:"deployer,optional"`
+	Region            string            `ns:"region"`
+	ServiceName       string            `ns:"service_name"`
+	TaskArn           string            `ns:"task_arn"`
+	ImageRepoUrl      docker.ImageUrl   `ns:"image_repo_url,optional"`
+	MainContainerName string            `ns:"main_container_name,optional"`
+	Deployer          nsaws.IamIdentity `ns:"deployer,optional"`
 
 	Cluster          ClusterOutputs          `ns:",connectionContract:cluster/aws/ecs:*,optional"`
 	ClusterNamespace ClusterNamespaceOutputs `ns:",connectionContract:cluster-namespace/aws/ecs:*,optional"`

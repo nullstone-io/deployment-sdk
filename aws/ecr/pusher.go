@@ -23,9 +23,9 @@ import (
 )
 
 type Outputs struct {
-	Region       string          `ns:"region"`
-	ImageRepoUrl docker.ImageUrl `ns:"image_repo_url,optional"`
-	ImagePusher  nsaws.User      `ns:"image_pusher,optional"`
+	Region       string            `ns:"region"`
+	ImageRepoUrl docker.ImageUrl   `ns:"image_repo_url,optional"`
+	ImagePusher  nsaws.IamIdentity `ns:"image_pusher,optional"`
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
