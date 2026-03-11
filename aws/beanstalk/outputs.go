@@ -13,12 +13,12 @@ const (
 )
 
 type Outputs struct {
-	Region               string     `ns:"region"`
-	Deployer             nsaws.User `ns:"deployer"`
-	BeanstalkName        string     `ns:"beanstalk_name"`
-	EnvironmentId        string     `ns:"environment_id"`
-	ArtifactsBucketName  string     `ns:"artifacts_bucket_name"`
-	ArtifactsKeyTemplate string     `ns:"artifacts_key_template"`
+	Region               string            `ns:"region"`
+	Deployer             nsaws.IamIdentity `ns:"deployer"`
+	BeanstalkName        string            `ns:"beanstalk_name"`
+	EnvironmentId        string            `ns:"environment_id"`
+	ArtifactsBucketName  string            `ns:"artifacts_bucket_name"`
+	ArtifactsKeyTemplate string            `ns:"artifacts_key_template"`
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {

@@ -15,12 +15,12 @@ import (
 )
 
 type Outputs struct {
-	ServiceNamespace  string          `ns:"service_namespace"`
-	ServiceName       string          `ns:"service_name"`
-	ImageRepoUrl      docker.ImageUrl `ns:"image_repo_url,optional"`
-	Deployer          nsaws.User      `ns:"deployer,optional"`
-	MainContainerName string          `ns:"main_container_name,optional"`
-	JobDefinitionName string          `ns:"job_definition_name,optional"`
+	ServiceNamespace  string            `ns:"service_namespace"`
+	ServiceName       string            `ns:"service_name"`
+	ImageRepoUrl      docker.ImageUrl   `ns:"image_repo_url,optional"`
+	Deployer          nsaws.IamIdentity `ns:"deployer,optional"`
+	MainContainerName string            `ns:"main_container_name,optional"`
+	JobDefinitionName string            `ns:"job_definition_name,optional"`
 
 	ClusterNamespace ClusterNamespaceOutputs `ns:",connectionContract:cluster-namespace/aws/k8s:eks"`
 }

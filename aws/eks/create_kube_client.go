@@ -20,20 +20,20 @@ type ClusterAwsContext struct {
 	ClusterId string
 }
 
-func CreateKubeConfig(ctx context.Context, cluster ClusterMeta, user nsaws.User) (*rest.Config, error) {
+func CreateKubeConfig(ctx context.Context, cluster ClusterMeta, user nsaws.IamIdentity) (*rest.Config, error) {
 	awsContext := cluster.AwsContext()
 	configCreator := &k8s.ConfigCreator{
 		ClusterInfoer: cluster,
 		AuthInfoer: IamUserAuth{
-			User:      user,
-			Region:    awsContext.Region,
-			ClusterId: awsContext.ClusterId,
+			IamIdentity: user,
+			Region:      awsContext.Region,
+			ClusterId:   awsContext.ClusterId,
 		},
 	}
 	return configCreator.Create(ctx)
 }
 
-func CreateKubeClient(ctx context.Context, cluster ClusterMeta, user nsaws.User) (*kubernetes.Clientset, error) {
+func CreateKubeClient(ctx context.Context, cluster ClusterMeta, user nsaws.IamIdentity) (*kubernetes.Clientset, error) {
 	cfg, err := CreateKubeConfig(ctx, cluster, user)
 	if err != nil {
 		return nil, fmt.Errorf("error creating kube config: %w", err)
