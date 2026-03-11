@@ -25,7 +25,7 @@ func main() {
 		Infra: ecr.Outputs{
 			Region:       region,
 			ImageRepoUrl: imageUrl,
-			ImagePusher: nsaws.User{
+			ImagePusher: nsaws.IamIdentity{
 				AccessKeyId:     os.Getenv("AWS_ACCESS_KEY_ID"),
 				SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
 			},

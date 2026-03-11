@@ -14,13 +14,13 @@ import (
 var _ k8s.AuthInfoer = IamUserAuth{}
 
 type IamUserAuth struct {
-	nsaws.User
+	nsaws.IamIdentity
 	Region    string
 	ClusterId string
 }
 
 func (i IamUserAuth) AuthInfo(ctx context.Context) (clientcmdapi.AuthInfo, error) {
-	stsClient := sts.NewFromConfig(nsaws.NewConfig(i.User, i.Region))
+	stsClient := sts.NewFromConfig(nsaws.NewConfig(i.IamIdentity, i.Region))
 	generator, err := token.NewGenerator(false, false)
 	if err != nil {
 		return clientcmdapi.AuthInfo{}, fmt.Errorf("failed to create token generator: %w", err)

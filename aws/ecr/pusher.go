@@ -23,9 +23,9 @@ import (
 )
 
 type Outputs struct {
-	Region       string          `ns:"region"`
-	ImageRepoUrl docker.ImageUrl `ns:"image_repo_url,optional"`
-	ImagePusher  nsaws.User      `ns:"image_pusher,optional"`
+	Region       string            `ns:"region"`
+	ImageRepoUrl docker.ImageUrl   `ns:"image_repo_url,optional"`
+	ImagePusher  nsaws.IamIdentity `ns:"image_pusher,optional"`
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
@@ -157,10 +157,9 @@ func (p Pusher) validate(targetUrl docker.ImageUrl) error {
 
 	// NOTE: For now, we are assuming that the production docker image is hosted in ECR
 	// This will likely need to be refactored to support pushing to other image registries
-	if p.Infra.ImagePusher.AccessKeyId == "" {
-		return fmt.Errorf("cannot push without an authorized user, make sure 'image_pusher' output is not empty")
+	if err := p.Infra.ImagePusher.Validate(); err != nil {
+		return fmt.Errorf("cannot push without an authorized user specified in `image_pusher`: %w", err)
 	}
-
 	return nil
 }
 

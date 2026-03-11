@@ -8,9 +8,9 @@ import (
 )
 
 type Outputs struct {
-	Region       string     `ns:"region"`
-	LogReader    nsaws.User `ns:"log_reader"`
-	LogGroupName string     `ns:"log_group_name"`
+	Region       string            `ns:"region"`
+	LogReader    nsaws.IamIdentity `ns:"log_reader"`
+	LogGroupName string            `ns:"log_group_name"`
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {

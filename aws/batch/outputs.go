@@ -9,11 +9,11 @@ import (
 )
 
 type Outputs struct {
-	Region            string          `ns:"region"`
-	JobDefinitionArn  string          `ns:"job_definition_arn"`
-	JobDefinitionName string          `ns:"job_definition_name"`
-	ImageRepoUrl      docker.ImageUrl `ns:"image_repo_url,optional"`
-	Deployer          nsaws.User      `ns:"deployer,optional"`
+	Region            string            `ns:"region"`
+	JobDefinitionArn  string            `ns:"job_definition_arn"`
+	JobDefinitionName string            `ns:"job_definition_name"`
+	ImageRepoUrl      docker.ImageUrl   `ns:"image_repo_url,optional"`
+	Deployer          nsaws.IamIdentity `ns:"deployer,optional"`
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {

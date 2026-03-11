@@ -28,7 +28,7 @@ func main() {
 		ServiceName:       svcName,
 		TaskArn:           taskDefArn,
 		MainContainerName: "main",
-		Deployer: nsaws.User{
+		Deployer: nsaws.IamIdentity{
 			Name:            "",
 			AccessKeyId:     os.Getenv("AWS_ACCESS_KEY_ID"),
 			SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
