@@ -28,7 +28,7 @@ type IamIdentity struct {
 
 func (i IamIdentity) Validate() error {
 	if i.AccessKeyId == "" && i.RoleArn == "" {
-		return fmt.Errorf("cannot push without an authorized user, make sure 'image_pusher' output is not empty")
+		return fmt.Errorf("output does not contain 'access_key_id' (IAM User) or 'role_arn' (IAM Role)")
 	}
 	return nil
 }

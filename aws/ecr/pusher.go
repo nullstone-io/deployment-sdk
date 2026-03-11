@@ -157,7 +157,10 @@ func (p Pusher) validate(targetUrl docker.ImageUrl) error {
 
 	// NOTE: For now, we are assuming that the production docker image is hosted in ECR
 	// This will likely need to be refactored to support pushing to other image registries
-	return p.Infra.ImagePusher.Validate()
+	if err := p.Infra.ImagePusher.Validate(); err != nil {
+		return fmt.Errorf("cannot push without an authorized user specified in `image_pusher`: %w", err)
+	}
+	return nil
 }
 
 func (p Pusher) getEcrLoginAuth(ctx context.Context) (dockerregistry.AuthConfig, error) {
