@@ -13,10 +13,10 @@ const (
 )
 
 type Outputs struct {
-	Region               string     `ns:"region"`
-	Deployer             nsaws.User `ns:"deployer"`
-	CdnIds               []string   `ns:"cdn_ids"`
-	ArtifactsKeyTemplate string     `ns:"artifacts_key_template,optional"`
+	Region               string            `ns:"region"`
+	Deployer             nsaws.IamIdentity `ns:"deployer"`
+	CdnIds               []string          `ns:"cdn_ids"`
+	ArtifactsKeyTemplate string            `ns:"artifacts_key_template,optional"`
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
