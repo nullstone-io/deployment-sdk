@@ -48,7 +48,7 @@ require (
 	golang.org/x/sync v0.19.0
 	google.golang.org/api v0.260.0
 	google.golang.org/protobuf v1.36.11
-	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20260319193427-6c150620e10c
+	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20260319201626-61800dcfeda9
 	k8s.io/api v0.35.0
 	k8s.io/apimachinery v0.35.0
 	k8s.io/client-go v0.35.0
