@@ -3,6 +3,7 @@ package gke
 import (
 	"encoding/base64"
 	"fmt"
+
 	"github.com/nullstone-io/deployment-sdk/docker"
 	"github.com/nullstone-io/deployment-sdk/gcp"
 	"github.com/nullstone-io/deployment-sdk/gcp/creds"
@@ -26,7 +27,7 @@ type Outputs struct {
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
-	o.Deployer.RemoteTokenSourcer = creds.NewTokenSourcer(source, ws.StackId, ws.Uid, "deployer")
+	o.Deployer.RemoteTokenSourcer = creds.NewTokenSourcer(source, ws.StackId, ws.BlockId, ws.EnvId, types.AutomationPurposeDeploy, "deployer")
 }
 
 type ClusterNamespaceOutputs struct {

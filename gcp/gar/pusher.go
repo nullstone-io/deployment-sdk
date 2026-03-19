@@ -27,7 +27,7 @@ type Outputs struct {
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
-	o.ImagePusher.RemoteTokenSourcer = creds.NewTokenSourcer(source, ws.StackId, ws.Uid, "image_pusher")
+	o.ImagePusher.RemoteTokenSourcer = creds.NewTokenSourcer(source, ws.StackId, ws.BlockId, ws.EnvId, types.AutomationPurposePush, "image_pusher")
 }
 
 func NewPusher(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Pusher, error) {

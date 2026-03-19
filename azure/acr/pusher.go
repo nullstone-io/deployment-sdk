@@ -32,7 +32,7 @@ type Outputs struct {
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
-	o.ImagePusher.InitializeCreds(source, ws, "image_pusher")
+	o.ImagePusher.InitializeCreds(source, ws, types.AutomationPurposePush, "image_pusher")
 }
 
 func NewPusher(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Pusher, error) {

@@ -3,7 +3,7 @@ package creds
 import (
 	"context"
 	"fmt"
-	"github.com/google/uuid"
+
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"golang.org/x/oauth2"
 	"gopkg.in/nullstone-io/go-api-client.v0"
@@ -12,12 +12,14 @@ import (
 
 type TokenSourcer func(scopes []string) oauth2.TokenSource
 
-func NewTokenSourcer(source outputs.RetrieverSource, stackId int64, workspaceUid uuid.UUID, outputNames ...string) TokenSourcer {
+func NewTokenSourcer(source outputs.RetrieverSource, stackId, blockId, envId int64, purpose string, outputNames ...string) TokenSourcer {
 	return func(scopes []string) oauth2.TokenSource {
 		return NullstoneTokenSource{
 			RetrieverSource: source,
 			StackId:         stackId,
-			WorkspaceUid:    workspaceUid,
+			BlockId:         blockId,
+			EnvId:           envId,
+			Purpose:         purpose,
 			Scopes:          scopes,
 			OutputNames:     outputNames,
 		}
@@ -31,18 +33,21 @@ var (
 type NullstoneTokenSource struct {
 	RetrieverSource outputs.RetrieverSource
 	StackId         int64
-	WorkspaceUid    uuid.UUID
-	Scopes          []string
+	BlockId         int64
+	EnvId           int64
+	Purpose         string
 	OutputNames     []string
+	Scopes          []string
 }
 
 func (p NullstoneTokenSource) Token() (*oauth2.Token, error) {
-	input := api.GenerateCredentialsInput{
-		Provider:       types.ProviderGcp,
-		OutputNames:    p.OutputNames,
-		GcpOauthScopes: p.Scopes,
+	input := api.AcquireAutomationCredentialsInput{
+		ProviderType: types.ProviderGcp,
+		Purpose:      p.Purpose,
+		OutputNames:  p.OutputNames,
+		OauthScopes:  p.Scopes,
 	}
-	creds, err := p.RetrieverSource.GetTemporaryCredentials(context.TODO(), p.StackId, p.WorkspaceUid, input)
+	creds, err := p.RetrieverSource.GetAutomationCredentials(context.TODO(), p.StackId, p.BlockId, p.EnvId, input)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving temporary credentials from Nullstone: %w", err)
 	}

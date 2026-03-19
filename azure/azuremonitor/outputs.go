@@ -13,5 +13,5 @@ type Outputs struct {
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
-	o.LogReader.InitializeCreds(source, ws, "log_reader")
+	o.LogReader.InitializeCreds(source, ws, types.AutomationPurposeViewLogs, "log_reader")
 }

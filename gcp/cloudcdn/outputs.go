@@ -1,11 +1,12 @@
 package cloudcdn
 
 import (
+	"strings"
+
 	"github.com/nullstone-io/deployment-sdk/gcp"
 	"github.com/nullstone-io/deployment-sdk/gcp/creds"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
-	"strings"
 )
 
 const (
@@ -20,7 +21,7 @@ type Outputs struct {
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
-	o.Deployer.RemoteTokenSourcer = creds.NewTokenSourcer(source, ws.StackId, ws.Uid, "deployer")
+	o.Deployer.RemoteTokenSourcer = creds.NewTokenSourcer(source, ws.StackId, ws.BlockId, ws.EnvId, types.AutomationPurposeDeploy, "deployer")
 }
 
 func (o *Outputs) ArtifactsKey(appVersion string) string {

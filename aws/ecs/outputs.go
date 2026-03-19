@@ -1,12 +1,13 @@
 package ecs
 
 import (
+	"strings"
+
 	"github.com/nullstone-io/deployment-sdk/aws"
 	"github.com/nullstone-io/deployment-sdk/aws/creds"
 	"github.com/nullstone-io/deployment-sdk/docker"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
-	"strings"
 )
 
 type Outputs struct {
@@ -22,8 +23,8 @@ type Outputs struct {
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
-	credsFactory := creds.NewProviderFactory(source, ws.StackId, ws.Uid)
-	o.Deployer.RemoteProvider = credsFactory("deployer")
+	credsFactory := creds.NewProviderFactory(source, ws.StackId, ws.BlockId, ws.EnvId)
+	o.Deployer.RemoteProvider = credsFactory(types.AutomationPurposeDeploy, "deployer")
 }
 
 // ClusterArn has the following format: arn:aws:ecs:<region>:<account-id>:cluster/<cluster-name>

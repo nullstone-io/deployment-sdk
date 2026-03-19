@@ -14,5 +14,5 @@ type Outputs struct {
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
-	o.Deployer.InitializeCreds(source, ws, "deployer")
+	o.Deployer.InitializeCreds(source, ws, types.AutomationPurposeDeploy, "deployer")
 }

@@ -2,6 +2,7 @@ package outputs
 
 import (
 	"context"
+
 	"github.com/google/uuid"
 	"gopkg.in/nullstone-io/go-api-client.v0"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
@@ -31,4 +32,9 @@ func (s ApiRetrieverSource) GetCurrentOutputs(ctx context.Context, stackId int64
 func (s ApiRetrieverSource) GetTemporaryCredentials(ctx context.Context, stackId int64, workspaceUid uuid.UUID, input api.GenerateCredentialsInput) (*types.OutputCredentials, error) {
 	nsClient := api.Client{Config: s.Config}
 	return nsClient.WorkspaceOutputCredentials().Create(ctx, stackId, workspaceUid, input)
+}
+
+func (s ApiRetrieverSource) GetAutomationCredentials(ctx context.Context, stackId, blockId, envId int64, input api.AcquireAutomationCredentialsInput) (*types.OutputCredentials, error) {
+	nsClient := api.Client{Config: s.Config}
+	return nsClient.AutomationCredentials().Acquire(ctx, stackId, blockId, envId, input)
 }
