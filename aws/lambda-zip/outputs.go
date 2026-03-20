@@ -1,12 +1,13 @@
 package lambda_zip
 
 import (
+	"strings"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/nullstone-io/deployment-sdk/aws"
 	"github.com/nullstone-io/deployment-sdk/aws/creds"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
-	"strings"
 )
 
 const (
@@ -23,8 +24,8 @@ type Outputs struct {
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
-	credsFactory := creds.NewProviderFactory(source, ws.StackId, ws.Uid)
-	o.Deployer.RemoteProvider = credsFactory("deployer")
+	credsFactory := creds.NewProviderFactory(source, ws.StackId, ws.BlockId, ws.EnvId)
+	o.Deployer.RemoteProvider = credsFactory(types.AutomationPurposeDeploy, "deployer")
 }
 
 func (o Outputs) FunctionName() string {

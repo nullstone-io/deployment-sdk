@@ -14,5 +14,5 @@ type Outputs struct {
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
-	o.LogReader.RemoteTokenSourcer = creds.NewTokenSourcer(source, ws.StackId, ws.Uid, "log_reader")
+	o.LogReader.RemoteTokenSourcer = creds.NewTokenSourcer(source, ws.StackId, ws.BlockId, ws.EnvId, types.AutomationPurposeViewLogs, "log_reader")
 }

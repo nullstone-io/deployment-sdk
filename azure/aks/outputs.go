@@ -1,12 +1,11 @@
-package gke
+package aks
 
 import (
 	"encoding/base64"
 	"fmt"
 
+	"github.com/nullstone-io/deployment-sdk/azure"
 	"github.com/nullstone-io/deployment-sdk/docker"
-	"github.com/nullstone-io/deployment-sdk/gcp"
-	"github.com/nullstone-io/deployment-sdk/gcp/creds"
 	"github.com/nullstone-io/deployment-sdk/k8s"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
@@ -16,18 +15,20 @@ import (
 )
 
 type Outputs struct {
-	ServiceNamespace  string             `ns:"service_namespace"`
-	ServiceName       string             `ns:"service_name"`
-	ImageRepoUrl      docker.ImageUrl    `ns:"image_repo_url,optional"`
-	Deployer          gcp.ServiceAccount `ns:"deployer"`
-	MainContainerName string             `ns:"main_container_name,optional"`
-	JobDefinitionName string             `ns:"job_definition_name,optional"`
+	SubscriptionId    string          `ns:"subscription_id"`
+	ResourceGroup     string          `ns:"resource_group"`
+	ServiceNamespace  string          `ns:"service_namespace"`
+	ServiceName       string          `ns:"service_name,optional"`
+	JobDefinitionName string          `ns:"job_definition_name,optional"`
+	MainContainerName string          `ns:"main_container_name,optional"`
+	ImageRepoUrl      docker.ImageUrl `ns:"image_repo_url,optional"`
+	Deployer          azure.Principal `ns:"deployer"`
 
-	ClusterNamespace ClusterNamespaceOutputs `ns:",connectionContract:cluster-namespace/gcp/k8s:gke"`
+	ClusterNamespace ClusterNamespaceOutputs `ns:",connectionContract:cluster-namespace/azure/k8s:aks"`
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
-	o.Deployer.RemoteTokenSourcer = creds.NewTokenSourcer(source, ws.StackId, ws.BlockId, ws.EnvId, types.AutomationPurposeDeploy, "deployer")
+	o.Deployer.InitializeCreds(source, ws, types.AutomationPurposeDeploy, "deployer")
 }
 
 type ClusterNamespaceOutputs struct {
@@ -41,15 +42,6 @@ func (o ClusterNamespaceOutputs) ClusterInfo() (clientcmdapi.Cluster, error) {
 	return GetClusterInfo(o.ClusterEndpoint, o.ClusterCACertificate)
 }
 
-type ClusterOutputs struct {
-	ClusterEndpoint      string `ns:"cluster_endpoint"`
-	ClusterCACertificate string `ns:"cluster_ca_certificate"`
-}
-
-func (o ClusterOutputs) ClusterInfo() (clientcmdapi.Cluster, error) {
-	return GetClusterInfo(o.ClusterEndpoint, o.ClusterCACertificate)
-}
-
 func GetClusterInfo(endpoint string, caCertificate string) (clientcmdapi.Cluster, error) {
 	decodedCACert, err := base64.StdEncoding.DecodeString(caCertificate)
 	if err != nil {
@@ -58,7 +50,7 @@ func GetClusterInfo(endpoint string, caCertificate string) (clientcmdapi.Cluster
 
 	host, _, err := restclient.DefaultServerURL(endpoint, "", apimachineryschema.GroupVersion{Group: "", Version: "v1"}, true)
 	if err != nil {
-		return clientcmdapi.Cluster{}, fmt.Errorf("failed to parse GKE cluster host %q: %w", endpoint, err)
+		return clientcmdapi.Cluster{}, fmt.Errorf("failed to parse AKS cluster host %q: %w", endpoint, err)
 	}
 
 	return clientcmdapi.Cluster{

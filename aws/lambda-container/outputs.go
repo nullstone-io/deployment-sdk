@@ -18,8 +18,8 @@ type Outputs struct {
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
-	credsFactory := creds.NewProviderFactory(source, ws.StackId, ws.Uid)
-	o.Deployer.RemoteProvider = credsFactory("deployer")
+	credsFactory := creds.NewProviderFactory(source, ws.StackId, ws.BlockId, ws.EnvId)
+	o.Deployer.RemoteProvider = credsFactory(types.AutomationPurposeDeploy, "deployer")
 }
 
 func (o Outputs) FunctionName() string {

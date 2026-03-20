@@ -14,6 +14,6 @@ type Outputs struct {
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {
-	credsFactory := creds.NewProviderFactory(source, ws.StackId, ws.Uid)
-	o.LogReader.RemoteProvider = credsFactory("log_reader")
+	credsFactory := creds.NewProviderFactory(source, ws.StackId, ws.BlockId, ws.EnvId)
+	o.LogReader.RemoteProvider = credsFactory(types.AutomationPurposeViewLogs, "log_reader")
 }

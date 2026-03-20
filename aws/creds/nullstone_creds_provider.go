@@ -3,21 +3,23 @@ package creds
 import (
 	"context"
 	"fmt"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/google/uuid"
 	"github.com/nullstone-io/deployment-sdk/outputs"
 	"gopkg.in/nullstone-io/go-api-client.v0"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
 )
 
-type ProviderFactory func(outputNames ...string) aws.CredentialsProvider
+type ProviderFactory func(purpose string, outputNames ...string) aws.CredentialsProvider
 
-func NewProviderFactory(source outputs.RetrieverSource, stackId int64, workspaceUid uuid.UUID) ProviderFactory {
-	return func(outputNames ...string) aws.CredentialsProvider {
+func NewProviderFactory(source outputs.RetrieverSource, stackId, blockId, envId int64) ProviderFactory {
+	return func(purpose string, outputNames ...string) aws.CredentialsProvider {
 		return NullstoneCredsProvider{
 			RetrieverSource: source,
 			StackId:         stackId,
-			WorkspaceUid:    workspaceUid,
+			BlockId:         blockId,
+			EnvId:           envId,
+			Purpose:         purpose,
 			OutputNames:     outputNames,
 		}
 	}
@@ -30,16 +32,19 @@ var (
 type NullstoneCredsProvider struct {
 	RetrieverSource outputs.RetrieverSource
 	StackId         int64
-	WorkspaceUid    uuid.UUID
+	BlockId         int64
+	EnvId           int64
+	Purpose         string
 	OutputNames     []string
 }
 
 func (p NullstoneCredsProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
-	input := api.GenerateCredentialsInput{
-		Provider:    types.ProviderAws,
-		OutputNames: p.OutputNames,
+	input := api.AcquireAutomationCredentialsInput{
+		ProviderType: types.ProviderAws,
+		Purpose:      p.Purpose,
+		OutputNames:  p.OutputNames,
 	}
-	creds, err := p.RetrieverSource.GetTemporaryCredentials(ctx, p.StackId, p.WorkspaceUid, input)
+	creds, err := p.RetrieverSource.GetAutomationCredentials(ctx, p.StackId, p.BlockId, p.EnvId, input)
 	if err != nil {
 		return aws.Credentials{}, fmt.Errorf("error retrieving temporary credentials from Nullstone: %w", err)
 	}
