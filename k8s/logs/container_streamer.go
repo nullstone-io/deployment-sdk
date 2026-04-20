@@ -81,6 +81,10 @@ func (s *ContainerStreamer) Stream(ctx context.Context, options app.LogStreamOpt
 			return
 		default:
 			if readErr := s.writeLine(r, writer, options); readErr != nil {
+				// The follow stream can EOF before the caller signals stop
+				// (e.g. kubelet closes it on container exit). Flush here so
+				// any bytes still buffered on the k8s side reach the writer.
+				s.flush(request, writer, options)
 				s.Stop()
 				return
 			}
@@ -115,6 +119,11 @@ func (s *ContainerStreamer) startStream(ctx context.Context, request rest.Respon
 	}
 }
 
+// flushIdleWindow bounds how long flush() waits for more bytes after the last
+// successful read. Lets callers set a generous StopFlushTimeout cap without
+// penalising the fast path — a healthy pod's tail drains in a few ms.
+const flushIdleWindow = 250 * time.Millisecond
+
 func (s *ContainerStreamer) flush(request rest.ResponseWrapper, writer BufferWriter, options app.LogStreamOptions) {
 	if options.StopFlushTimeout == nil || *options.StopFlushTimeout == 0 {
 		return
@@ -129,15 +138,48 @@ func (s *ContainerStreamer) flush(request rest.ResponseWrapper, writer BufferWri
 		s.debug(options, fmt.Sprintf("Failed to open container logs during flush: %s", err))
 		return
 	}
+	defer readCloser.Close()
 	go func() {
 		<-ctx.Done()
 		readCloser.Close()
 	}()
 
-	// This loop terminates when the stream is no longer reachable *or* we reach timeout
 	r := bufio.NewReader(readCloser)
+
+	// Run the read loop in a goroutine so the outer select can short-circuit
+	// on an idle window even while ReadString is blocked.
+	lineCh := make(chan struct{}, 1)
+	doneCh := make(chan struct{})
+	go func() {
+		defer close(doneCh)
+		for {
+			if readErr := s.writeLine(r, writer, options); readErr != nil {
+				return
+			}
+			select {
+			case lineCh <- struct{}{}:
+			default:
+			}
+		}
+	}()
+
+	idleTimer := time.NewTimer(flushIdleWindow)
+	defer idleTimer.Stop()
 	for {
-		if readErr := s.writeLine(r, writer, options); readErr != nil {
+		select {
+		case <-doneCh:
+			return
+		case <-lineCh:
+			if !idleTimer.Stop() {
+				select {
+				case <-idleTimer.C:
+				default:
+				}
+			}
+			idleTimer.Reset(flushIdleWindow)
+		case <-idleTimer.C:
+			return
+		case <-ctx.Done():
 			return
 		}
 	}
