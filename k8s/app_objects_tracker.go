@@ -3,11 +3,13 @@ package k8s
 import (
 	"context"
 	"fmt"
+
+	"github.com/nullstone-io/deployment-sdk/logging"
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 )
 
@@ -16,10 +18,13 @@ import (
 // Each object is loaded once the first time Load() is called
 // The resulting unstructured resource data is saved
 type AppObjectsTracker struct {
-	AppName string
-	Objects map[string]ObjectToTrack
+	AppName   string
+	Objects   map[string]ObjectToTrack
+	OsWriters logging.OsWriters
 
-	client *dynamic.DynamicClient
+	client        *dynamic.DynamicClient
+	gvrBuilder    *GroupVersionResourceBuilder
+	warnedUnknown map[string]bool
 }
 
 type ObjectToTrack struct {
@@ -28,11 +33,14 @@ type ObjectToTrack struct {
 	IsTracking bool
 }
 
-func NewObjectTracker(appName string, client *dynamic.DynamicClient) *AppObjectsTracker {
+func NewObjectTracker(appName string, client *dynamic.DynamicClient, disc *discovery.DiscoveryClient, osWriters logging.OsWriters) *AppObjectsTracker {
 	return &AppObjectsTracker{
-		Objects: make(map[string]ObjectToTrack),
-		AppName: appName,
-		client:  client,
+		Objects:       make(map[string]ObjectToTrack),
+		AppName:       appName,
+		OsWriters:     osWriters,
+		client:        client,
+		gvrBuilder:    &GroupVersionResourceBuilder{Client: disc},
+		warnedUnknown: map[string]bool{},
 	}
 }
 
@@ -41,11 +49,15 @@ func (t *AppObjectsTracker) Load(ctx context.Context, object v1.ObjectReference)
 		return nil
 	}
 
-	group, version := parseGroupVersion(object.APIVersion)
-	gvr := schema.GroupVersionResource{
-		Group:    group,
-		Version:  version,
-		Resource: object.Name,
+	gvr, err := t.gvrBuilder.Build(object)
+	if err != nil {
+		// Unknown kind — skip rather than failing the watcher, but warn once per kind.
+		key := object.APIVersion + "/" + object.Kind
+		if t.OsWriters != nil && !t.warnedUnknown[key] {
+			t.warnedUnknown[key] = true
+			fmt.Fprintf(t.OsWriters.Stderr(), "Skipping events for unknown kind %s (%s): %s\n", object.Kind, object.APIVersion, err)
+		}
+		return nil
 	}
 	resource, err := t.client.Resource(gvr).Namespace(object.Namespace).Get(ctx, object.Name, metav1.GetOptions{})
 	if err != nil {
