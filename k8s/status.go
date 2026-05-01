@@ -1,31 +1,46 @@
 package k8s
 
 import (
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	"strconv"
 	"time"
+
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
+// ClusterInfo identifies the cloud cluster an app is running on. Distinct from
+// the ClusterInfoer interface (which produces kube-config Cluster details for
+// auth) — this carries the human/cloud-provider identifiers used in status output.
+type ClusterInfo struct {
+	Region      string `json:"region"`
+	ProjectId   string `json:"projectId,omitempty"`
+	ClusterName string `json:"clusterName"`
+}
+
 type AppStatus struct {
-	ReplicaSets []AppStatusReplicaSet `json:"replicaSets"`
+	Cluster        ClusterInfo             `json:"cluster"`
+	Namespace      string                  `json:"namespace"`
+	DeploymentName string                  `json:"deploymentName"`
+	ReplicaSets    []AppStatusReplicaSet   `json:"replicaSets"`
+	Jobs           []AppStatusJobExecution `json:"jobs"`
 }
 
 type AppStatusReplicaSet struct {
-	Name              string    `json:"name"`
-	Revision          int       `json:"revision"`
-	Generation        int64     `json:"generation"`
-	AppVersion        string    `json:"appVersion"`
-	CreatedAt         time.Time `json:"createdAt"`
-	DesiredReplicas   int       `json:"desiredReplicas"`
-	AvailableReplicas int       `json:"availableReplicas"`
-	ReadyReplicas     int       `json:"readyReplicas"`
-	Replicas          int       `json:"replicas"`
+	Name              string                    `json:"name"`
+	Revision          int                       `json:"revision"`
+	Generation        int64                     `json:"generation"`
+	AppVersion        string                    `json:"appVersion"`
+	CreatedAt         time.Time                 `json:"createdAt"`
+	DesiredReplicas   int                       `json:"desiredReplicas"`
+	AvailableReplicas int                       `json:"availableReplicas"`
+	ReadyReplicas     int                       `json:"readyReplicas"`
+	Replicas          int                       `json:"replicas"`
+	Ports             []AppStatusReplicaSetPort `json:"ports"`
 
 	Pods []AppStatusPod `json:"pods"`
 }
 
-func AppStatusReplicaSetFromK8s(rs appsv1.ReplicaSet) AppStatusReplicaSet {
+func AppStatusReplicaSetFromK8s(rs appsv1.ReplicaSet, svcs []corev1.Service) AppStatusReplicaSet {
 	desired := 0
 	if val, err := strconv.Atoi(rs.Annotations["deployment.kubernetes.io/desired-replicas"]); err == nil {
 		desired = val
@@ -41,8 +56,40 @@ func AppStatusReplicaSetFromK8s(rs appsv1.ReplicaSet) AppStatusReplicaSet {
 		AvailableReplicas: int(rs.Status.AvailableReplicas),
 		ReadyReplicas:     int(rs.Status.ReadyReplicas),
 		Replicas:          int(rs.Status.Replicas),
+		Ports:             AggregateReplicaSetPorts(rs, svcs),
 		Pods:              make([]AppStatusPod, 0),
 	}
+}
+
+type AppStatusReplicaSetPort struct {
+	Protocol      string `json:"protocol"`
+	HostPort      int    `json:"hostPort"`
+	ContainerName string `json:"containerName"`
+	ContainerPort int    `json:"containerPort"`
+}
+
+// AggregateReplicaSetPorts derives the host->container port mappings for a replica set
+// by matching the pod template's container ports against the target ports of the given services.
+func AggregateReplicaSetPorts(rs appsv1.ReplicaSet, svcs []corev1.Service) []AppStatusReplicaSetPort {
+	ports := make([]AppStatusReplicaSetPort, 0)
+	for _, container := range rs.Spec.Template.Spec.Containers {
+		for _, svc := range svcs {
+			for _, port := range svc.Spec.Ports {
+				svcPort := port.TargetPort.IntValue()
+				for _, cport := range container.Ports {
+					if int(cport.ContainerPort) == svcPort {
+						ports = append(ports, AppStatusReplicaSetPort{
+							Protocol:      string(cport.Protocol),
+							HostPort:      int(port.Port),
+							ContainerName: container.Name,
+							ContainerPort: int(cport.ContainerPort),
+						})
+					}
+				}
+			}
+		}
+	}
+	return ports
 }
 
 type AppStatusPods []AppStatusPod
@@ -67,6 +114,10 @@ type AppStatusPod struct {
 	Phase      string                  `json:"phase"`
 	Conditions []AppStatusPodCondition `json:"conditions"`
 	Containers []AppStatusPodContainer `json:"containers"`
+	// MaxRestartCount is the highest RestartCount across the pod's containers.
+	MaxRestartCount int `json:"maxRestartCount"`
+	// LastRestartedAt is the LastRestartedAt of the container with MaxRestartCount, or nil if no container has restarted.
+	LastRestartedAt *time.Time `json:"lastRestartedAt"`
 }
 
 type AppStatusPodCondition struct {
@@ -81,9 +132,15 @@ type AppStatusPodCondition struct {
 
 func AppStatusPodFromK8s(pod corev1.Pod, svcs []corev1.Service) AppStatusPod {
 	containers := make([]AppStatusPodContainer, 0)
+	maxRestartCount := 0
+	var lastRestartedAt *time.Time
 	for _, cur := range pod.Spec.Containers {
 		container := AppStatusContainerFromK8s(cur, findPodContainerStatus(pod, cur), svcs)
 		containers = append(containers, container)
+		if container.RestartCount > maxRestartCount {
+			maxRestartCount = container.RestartCount
+			lastRestartedAt = container.LastRestartedAt
+		}
 	}
 
 	var startTime *time.Time
@@ -108,21 +165,29 @@ func AppStatusPodFromK8s(pod corev1.Pod, svcs []corev1.Service) AppStatusPod {
 	}
 
 	return AppStatusPod{
-		Name:       pod.Name,
-		CreatedAt:  pod.CreationTimestamp.Time,
-		StartedAt:  startTime,
-		ReplicaSet: findPodReplicaSet(pod),
-		Phase:      string(pod.Status.Phase),
-		Containers: containers,
-		Conditions: conditions,
+		Name:            pod.Name,
+		CreatedAt:       pod.CreationTimestamp.Time,
+		StartedAt:       startTime,
+		ReplicaSet:      findPodReplicaSet(pod),
+		Phase:           string(pod.Status.Phase),
+		Containers:      containers,
+		Conditions:      conditions,
+		MaxRestartCount: maxRestartCount,
+		LastRestartedAt: lastRestartedAt,
 	}
 }
 
 type AppStatusPodContainer struct {
-	Name    string                      `json:"name"`
-	Ready   bool                        `json:"ready"`
-	Started bool                        `json:"started"`
-	Ports   []AppStatusPodContainerPort `json:"ports"`
+	Name         string   `json:"name"`
+	Image        string   `json:"image"`
+	Command      []string `json:"command"`
+	Ready        bool     `json:"ready"`
+	Started      bool     `json:"started"`
+	RestartCount int      `json:"restartCount"`
+	// LastRestartedAt is when the most recent restart occurred (the previous instance's termination time),
+	// or nil if the container has never restarted.
+	LastRestartedAt *time.Time                  `json:"lastRestartedAt"`
+	Ports           []AppStatusPodContainerPort `json:"ports"`
 }
 
 func AppStatusContainerFromK8s(container corev1.Container, status *corev1.ContainerStatus, svcs []corev1.Service) AppStatusPodContainer {
@@ -146,16 +211,32 @@ func AppStatusContainerFromK8s(container corev1.Container, status *corev1.Contai
 
 	var ready bool
 	var started bool
+	var restartCount int
+	var lastRestartedAt *time.Time
 	if status != nil {
 		ready = status.Ready
 		started = status.Started != nil && *status.Started
+		restartCount = int(status.RestartCount)
+		if restartCount > 0 {
+			if term := status.LastTerminationState.Terminated; term != nil && !term.FinishedAt.IsZero() {
+				t := term.FinishedAt.Time
+				lastRestartedAt = &t
+			} else if running := status.State.Running; running != nil && !running.StartedAt.IsZero() {
+				t := running.StartedAt.Time
+				lastRestartedAt = &t
+			}
+		}
 	}
 
 	return AppStatusPodContainer{
-		Name:    container.Name,
-		Ready:   ready,
-		Started: started,
-		Ports:   ports,
+		Name:            container.Name,
+		Image:           container.Image,
+		Command:         container.Command,
+		Ready:           ready,
+		Started:         started,
+		RestartCount:    restartCount,
+		LastRestartedAt: lastRestartedAt,
+		Ports:           ports,
 	}
 }
 

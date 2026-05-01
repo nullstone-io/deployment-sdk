@@ -17,11 +17,15 @@ func NewStatuser(ctx context.Context, osWriters logging.OsWriters, source output
 	}
 	outs.InitializeCreds(source, appDetails.Workspace)
 
-	return k8s.Statuser{
-		OsWriters:    osWriters,
-		Details:      appDetails,
+	return &k8s.Statuser{
+		OsWriters: osWriters,
+		Details:   appDetails,
+		Cluster: k8s.ClusterInfo{
+			Region:      outs.ClusterNamespace.Region,
+			ClusterName: outs.ClusterNamespace.ClusterId,
+		},
 		AppNamespace: outs.ServiceNamespace,
-		AppName:      outs.ServiceName,
+		AppName:      appDetails.App.Name,
 		NewConfigFn: func(ctx context.Context) (*rest.Config, error) {
 			return CreateKubeConfig(ctx, outs.ClusterNamespace, outs.Deployer)
 		},
