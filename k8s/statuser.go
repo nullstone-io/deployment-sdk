@@ -7,8 +7,8 @@ import (
 
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
-	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -126,9 +126,6 @@ func (s *Statuser) Status(ctx context.Context) (any, error) {
 	}
 
 	st.DeploymentName = findDeploymentNameFromReplicaSets(s.replicaSets)
-	for _, job := range s.jobs {
-		st.Jobs = append(st.Jobs, AppStatusJobExecutionFromK8s(job))
-	}
 
 	statusPods := make(AppStatusPods, 0, len(s.pods))
 	for _, pod := range s.pods {
@@ -138,6 +135,10 @@ func (s *Statuser) Status(ctx context.Context) (any, error) {
 		revision := AppStatusReplicaSetFromK8s(replicaSet, s.services)
 		revision.Pods = statusPods.ListByReplicaSet(revision.Name)
 		st.ReplicaSets = append(st.ReplicaSets, revision)
+	}
+
+	for _, job := range s.jobs {
+		st.Jobs = append(st.Jobs, AppStatusJobExecutionFromK8s(job))
 	}
 	return st, nil
 }

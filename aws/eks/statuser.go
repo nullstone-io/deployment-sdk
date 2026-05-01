@@ -25,7 +25,7 @@ func NewStatuser(ctx context.Context, osWriters logging.OsWriters, source output
 			ClusterName: outs.ClusterNamespace.ClusterId,
 		},
 		AppNamespace: outs.ServiceNamespace,
-		AppName:      outs.ServiceName,
+		AppName:      appDetails.App.Name,
 		NewConfigFn: func(ctx context.Context) (*rest.Config, error) {
 			return CreateKubeConfig(ctx, outs.ClusterNamespace, outs.Deployer)
 		},
