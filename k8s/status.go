@@ -12,20 +12,21 @@ type AppStatus struct {
 }
 
 type AppStatusReplicaSet struct {
-	Name              string    `json:"name"`
-	Revision          int       `json:"revision"`
-	Generation        int64     `json:"generation"`
-	AppVersion        string    `json:"appVersion"`
-	CreatedAt         time.Time `json:"createdAt"`
-	DesiredReplicas   int       `json:"desiredReplicas"`
-	AvailableReplicas int       `json:"availableReplicas"`
-	ReadyReplicas     int       `json:"readyReplicas"`
-	Replicas          int       `json:"replicas"`
+	Name              string                    `json:"name"`
+	Revision          int                       `json:"revision"`
+	Generation        int64                     `json:"generation"`
+	AppVersion        string                    `json:"appVersion"`
+	CreatedAt         time.Time                 `json:"createdAt"`
+	DesiredReplicas   int                       `json:"desiredReplicas"`
+	AvailableReplicas int                       `json:"availableReplicas"`
+	ReadyReplicas     int                       `json:"readyReplicas"`
+	Replicas          int                       `json:"replicas"`
+	Ports             []AppStatusReplicaSetPort `json:"ports"`
 
 	Pods []AppStatusPod `json:"pods"`
 }
 
-func AppStatusReplicaSetFromK8s(rs appsv1.ReplicaSet) AppStatusReplicaSet {
+func AppStatusReplicaSetFromK8s(rs appsv1.ReplicaSet, svcs []corev1.Service) AppStatusReplicaSet {
 	desired := 0
 	if val, err := strconv.Atoi(rs.Annotations["deployment.kubernetes.io/desired-replicas"]); err == nil {
 		desired = val
@@ -41,8 +42,40 @@ func AppStatusReplicaSetFromK8s(rs appsv1.ReplicaSet) AppStatusReplicaSet {
 		AvailableReplicas: int(rs.Status.AvailableReplicas),
 		ReadyReplicas:     int(rs.Status.ReadyReplicas),
 		Replicas:          int(rs.Status.Replicas),
+		Ports:             AggregateReplicaSetPorts(rs, svcs),
 		Pods:              make([]AppStatusPod, 0),
 	}
+}
+
+type AppStatusReplicaSetPort struct {
+	Protocol      string `json:"protocol"`
+	HostPort      int    `json:"hostPort"`
+	ContainerName string `json:"containerName"`
+	ContainerPort int    `json:"containerPort"`
+}
+
+// AggregateReplicaSetPorts derives the host->container port mappings for a replica set
+// by matching the pod template's container ports against the target ports of the given services.
+func AggregateReplicaSetPorts(rs appsv1.ReplicaSet, svcs []corev1.Service) []AppStatusReplicaSetPort {
+	ports := make([]AppStatusReplicaSetPort, 0)
+	for _, container := range rs.Spec.Template.Spec.Containers {
+		for _, svc := range svcs {
+			for _, port := range svc.Spec.Ports {
+				svcPort := port.TargetPort.IntValue()
+				for _, cport := range container.Ports {
+					if int(cport.ContainerPort) == svcPort {
+						ports = append(ports, AppStatusReplicaSetPort{
+							Protocol:      string(cport.Protocol),
+							HostPort:      int(port.Port),
+							ContainerName: container.Name,
+							ContainerPort: int(cport.ContainerPort),
+						})
+					}
+				}
+			}
+		}
+	}
+	return ports
 }
 
 type AppStatusPods []AppStatusPod
@@ -119,10 +152,13 @@ func AppStatusPodFromK8s(pod corev1.Pod, svcs []corev1.Service) AppStatusPod {
 }
 
 type AppStatusPodContainer struct {
-	Name    string                      `json:"name"`
-	Ready   bool                        `json:"ready"`
-	Started bool                        `json:"started"`
-	Ports   []AppStatusPodContainerPort `json:"ports"`
+	Name         string                      `json:"name"`
+	Image        string                      `json:"image"`
+	Command      []string                    `json:"command"`
+	Ready        bool                        `json:"ready"`
+	Started      bool                        `json:"started"`
+	RestartCount int                         `json:"restartCount"`
+	Ports        []AppStatusPodContainerPort `json:"ports"`
 }
 
 func AppStatusContainerFromK8s(container corev1.Container, status *corev1.ContainerStatus, svcs []corev1.Service) AppStatusPodContainer {
@@ -146,16 +182,21 @@ func AppStatusContainerFromK8s(container corev1.Container, status *corev1.Contai
 
 	var ready bool
 	var started bool
+	var restartCount int
 	if status != nil {
 		ready = status.Ready
 		started = status.Started != nil && *status.Started
+		restartCount = int(status.RestartCount)
 	}
 
 	return AppStatusPodContainer{
-		Name:    container.Name,
-		Ready:   ready,
-		Started: started,
-		Ports:   ports,
+		Name:         container.Name,
+		Image:        container.Image,
+		Command:      container.Command,
+		Ready:        ready,
+		Started:      started,
+		RestartCount: restartCount,
+		Ports:        ports,
 	}
 }
 

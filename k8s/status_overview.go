@@ -3,6 +3,7 @@ package k8s
 import (
 	"github.com/nullstone-io/deployment-sdk/app"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"strconv"
 	"time"
 )
@@ -24,18 +25,19 @@ func (a AppStatusOverview) GetDeploymentVersions() []string {
 }
 
 type AppStatusOverviewReplicaSet struct {
-	Name              string    `json:"name"`
-	Revision          int       `json:"revision"`
-	Generation        int64     `json:"generation"`
-	AppVersion        string    `json:"appVersion"`
-	CreatedAt         time.Time `json:"createdAt"`
-	DesiredReplicas   int       `json:"desiredReplicas"`
-	AvailableReplicas int       `json:"availableReplicas"`
-	ReadyReplicas     int       `json:"readyReplicas"`
-	Replicas          int       `json:"replicas"`
+	Name              string                    `json:"name"`
+	Revision          int                       `json:"revision"`
+	Generation        int64                     `json:"generation"`
+	AppVersion        string                    `json:"appVersion"`
+	CreatedAt         time.Time                 `json:"createdAt"`
+	DesiredReplicas   int                       `json:"desiredReplicas"`
+	AvailableReplicas int                       `json:"availableReplicas"`
+	ReadyReplicas     int                       `json:"readyReplicas"`
+	Replicas          int                       `json:"replicas"`
+	Ports             []AppStatusReplicaSetPort `json:"ports"`
 }
 
-func AppStatusOverviewReplicaSetFromK8s(rs appsv1.ReplicaSet) AppStatusOverviewReplicaSet {
+func AppStatusOverviewReplicaSetFromK8s(rs appsv1.ReplicaSet, svcs []corev1.Service) AppStatusOverviewReplicaSet {
 	desired := 0
 	if val, err := strconv.Atoi(rs.Annotations["deployment.kubernetes.io/desired-replicas"]); err == nil {
 		desired = val
@@ -51,5 +53,6 @@ func AppStatusOverviewReplicaSetFromK8s(rs appsv1.ReplicaSet) AppStatusOverviewR
 		AvailableReplicas: int(rs.Status.AvailableReplicas),
 		ReadyReplicas:     int(rs.Status.ReadyReplicas),
 		Replicas:          int(rs.Status.Replicas),
+		Ports:             AggregateReplicaSetPorts(rs, svcs),
 	}
 }

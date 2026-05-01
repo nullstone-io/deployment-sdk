@@ -42,9 +42,13 @@ func (s Statuser) StatusOverview(ctx context.Context) (app.StatusOverviewResult,
 	if err != nil {
 		return so, fmt.Errorf("error retrieving app replica sets: %w", err)
 	}
+	svcsResponse, err := client.CoreV1().Services(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
+	if err != nil {
+		return so, fmt.Errorf("error retrieving app services: %w", err)
+	}
 	replicaSets := ExcludeOldReplicaSets(replicaSetsResponse.Items)
 	for _, replicaSet := range replicaSets {
-		revision := AppStatusOverviewReplicaSetFromK8s(replicaSet)
+		revision := AppStatusOverviewReplicaSetFromK8s(replicaSet, svcsResponse.Items)
 		so.ReplicaSets = append(so.ReplicaSets, revision)
 	}
 	return so, nil
@@ -84,7 +88,7 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	}
 	replicaSets := ExcludeOldReplicaSets(replicaSetsResponse.Items)
 	for _, replicaSet := range replicaSets {
-		revision := AppStatusReplicaSetFromK8s(replicaSet)
+		revision := AppStatusReplicaSetFromK8s(replicaSet, svcsResponse.Items)
 		revision.Pods = statusPods.ListByReplicaSet(revision.Name)
 		st.ReplicaSets = append(st.ReplicaSets, revision)
 	}
