@@ -3,10 +3,13 @@ package k8s
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/logging"
+	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -14,6 +17,11 @@ import (
 
 type NewConfiger func(ctx context.Context) (*rest.Config, error)
 
+// Statuser produces AppStatus and AppStatusOverview for a Nullstone app.
+//
+// Methods use pointer receivers so a single Statuser instance can cache the
+// loaded k8s resources across calls — calling both Status and StatusOverview
+// on the same instance reuses one set of API List requests.
 type Statuser struct {
 	OsWriters    logging.OsWriters
 	Details      app.Details
@@ -21,9 +29,68 @@ type Statuser struct {
 	AppNamespace string
 	AppName      string
 	NewConfigFn  NewConfiger
+
+	// Cache populated by initialize. Guarded by initOnce.
+	initOnce    sync.Once
+	initErr     error
+	client      *kubernetes.Clientset
+	replicaSets []v1.ReplicaSet
+	services    []corev1.Service
+	pods        []corev1.Pod
+	jobs        []batchv1.Job
 }
 
-func (s Statuser) StatusOverview(ctx context.Context) (app.StatusOverviewResult, error) {
+// initialize lazily fetches every k8s resource Status and StatusOverview need.
+// It runs at most once per Statuser; the cached error (if any) is returned on
+// subsequent calls so partial state doesn't get reused.
+func (s *Statuser) initialize(ctx context.Context) error {
+	s.initOnce.Do(func() {
+		s.initErr = s.loadResources(ctx)
+	})
+	return s.initErr
+}
+
+func (s *Statuser) loadResources(ctx context.Context) error {
+	cfg, err := s.NewConfigFn(ctx)
+	if err != nil {
+		return fmt.Errorf("error creating kubernetes client: %w", err)
+	}
+	client, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return fmt.Errorf("error initializing kubernetes client: %w", err)
+	}
+	s.client = client
+
+	listOpts := metav1.ListOptions{LabelSelector: fmt.Sprintf("nullstone.io/app=%s", s.AppName)}
+
+	rsResp, err := client.AppsV1().ReplicaSets(s.AppNamespace).List(ctx, listOpts)
+	if err != nil {
+		return fmt.Errorf("error retrieving app replica sets: %w", err)
+	}
+	s.replicaSets = rsResp.Items
+
+	svcResp, err := client.CoreV1().Services(s.AppNamespace).List(ctx, listOpts)
+	if err != nil {
+		return fmt.Errorf("error retrieving app services: %w", err)
+	}
+	s.services = svcResp.Items
+
+	podResp, err := client.CoreV1().Pods(s.AppNamespace).List(ctx, listOpts)
+	if err != nil {
+		return fmt.Errorf("error retrieving app pods: %w", err)
+	}
+	s.pods = podResp.Items
+
+	jobResp, err := client.BatchV1().Jobs(s.AppNamespace).List(ctx, listOpts)
+	if err != nil {
+		return fmt.Errorf("error retrieving app jobs: %w", err)
+	}
+	s.jobs = jobResp.Items
+
+	return nil
+}
+
+func (s *Statuser) StatusOverview(ctx context.Context) (app.StatusOverviewResult, error) {
 	so := AppStatusOverview{
 		Cluster:     s.Cluster,
 		Namespace:   s.AppNamespace,
@@ -32,91 +99,46 @@ func (s Statuser) StatusOverview(ctx context.Context) (app.StatusOverviewResult,
 	if s.AppName == "" {
 		return so, nil
 	}
-
-	cfg, err := s.NewConfigFn(ctx)
-	if err != nil {
-		return so, fmt.Errorf("error creating kubernetes client: %w", err)
-	}
-	client, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		return so, fmt.Errorf("error initializing kubernetes client: %w", err)
+	if err := s.initialize(ctx); err != nil {
+		return so, err
 	}
 
-	appLabel := fmt.Sprintf("nullstone.io/app=%s", s.AppName)
-	replicaSetsResponse, err := client.AppsV1().ReplicaSets(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
-	if err != nil {
-		return so, fmt.Errorf("error retrieving app replica sets: %w", err)
-	}
-	svcsResponse, err := client.CoreV1().Services(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
-	if err != nil {
-		return so, fmt.Errorf("error retrieving app services: %w", err)
-	}
-	jobsResponse, err := client.BatchV1().Jobs(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
-	if err != nil {
-		return so, fmt.Errorf("error retrieving app jobs: %w", err)
-	}
-	so.Jobs = AppStatusJobSummaryFromK8s(jobsResponse.Items)
-	so.DeploymentName = findDeploymentNameFromReplicaSets(replicaSetsResponse.Items)
-	replicaSets := ExcludeOldReplicaSets(replicaSetsResponse.Items)
-	for _, replicaSet := range replicaSets {
-		revision := AppStatusOverviewReplicaSetFromK8s(replicaSet, svcsResponse.Items)
-		so.ReplicaSets = append(so.ReplicaSets, revision)
+	so.DeploymentName = findDeploymentNameFromReplicaSets(s.replicaSets)
+	so.Jobs = AppStatusJobSummaryFromK8s(s.jobs)
+	for _, replicaSet := range ExcludeOldReplicaSets(s.replicaSets) {
+		so.ReplicaSets = append(so.ReplicaSets, AppStatusOverviewReplicaSetFromK8s(replicaSet, s.services))
 	}
 	return so, nil
 }
 
-func (s Statuser) Status(ctx context.Context) (any, error) {
+func (s *Statuser) Status(ctx context.Context) (any, error) {
 	st := AppStatus{
 		Cluster:     s.Cluster,
 		Namespace:   s.AppNamespace,
 		ReplicaSets: make([]AppStatusReplicaSet, 0),
+		Jobs:        make([]AppStatusJobExecution, 0),
 	}
 	if s.AppName == "" {
 		return st, nil
 	}
-
-	cfg, err := s.NewConfigFn(ctx)
-	if err != nil {
-		return st, fmt.Errorf("error creating kubernetes client: %w", err)
-	}
-	client, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		return st, fmt.Errorf("error initializing kubernetes client: %w", err)
+	if err := s.initialize(ctx); err != nil {
+		return st, err
 	}
 
-	appLabel := fmt.Sprintf("nullstone.io/app=%s", s.AppName)
-	replicaSetsResponse, err := client.AppsV1().ReplicaSets(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
-	if err != nil {
-		return st, fmt.Errorf("error retrieving app replica sets: %w", err)
-	}
-	svcsResponse, err := client.CoreV1().Services(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
-	if err != nil {
-		return st, fmt.Errorf("error retrieving app services: %w", err)
-	}
-	podsResponse, err := client.CoreV1().Pods(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
-	if err != nil {
-		return st, fmt.Errorf("error retrieving app pods: %w", err)
-	}
-	jobsResponse, err := client.BatchV1().Jobs(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
-	if err != nil {
-		return st, fmt.Errorf("error retrieving app jobs: %w", err)
-	}
-	st.Jobs = make([]AppStatusJobExecution, 0, len(jobsResponse.Items))
-	for _, job := range jobsResponse.Items {
+	st.DeploymentName = findDeploymentNameFromReplicaSets(s.replicaSets)
+	for _, job := range s.jobs {
 		st.Jobs = append(st.Jobs, AppStatusJobExecutionFromK8s(job))
 	}
-	statusPods := make(AppStatusPods, 0)
-	for _, pod := range podsResponse.Items {
-		statusPods = append(statusPods, AppStatusPodFromK8s(pod, svcsResponse.Items))
+
+	statusPods := make(AppStatusPods, 0, len(s.pods))
+	for _, pod := range s.pods {
+		statusPods = append(statusPods, AppStatusPodFromK8s(pod, s.services))
 	}
-	st.DeploymentName = findDeploymentNameFromReplicaSets(replicaSetsResponse.Items)
-	replicaSets := ExcludeOldReplicaSets(replicaSetsResponse.Items)
-	for _, replicaSet := range replicaSets {
-		revision := AppStatusReplicaSetFromK8s(replicaSet, svcsResponse.Items)
+	for _, replicaSet := range ExcludeOldReplicaSets(s.replicaSets) {
+		revision := AppStatusReplicaSetFromK8s(replicaSet, s.services)
 		revision.Pods = statusPods.ListByReplicaSet(revision.Name)
 		st.ReplicaSets = append(st.ReplicaSets, revision)
 	}
-
 	return st, nil
 }
 
