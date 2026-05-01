@@ -1,10 +1,11 @@
 package k8s
 
 import (
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	"strconv"
 	"time"
+
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // ClusterInfo identifies the cloud cluster an app is running on. Distinct from
@@ -12,7 +13,7 @@ import (
 // auth) — this carries the human/cloud-provider identifiers used in status output.
 type ClusterInfo struct {
 	Region      string `json:"region"`
-	ProjectId   string `json:"projectId"`
+	ProjectId   string `json:"projectId,omitempty"`
 	ClusterName string `json:"clusterName"`
 }
 
@@ -176,12 +177,12 @@ func AppStatusPodFromK8s(pod corev1.Pod, svcs []corev1.Service) AppStatusPod {
 }
 
 type AppStatusPodContainer struct {
-	Name         string                      `json:"name"`
-	Image        string                      `json:"image"`
-	Command      []string                    `json:"command"`
-	Ready        bool                        `json:"ready"`
-	Started      bool                        `json:"started"`
-	RestartCount int                         `json:"restartCount"`
+	Name         string   `json:"name"`
+	Image        string   `json:"image"`
+	Command      []string `json:"command"`
+	Ready        bool     `json:"ready"`
+	Started      bool     `json:"started"`
+	RestartCount int      `json:"restartCount"`
 	// LastRestartedAt is when the most recent restart occurred (the previous instance's termination time),
 	// or nil if the container has never restarted.
 	LastRestartedAt *time.Time                  `json:"lastRestartedAt"`
