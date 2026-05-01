@@ -17,13 +17,18 @@ type NewConfiger func(ctx context.Context) (*rest.Config, error)
 type Statuser struct {
 	OsWriters    logging.OsWriters
 	Details      app.Details
+	Cluster      ClusterInfo
 	AppNamespace string
 	AppName      string
 	NewConfigFn  NewConfiger
 }
 
 func (s Statuser) StatusOverview(ctx context.Context) (app.StatusOverviewResult, error) {
-	so := AppStatusOverview{ReplicaSets: make([]AppStatusOverviewReplicaSet, 0)}
+	so := AppStatusOverview{
+		Cluster:     s.Cluster,
+		Namespace:   s.AppNamespace,
+		ReplicaSets: make([]AppStatusOverviewReplicaSet, 0),
+	}
 	if s.AppName == "" {
 		return so, nil
 	}
@@ -46,6 +51,7 @@ func (s Statuser) StatusOverview(ctx context.Context) (app.StatusOverviewResult,
 	if err != nil {
 		return so, fmt.Errorf("error retrieving app services: %w", err)
 	}
+	so.DeploymentName = findDeploymentNameFromReplicaSets(replicaSetsResponse.Items)
 	replicaSets := ExcludeOldReplicaSets(replicaSetsResponse.Items)
 	for _, replicaSet := range replicaSets {
 		revision := AppStatusOverviewReplicaSetFromK8s(replicaSet, svcsResponse.Items)
@@ -55,7 +61,11 @@ func (s Statuser) StatusOverview(ctx context.Context) (app.StatusOverviewResult,
 }
 
 func (s Statuser) Status(ctx context.Context) (any, error) {
-	st := AppStatus{ReplicaSets: make([]AppStatusReplicaSet, 0)}
+	st := AppStatus{
+		Cluster:     s.Cluster,
+		Namespace:   s.AppNamespace,
+		ReplicaSets: make([]AppStatusReplicaSet, 0),
+	}
 	if s.AppName == "" {
 		return st, nil
 	}
@@ -86,6 +96,7 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	for _, pod := range podsResponse.Items {
 		statusPods = append(statusPods, AppStatusPodFromK8s(pod, svcsResponse.Items))
 	}
+	st.DeploymentName = findDeploymentNameFromReplicaSets(replicaSetsResponse.Items)
 	replicaSets := ExcludeOldReplicaSets(replicaSetsResponse.Items)
 	for _, replicaSet := range replicaSets {
 		revision := AppStatusReplicaSetFromK8s(replicaSet, svcsResponse.Items)
@@ -94,6 +105,21 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	}
 
 	return st, nil
+}
+
+// findDeploymentNameFromReplicaSets returns the name of the Deployment that
+// owns one of the given ReplicaSets, or "" if none of them are Deployment-owned.
+// Long-running services run under a Deployment; jobs and one-shot tasks don't,
+// so an empty string is the correct signal that this app isn't a service.
+func findDeploymentNameFromReplicaSets(rss []v1.ReplicaSet) string {
+	for _, rs := range rss {
+		for _, or := range rs.OwnerReferences {
+			if or.Kind == "Deployment" {
+				return or.Name
+			}
+		}
+	}
+	return ""
 }
 
 // ExcludeOldReplicaSets filters out old replica sets

@@ -7,8 +7,20 @@ import (
 	"time"
 )
 
+// ClusterInfo identifies the cloud cluster an app is running on. Distinct from
+// the ClusterInfoer interface (which produces kube-config Cluster details for
+// auth) — this carries the human/cloud-provider identifiers used in status output.
+type ClusterInfo struct {
+	Region      string `json:"region"`
+	ProjectId   string `json:"projectId"`
+	ClusterName string `json:"clusterName"`
+}
+
 type AppStatus struct {
-	ReplicaSets []AppStatusReplicaSet `json:"replicaSets"`
+	Cluster        ClusterInfo           `json:"cluster"`
+	Namespace      string                `json:"namespace"`
+	DeploymentName string                `json:"deploymentName"`
+	ReplicaSets    []AppStatusReplicaSet `json:"replicaSets"`
 }
 
 type AppStatusReplicaSet struct {

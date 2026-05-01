@@ -18,8 +18,12 @@ func NewStatuser(ctx context.Context, osWriters logging.OsWriters, source output
 	outs.InitializeCreds(source, appDetails.Workspace)
 
 	return k8s.Statuser{
-		OsWriters:    osWriters,
-		Details:      appDetails,
+		OsWriters: osWriters,
+		Details:   appDetails,
+		Cluster: k8s.ClusterInfo{
+			Region:      outs.ClusterNamespace.Region,
+			ClusterName: outs.ClusterNamespace.ClusterId,
+		},
 		AppNamespace: outs.ServiceNamespace,
 		AppName:      outs.ServiceName,
 		NewConfigFn: func(ctx context.Context) (*rest.Config, error) {

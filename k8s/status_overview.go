@@ -13,7 +13,10 @@ var (
 )
 
 type AppStatusOverview struct {
-	ReplicaSets []AppStatusOverviewReplicaSet `json:"replicaSets"`
+	Cluster        ClusterInfo                   `json:"cluster"`
+	Namespace      string                        `json:"namespace"`
+	DeploymentName string                        `json:"deploymentName"`
+	ReplicaSets    []AppStatusOverviewReplicaSet `json:"replicaSets"`
 }
 
 func (a AppStatusOverview) GetDeploymentVersions() []string {

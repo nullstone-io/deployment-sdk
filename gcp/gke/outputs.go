@@ -31,6 +31,9 @@ func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Work
 }
 
 type ClusterNamespaceOutputs struct {
+	ProjectId            string `ns:"project_id,optional"`
+	Region               string `ns:"region,optional"`
+	ClusterName          string `ns:"cluster_name,optional"`
 	ClusterEndpoint      string `ns:"cluster_endpoint"`
 	ClusterCACertificate string `ns:"cluster_ca_certificate"`
 }
