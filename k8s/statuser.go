@@ -51,6 +51,11 @@ func (s Statuser) StatusOverview(ctx context.Context) (app.StatusOverviewResult,
 	if err != nil {
 		return so, fmt.Errorf("error retrieving app services: %w", err)
 	}
+	jobsResponse, err := client.BatchV1().Jobs(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
+	if err != nil {
+		return so, fmt.Errorf("error retrieving app jobs: %w", err)
+	}
+	so.Jobs = AppStatusJobSummaryFromK8s(jobsResponse.Items)
 	so.DeploymentName = findDeploymentNameFromReplicaSets(replicaSetsResponse.Items)
 	replicaSets := ExcludeOldReplicaSets(replicaSetsResponse.Items)
 	for _, replicaSet := range replicaSets {
@@ -91,6 +96,14 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	podsResponse, err := client.CoreV1().Pods(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
 	if err != nil {
 		return st, fmt.Errorf("error retrieving app pods: %w", err)
+	}
+	jobsResponse, err := client.BatchV1().Jobs(s.AppNamespace).List(ctx, metav1.ListOptions{LabelSelector: appLabel})
+	if err != nil {
+		return st, fmt.Errorf("error retrieving app jobs: %w", err)
+	}
+	st.Jobs = make([]AppStatusJobExecution, 0, len(jobsResponse.Items))
+	for _, job := range jobsResponse.Items {
+		st.Jobs = append(st.Jobs, AppStatusJobExecutionFromK8s(job))
 	}
 	statusPods := make(AppStatusPods, 0)
 	for _, pod := range podsResponse.Items {

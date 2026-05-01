@@ -17,6 +17,7 @@ type AppStatusOverview struct {
 	Namespace      string                        `json:"namespace"`
 	DeploymentName string                        `json:"deploymentName"`
 	ReplicaSets    []AppStatusOverviewReplicaSet `json:"replicaSets"`
+	Jobs           AppStatusJobSummary           `json:"jobs"`
 }
 
 func (a AppStatusOverview) GetDeploymentVersions() []string {

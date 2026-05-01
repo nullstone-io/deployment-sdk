@@ -18,10 +18,11 @@ type ClusterInfo struct {
 }
 
 type AppStatus struct {
-	Cluster        ClusterInfo           `json:"cluster"`
-	Namespace      string                `json:"namespace"`
-	DeploymentName string                `json:"deploymentName"`
-	ReplicaSets    []AppStatusReplicaSet `json:"replicaSets"`
+	Cluster        ClusterInfo             `json:"cluster"`
+	Namespace      string                  `json:"namespace"`
+	DeploymentName string                  `json:"deploymentName"`
+	ReplicaSets    []AppStatusReplicaSet   `json:"replicaSets"`
+	Jobs           []AppStatusJobExecution `json:"jobs"`
 }
 
 type AppStatusReplicaSet struct {
