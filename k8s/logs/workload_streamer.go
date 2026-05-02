@@ -3,6 +3,7 @@ package logs
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -25,10 +26,10 @@ type WorkloadStreamer struct {
 	WorkloadName string
 	NewConfigFn  NewConfiger
 	Options      app.LogStreamOptions
-	Selector     string
 }
 
 func (s *WorkloadStreamer) Stream(ctx context.Context) error {
+	selector := strings.Join(s.Options.Selectors, ",")
 	buffer := &SimpleLogBuffer{Emitter: s.Options.Emitter}
 
 	// Prepare a safe channel to signal
@@ -57,7 +58,7 @@ func (s *WorkloadStreamer) Stream(ctx context.Context) error {
 		return s.newInitError("There was an error initializing kubernetes client", err)
 	}
 
-	podList, err := client.CoreV1().Pods(s.Namespace).List(ctx, metav1.ListOptions{LabelSelector: s.Selector})
+	podList, err := client.CoreV1().Pods(s.Namespace).List(ctx, metav1.ListOptions{LabelSelector: selector})
 	if err != nil {
 		return s.newInitError("Failed to list pods", err)
 	}
@@ -72,11 +73,15 @@ func (s *WorkloadStreamer) Stream(ctx context.Context) error {
 	}
 	// Add pods that already exist
 	for _, pod := range podList.Items {
+		if s.Options.Pod != "" && s.Options.Pod != pod.Name {
+			s.debug(fmt.Sprintf("Ignore pod that doesn't match filter (%s)...", pod.Name))
+			continue
+		}
 		s.debug(fmt.Sprintf("Adding pod (%s)...", pod.Name))
 		streamers.Add(ctx, &pod, s.Options, buffer)
 	}
 
-	watcher, err := client.CoreV1().Pods(s.Namespace).Watch(ctx, metav1.ListOptions{LabelSelector: s.Selector, ResourceVersion: podList.ResourceVersion})
+	watcher, err := client.CoreV1().Pods(s.Namespace).Watch(ctx, metav1.ListOptions{LabelSelector: selector, ResourceVersion: podList.ResourceVersion})
 	if err != nil {
 		return s.newInitError("Failed to watch pods", err)
 	}
