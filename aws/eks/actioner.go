@@ -23,10 +23,9 @@ func NewActioner(ctx context.Context, osWriters logging.OsWriters, source output
 	outs.Deployer.RemoteProvider = credsFactory(types.AutomationPurposePerformAction, "deployer")
 
 	return k8s.Actioner{
-		OsWriters:         osWriters,
-		Namespace:         outs.ServiceNamespace,
-		AppName:           blockDetails.Block.Name,
-		JobDefinitionName: outs.JobDefinitionName,
+		OsWriters: osWriters,
+		Namespace: outs.ServiceNamespace,
+		AppName:   blockDetails.Block.Name,
 		NewConfigFn: func(ctx context.Context) (*rest.Config, error) {
 			return CreateKubeConfig(ctx, outs.ClusterNamespace, outs.Deployer)
 		},

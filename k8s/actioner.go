@@ -9,6 +9,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/k8s/logs"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/workspace"
+	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -30,7 +31,7 @@ type RestartDeploymentResult struct {
 }
 
 type RerunJobInput struct {
-	JobDefinitionName string `json:"jobDefinitionName,omitempty"`
+	JobName string `json:"jobName"`
 }
 
 type RerunJobResult struct {
@@ -47,11 +48,10 @@ type KillPodResult struct {
 }
 
 type Actioner struct {
-	OsWriters         logging.OsWriters
-	Namespace         string
-	AppName           string
-	JobDefinitionName string
-	NewConfigFn       logs.NewConfiger
+	OsWriters   logging.OsWriters
+	Namespace   string
+	AppName     string
+	NewConfigFn logs.NewConfiger
 }
 
 func (a Actioner) PerformAction(ctx context.Context, options workspace.ActionOptions) (*workspace.ActionResult, error) {
@@ -128,7 +128,7 @@ func (a Actioner) restartDeployment(ctx context.Context, input json.RawMessage) 
 	}, nil
 }
 
-// rerunJob creates a new k8s Job from the workspace's job template ConfigMap.
+// rerunJob creates a new k8s Job by copying the spec of an existing job.
 // The new Job is queued by the kube-scheduler; the call returns as soon as creation succeeds.
 func (a Actioner) rerunJob(ctx context.Context, input json.RawMessage) (*workspace.ActionResult, error) {
 	var in RerunJobInput
@@ -137,12 +137,8 @@ func (a Actioner) rerunJob(ctx context.Context, input json.RawMessage) (*workspa
 			return nil, fmt.Errorf("invalid input for %s: %w", ActionRerunJob, err)
 		}
 	}
-	jobDefName := in.JobDefinitionName
-	if jobDefName == "" {
-		jobDefName = a.JobDefinitionName
-	}
-	if jobDefName == "" {
-		return nil, fmt.Errorf("%s requires jobDefinitionName", ActionRerunJob)
+	if in.JobName == "" {
+		return nil, fmt.Errorf("%s requires jobName", ActionRerunJob)
 	}
 
 	client, err := a.newClient(ctx)
@@ -150,16 +146,30 @@ func (a Actioner) rerunJob(ctx context.Context, input json.RawMessage) (*workspa
 		return nil, err
 	}
 
-	jobDef, _, err := GetJobDefinition(ctx, client, a.Namespace, jobDefName)
+	existing, err := client.BatchV1().Jobs(a.Namespace).Get(ctx, in.JobName, metav1.GetOptions{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error retrieving job %q: %w", in.JobName, err)
 	}
 
-	jobDef.Name = fmt.Sprintf("%s-%d", a.AppName, time.Now().Unix())
-	jobDef.ResourceVersion = ""
-	jobDef.UID = ""
+	// Copy the existing job's spec, clearing the controller-managed fields that
+	// would otherwise conflict with the original job (selector, controller-uid/job-name labels).
+	spec := existing.Spec.DeepCopy()
+	spec.Selector = nil
+	delete(spec.Template.Labels, "controller-uid")
+	delete(spec.Template.Labels, "batch.kubernetes.io/controller-uid")
+	delete(spec.Template.Labels, "job-name")
+	delete(spec.Template.Labels, "batch.kubernetes.io/job-name")
 
-	created, err := client.BatchV1().Jobs(a.Namespace).Create(ctx, jobDef, metav1.CreateOptions{})
+	newJob := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-%d", a.AppName, time.Now().Unix()),
+			Namespace: a.Namespace,
+			Labels:    existing.Labels,
+		},
+		Spec: *spec,
+	}
+
+	created, err := client.BatchV1().Jobs(a.Namespace).Create(ctx, newJob, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("error creating job: %w", err)
 	}
@@ -170,7 +180,7 @@ func (a Actioner) rerunJob(ctx context.Context, input json.RawMessage) (*workspa
 	}
 	return &workspace.ActionResult{
 		Status:  "started",
-		Message: fmt.Sprintf("created job %q from template %q", created.Name, jobDefName),
+		Message: fmt.Sprintf("created job %q from %q", created.Name, in.JobName),
 		Data:    data,
 	}, nil
 }
