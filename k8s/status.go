@@ -9,6 +9,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+const (
+	PodTemplateHashLabel = "pod-template-hash"
+)
+
 // ClusterInfo identifies the cloud cluster an app is running on. Distinct from
 // the ClusterInfoer interface (which produces kube-config Cluster details for
 // auth) — this carries the human/cloud-provider identifiers used in status output.
@@ -32,6 +36,7 @@ type AppStatus struct {
 
 type AppStatusReplicaSet struct {
 	Name              string                    `json:"name"`
+	PodTemplateHash   string                    `json:"podTemplateHash"`
 	Revision          int                       `json:"revision"`
 	Generation        int64                     `json:"generation"`
 	AppVersion        string                    `json:"appVersion"`
@@ -53,6 +58,7 @@ func AppStatusReplicaSetFromK8s(rs appsv1.ReplicaSet, svcs []corev1.Service) App
 
 	return AppStatusReplicaSet{
 		Name:              rs.Name,
+		PodTemplateHash:   rs.Labels[PodTemplateHashLabel],
 		Revision:          RevisionFromReplicaSet(rs),
 		Generation:        rs.Status.ObservedGeneration,
 		AppVersion:        rs.Labels[StandardVersionLabel],
