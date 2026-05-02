@@ -11,6 +11,7 @@ import (
 
 	"github.com/mitchellh/colorstring"
 	"github.com/nullstone-io/deployment-sdk/app"
+	"github.com/nullstone-io/deployment-sdk/k8s/failures"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -270,11 +271,19 @@ func (w *DeployWatcher) emitEvent(ctx context.Context, earliest time.Time, event
 		return
 	}
 	obj := fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
-	colorstring.Fprintln(stdout, DeployEvent{
+	de := DeployEvent{
 		Timestamp: event.LastTimestamp.Time,
 		Type:      event.Type,
 		Reason:    event.Reason,
 		Object:    obj,
 		Message:   event.Message,
-	}.String())
+		Failure:   failures.ClassifyEvent(event),
+	}
+	// Promote informational events to Warning when classification reveals an
+	// actionable failure the raw event Type didn't flag (e.g. probe failures
+	// arrive as Normal/Warning depending on K8s version).
+	if de.Failure != nil && de.Type == EventTypeNormal {
+		de.Type = EventTypeWarning
+	}
+	colorstring.Fprintln(stdout, de.String())
 }

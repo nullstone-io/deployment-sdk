@@ -6,10 +6,12 @@ import (
 	"sync"
 
 	"github.com/nullstone-io/deployment-sdk/app"
+	"github.com/nullstone-io/deployment-sdk/k8s/failures"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -140,6 +142,17 @@ func (s *Statuser) Status(ctx context.Context) (any, error) {
 	for _, job := range s.jobs {
 		st.Jobs = append(st.Jobs, AppStatusJobExecutionFromK8s(job))
 	}
+
+	// Surface rollout-level failures (ProgressDeadlineExceeded / ReplicaFailure)
+	// from the parent Deployment when one exists with the app name. A missing
+	// Deployment isn't an error — some app types may not have one — so we ignore
+	// NotFound and any transient classification miss.
+	if dep, err := s.client.AppsV1().Deployments(s.AppNamespace).Get(ctx, s.AppName, metav1.GetOptions{}); err == nil && dep != nil {
+		st.Failures = failures.ClassifyDeployment(*dep)
+	} else if err != nil && !apierrors.IsNotFound(err) {
+		return st, fmt.Errorf("error retrieving app deployment: %w", err)
+	}
+
 	return st, nil
 }
 

@@ -4,8 +4,13 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/nullstone-io/deployment-sdk/k8s/failures"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+)
+
+const (
+	PodTemplateHashLabel = "pod-template-hash"
 )
 
 // ClusterInfo identifies the cloud cluster an app is running on. Distinct from
@@ -23,10 +28,15 @@ type AppStatus struct {
 	DeploymentName string                  `json:"deploymentName"`
 	ReplicaSets    []AppStatusReplicaSet   `json:"replicaSets"`
 	Jobs           []AppStatusJobExecution `json:"jobs"`
+	// Failures aggregates rollout-level failures (Deployment ProgressDeadlineExceeded,
+	// ReplicaFailure conditions). Container and pod-level failures live on their
+	// respective entries inside ReplicaSets.
+	Failures []failures.Failure `json:"failures,omitempty"`
 }
 
 type AppStatusReplicaSet struct {
 	Name              string                    `json:"name"`
+	PodTemplateHash   string                    `json:"podTemplateHash"`
 	Revision          int                       `json:"revision"`
 	Generation        int64                     `json:"generation"`
 	AppVersion        string                    `json:"appVersion"`
@@ -48,6 +58,7 @@ func AppStatusReplicaSetFromK8s(rs appsv1.ReplicaSet, svcs []corev1.Service) App
 
 	return AppStatusReplicaSet{
 		Name:              rs.Name,
+		PodTemplateHash:   rs.Labels[PodTemplateHashLabel],
 		Revision:          RevisionFromReplicaSet(rs),
 		Generation:        rs.Status.ObservedGeneration,
 		AppVersion:        rs.Labels[StandardVersionLabel],
@@ -118,6 +129,9 @@ type AppStatusPod struct {
 	MaxRestartCount int `json:"maxRestartCount"`
 	// LastRestartedAt is the LastRestartedAt of the container with MaxRestartCount, or nil if no container has restarted.
 	LastRestartedAt *time.Time `json:"lastRestartedAt"`
+	// Failures aggregates pod-level classification (scheduling, eviction).
+	// Container-level classification lives on each AppStatusPodContainer.Failure.
+	Failures []failures.Failure `json:"failures,omitempty"`
 }
 
 type AppStatusPodCondition struct {
@@ -135,7 +149,11 @@ func AppStatusPodFromK8s(pod corev1.Pod, svcs []corev1.Service) AppStatusPod {
 	maxRestartCount := 0
 	var lastRestartedAt *time.Time
 	for _, cur := range pod.Spec.Containers {
-		container := AppStatusContainerFromK8s(cur, findPodContainerStatus(pod, cur), svcs)
+		status := findPodContainerStatus(pod, cur)
+		container := AppStatusContainerFromK8s(cur, status, svcs)
+		if status != nil {
+			container.Failure = failures.ClassifyContainer(pod, *status)
+		}
 		containers = append(containers, container)
 		if container.RestartCount > maxRestartCount {
 			maxRestartCount = container.RestartCount
@@ -174,6 +192,7 @@ func AppStatusPodFromK8s(pod corev1.Pod, svcs []corev1.Service) AppStatusPod {
 		Conditions:      conditions,
 		MaxRestartCount: maxRestartCount,
 		LastRestartedAt: lastRestartedAt,
+		Failures:        failures.ClassifyPod(pod),
 	}
 }
 
@@ -188,6 +207,9 @@ type AppStatusPodContainer struct {
 	// or nil if the container has never restarted.
 	LastRestartedAt *time.Time                  `json:"lastRestartedAt"`
 	Ports           []AppStatusPodContainerPort `json:"ports"`
+	// Failure is the classified failure for this container, if any.
+	// Populated by failures.ClassifyContainer; nil when healthy.
+	Failure *failures.Failure `json:"failure,omitempty"`
 }
 
 func AppStatusContainerFromK8s(container corev1.Container, status *corev1.ContainerStatus, svcs []corev1.Service) AppStatusPodContainer {
