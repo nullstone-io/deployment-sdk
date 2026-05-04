@@ -50,7 +50,11 @@ type ClusterInfo struct {
 type Status struct {
 	Cluster     ClusterInfo  `json:"cluster"`
 	ServiceName string       `json:"serviceName"`
-	Tasks       []StatusTask `json:"tasks"`
+	// IsJob is true when the workspace is a one-off RunTask workspace (no ECS service).
+	// Frontend uses this to route to the job-executions view rather than the deployments view.
+	IsJob      bool              `json:"isJob"`
+	Tasks      []StatusTask      `json:"tasks"`
+	Executions []EcsJobExecution `json:"executions"`
 }
 
 func NewStatuser(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Statuser, error) {
@@ -114,12 +118,15 @@ func (s Statuser) StatusOverview(ctx context.Context) (app.StatusOverviewResult,
 }
 
 func (s Statuser) Status(ctx context.Context) (any, error) {
+	isJob := s.Infra.ServiceName == ""
 	st := Status{
 		Cluster: ClusterInfo{
 			Region:      s.Infra.Region,
 			ClusterName: parseClusterName(s.Infra.ClusterArn()),
 		},
-		Tasks: make([]StatusTask, 0),
+		IsJob:      isJob,
+		Tasks:      make([]StatusTask, 0),
+		Executions: make([]EcsJobExecution, 0),
 	}
 	tasks, err := s.getTasks(ctx)
 	if err != nil {
@@ -141,6 +148,13 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	}
 
 	taskDefs := TaskDefinitionsCache{}
+	// Job workspaces resolve appVersion per-execution from the task definition's
+	// nullstone.io/version tag. Service workspaces don't need this — appVersion is
+	// already attached to the service deployment in StatusOverview.
+	var tagsCache *ResourceTagsCache
+	if isJob {
+		tagsCache = &ResourceTagsCache{Infra: s.Infra}
+	}
 	for _, task := range tasks {
 		taskDef, err := taskDefs.Get(ctx, s.Infra, task.TaskDefinitionArn)
 		if err != nil {
@@ -149,6 +163,13 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 		statusTask := StatusTaskFromEcsTask(task)
 		statusTask.Enrich(lbs, taskDef)
 		st.Tasks = append(st.Tasks, statusTask)
+
+		if isJob {
+			// Silently swallow tag-lookup errors: a missing or unreadable tag should
+			// not break the executions list. The card simply omits the commit link.
+			appVersion, _ := tagsCache.Get(ctx, aws.ToString(task.TaskDefinitionArn), VersionTagKey)
+			st.Executions = append(st.Executions, EcsJobExecutionFromStatusTask(statusTask, appVersion))
+		}
 	}
 
 	return st, nil
