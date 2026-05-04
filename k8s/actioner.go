@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/nullstone-io/deployment-sdk/k8s/logs"
-	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/workspace"
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,7 +47,6 @@ type KillPodResult struct {
 }
 
 type Actioner struct {
-	OsWriters   logging.OsWriters
 	Namespace   string
 	AppName     string
 	NewConfigFn logs.NewConfiger
