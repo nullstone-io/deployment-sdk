@@ -17,11 +17,12 @@ import (
 func writeLatestEvents(infra Outputs, logGroupName string, options app.LogStreamOptions) func(ctx context.Context) error {
 	cwlClient := cloudwatchlogs.NewFromConfig(nsaws.NewConfig(infra.LogReader, infra.Region))
 	input := cloudwatchlogs.FilterLogEventsInput{
-		LogGroupName:  aws.String(logGroupName),
-		NextToken:     nil,
-		StartTime:     toAwsTime(options.StartTime),
-		EndTime:       toAwsTime(options.EndTime),
-		FilterPattern: options.Pattern,
+		LogGroupName:   aws.String(logGroupName),
+		NextToken:      nil,
+		StartTime:      toAwsTime(options.StartTime),
+		EndTime:        toAwsTime(options.EndTime),
+		FilterPattern:  options.Pattern,
+		LogStreamNames: options.LogStreamNames,
 	}
 	var lastEventTime *int64
 	visitedEventIds := map[string]bool{}

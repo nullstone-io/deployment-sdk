@@ -27,20 +27,34 @@ func (s StatusOverview) GetDeploymentVersions() []string {
 }
 
 type StatusOverviewDeployment struct {
-	Id                 string    `json:"id"`
-	AppVersion         string    `json:"appVersion"`
-	CreatedAt          time.Time `json:"createdAt"`
-	Status             string    `json:"status"`
-	RolloutState       string    `json:"rolloutState"`
-	RolloutStateReason string    `json:"rolloutStateReason"`
-	DesiredCount       int32     `json:"desiredCount"`
-	PendingCount       int32     `json:"pendingCount"`
-	RunningCount       int32     `json:"runningCount"`
-	FailedCount        int32     `json:"failedCount"`
+	Id                     string    `json:"id"`
+	AppVersion             string    `json:"appVersion"`
+	CreatedAt              time.Time `json:"createdAt"`
+	Status                 string    `json:"status"`
+	RolloutState           string    `json:"rolloutState"`
+	RolloutStateReason     string    `json:"rolloutStateReason"`
+	DesiredCount           int32     `json:"desiredCount"`
+	PendingCount           int32     `json:"pendingCount"`
+	RunningCount           int32     `json:"runningCount"`
+	FailedCount            int32     `json:"failedCount"`
+	TaskDefinitionFamily   string    `json:"taskDefinitionFamily"`
+	TaskDefinitionRevision int32     `json:"taskDefinitionRevision"`
+}
+
+// ClusterInfo identifies the AWS cluster an ECS app is running on.
+type ClusterInfo struct {
+	Region      string `json:"region"`
+	ClusterName string `json:"clusterName"`
 }
 
 type Status struct {
-	Tasks []StatusTask `json:"tasks"`
+	Cluster     ClusterInfo  `json:"cluster"`
+	ServiceName string       `json:"serviceName"`
+	// IsJob is true when the workspace is a one-off RunTask workspace (no ECS service).
+	// Frontend uses this to route to the job-executions view rather than the deployments view.
+	IsJob      bool              `json:"isJob"`
+	Tasks      []StatusTask      `json:"tasks"`
+	Executions []EcsJobExecution `json:"executions"`
 }
 
 func NewStatuser(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Statuser, error) {
@@ -84,24 +98,36 @@ func (s Statuser) StatusOverview(ctx context.Context) (app.StatusOverviewResult,
 			// NOTE: We're silently ignoring retrieval of app version
 		}
 
+		family, revision := parseTaskDefinition(aws.ToString(deployment.TaskDefinition))
 		so.Deployments = append(so.Deployments, StatusOverviewDeployment{
-			Id:                 aws.ToString(deployment.Id),
-			AppVersion:         appVersion,
-			CreatedAt:          aws.ToTime(deployment.CreatedAt),
-			Status:             aws.ToString(deployment.Status),
-			RolloutState:       string(deployment.RolloutState),
-			RolloutStateReason: aws.ToString(deployment.RolloutStateReason),
-			DesiredCount:       deployment.DesiredCount,
-			PendingCount:       deployment.PendingCount,
-			RunningCount:       deployment.RunningCount,
-			FailedCount:        deployment.FailedTasks,
+			Id:                     aws.ToString(deployment.Id),
+			AppVersion:             appVersion,
+			CreatedAt:              aws.ToTime(deployment.CreatedAt),
+			Status:                 aws.ToString(deployment.Status),
+			RolloutState:           string(deployment.RolloutState),
+			RolloutStateReason:     aws.ToString(deployment.RolloutStateReason),
+			DesiredCount:           deployment.DesiredCount,
+			PendingCount:           deployment.PendingCount,
+			RunningCount:           deployment.RunningCount,
+			FailedCount:            deployment.FailedTasks,
+			TaskDefinitionFamily:   family,
+			TaskDefinitionRevision: revision,
 		})
 	}
 	return so, nil
 }
 
 func (s Statuser) Status(ctx context.Context) (any, error) {
-	st := Status{Tasks: make([]StatusTask, 0)}
+	isJob := s.Infra.ServiceName == ""
+	st := Status{
+		Cluster: ClusterInfo{
+			Region:      s.Infra.Region,
+			ClusterName: parseClusterName(s.Infra.ClusterArn()),
+		},
+		IsJob:      isJob,
+		Tasks:      make([]StatusTask, 0),
+		Executions: make([]EcsJobExecution, 0),
+	}
 	tasks, err := s.getTasks(ctx)
 	if err != nil {
 		return st, err
@@ -111,12 +137,24 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	if err != nil {
 		return st, err
 	}
+	if svc != nil {
+		st.ServiceName = aws.ToString(svc.ServiceName)
+	} else {
+		st.ServiceName = s.Infra.ServiceName
+	}
 	lbs := StatusLoadBalancersFromEcsService(svc)
 	if err := lbs.RefreshHealth(ctx, s.Infra); err != nil {
 		return st, err
 	}
 
 	taskDefs := TaskDefinitionsCache{}
+	// Job workspaces resolve appVersion per-execution from the task definition's
+	// nullstone.io/version tag. Service workspaces don't need this — appVersion is
+	// already attached to the service deployment in StatusOverview.
+	var tagsCache *ResourceTagsCache
+	if isJob {
+		tagsCache = &ResourceTagsCache{Infra: s.Infra}
+	}
 	for _, task := range tasks {
 		taskDef, err := taskDefs.Get(ctx, s.Infra, task.TaskDefinitionArn)
 		if err != nil {
@@ -125,6 +163,13 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 		statusTask := StatusTaskFromEcsTask(task)
 		statusTask.Enrich(lbs, taskDef)
 		st.Tasks = append(st.Tasks, statusTask)
+
+		if isJob {
+			// Silently swallow tag-lookup errors: a missing or unreadable tag should
+			// not break the executions list. The card simply omits the commit link.
+			appVersion, _ := tagsCache.Get(ctx, aws.ToString(task.TaskDefinitionArn), VersionTagKey)
+			st.Executions = append(st.Executions, EcsJobExecutionFromStatusTask(statusTask, appVersion))
+		}
 	}
 
 	return st, nil

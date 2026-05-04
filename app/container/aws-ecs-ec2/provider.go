@@ -2,7 +2,6 @@ package aws_ecs_ec2
 
 import (
 	"github.com/nullstone-io/deployment-sdk/app"
-	"github.com/nullstone-io/deployment-sdk/aws/cloudwatch"
 	"github.com/nullstone-io/deployment-sdk/aws/ecr"
 	"github.com/nullstone-io/deployment-sdk/aws/ecs"
 	"gopkg.in/nullstone-io/go-api-client.v0/types"
@@ -22,5 +21,5 @@ var Provider = app.Provider{
 	NewDeployer:        ecs.NewDeployer,
 	NewDeployWatcher:   app.NewPollingDeployWatcher(ecs.NewDeployLogger),
 	NewStatuser:        ecs.NewStatuser,
-	NewLogStreamer:     cloudwatch.NewLogStreamer,
+	NewLogStreamer:     ecs.NewLogStreamer,
 }
