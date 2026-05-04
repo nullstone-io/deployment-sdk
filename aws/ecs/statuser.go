@@ -27,20 +27,30 @@ func (s StatusOverview) GetDeploymentVersions() []string {
 }
 
 type StatusOverviewDeployment struct {
-	Id                 string    `json:"id"`
-	AppVersion         string    `json:"appVersion"`
-	CreatedAt          time.Time `json:"createdAt"`
-	Status             string    `json:"status"`
-	RolloutState       string    `json:"rolloutState"`
-	RolloutStateReason string    `json:"rolloutStateReason"`
-	DesiredCount       int32     `json:"desiredCount"`
-	PendingCount       int32     `json:"pendingCount"`
-	RunningCount       int32     `json:"runningCount"`
-	FailedCount        int32     `json:"failedCount"`
+	Id                     string    `json:"id"`
+	AppVersion             string    `json:"appVersion"`
+	CreatedAt              time.Time `json:"createdAt"`
+	Status                 string    `json:"status"`
+	RolloutState           string    `json:"rolloutState"`
+	RolloutStateReason     string    `json:"rolloutStateReason"`
+	DesiredCount           int32     `json:"desiredCount"`
+	PendingCount           int32     `json:"pendingCount"`
+	RunningCount           int32     `json:"runningCount"`
+	FailedCount            int32     `json:"failedCount"`
+	TaskDefinitionFamily   string    `json:"taskDefinitionFamily"`
+	TaskDefinitionRevision int32     `json:"taskDefinitionRevision"`
+}
+
+// ClusterInfo identifies the AWS cluster an ECS app is running on.
+type ClusterInfo struct {
+	Region      string `json:"region"`
+	ClusterName string `json:"clusterName"`
 }
 
 type Status struct {
-	Tasks []StatusTask `json:"tasks"`
+	Cluster     ClusterInfo  `json:"cluster"`
+	ServiceName string       `json:"serviceName"`
+	Tasks       []StatusTask `json:"tasks"`
 }
 
 func NewStatuser(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Statuser, error) {
@@ -84,24 +94,33 @@ func (s Statuser) StatusOverview(ctx context.Context) (app.StatusOverviewResult,
 			// NOTE: We're silently ignoring retrieval of app version
 		}
 
+		family, revision := parseTaskDefinition(aws.ToString(deployment.TaskDefinition))
 		so.Deployments = append(so.Deployments, StatusOverviewDeployment{
-			Id:                 aws.ToString(deployment.Id),
-			AppVersion:         appVersion,
-			CreatedAt:          aws.ToTime(deployment.CreatedAt),
-			Status:             aws.ToString(deployment.Status),
-			RolloutState:       string(deployment.RolloutState),
-			RolloutStateReason: aws.ToString(deployment.RolloutStateReason),
-			DesiredCount:       deployment.DesiredCount,
-			PendingCount:       deployment.PendingCount,
-			RunningCount:       deployment.RunningCount,
-			FailedCount:        deployment.FailedTasks,
+			Id:                     aws.ToString(deployment.Id),
+			AppVersion:             appVersion,
+			CreatedAt:              aws.ToTime(deployment.CreatedAt),
+			Status:                 aws.ToString(deployment.Status),
+			RolloutState:           string(deployment.RolloutState),
+			RolloutStateReason:     aws.ToString(deployment.RolloutStateReason),
+			DesiredCount:           deployment.DesiredCount,
+			PendingCount:           deployment.PendingCount,
+			RunningCount:           deployment.RunningCount,
+			FailedCount:            deployment.FailedTasks,
+			TaskDefinitionFamily:   family,
+			TaskDefinitionRevision: revision,
 		})
 	}
 	return so, nil
 }
 
 func (s Statuser) Status(ctx context.Context) (any, error) {
-	st := Status{Tasks: make([]StatusTask, 0)}
+	st := Status{
+		Cluster: ClusterInfo{
+			Region:      s.Infra.Region,
+			ClusterName: parseClusterName(s.Infra.ClusterArn()),
+		},
+		Tasks: make([]StatusTask, 0),
+	}
 	tasks, err := s.getTasks(ctx)
 	if err != nil {
 		return st, err
@@ -110,6 +129,11 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 	svc, err := GetService(ctx, s.Infra)
 	if err != nil {
 		return st, err
+	}
+	if svc != nil {
+		st.ServiceName = aws.ToString(svc.ServiceName)
+	} else {
+		st.ServiceName = s.Infra.ServiceName
 	}
 	lbs := StatusLoadBalancersFromEcsService(svc)
 	if err := lbs.RefreshHealth(ctx, s.Infra); err != nil {

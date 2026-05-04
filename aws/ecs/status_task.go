@@ -29,23 +29,27 @@ const (
 )
 
 type StatusTask struct {
-	Id                 string                `json:"id"`
-	CreatedAt          *time.Time            `json:"createdAt"`
-	StartedBy          string                `json:"startedBy"`
-	Connectivity       ecstypes.Connectivity `json:"connectivity"`
-	ConnectivityAt     *time.Time            `json:"connectivityAt"`
-	PullStartedAt      *time.Time            `json:"pullStartedAt"`
-	PullStoppedAt      *time.Time            `json:"pullStoppedAt"`
-	StartedAt          *time.Time            `json:"startedAt"`
-	ExecutionStoppedAt *time.Time            `json:"executionStoppedAt"`
-	StoppingAt         *time.Time            `json:"stoppingAt"`
-	StoppedAt          *time.Time            `json:"stoppedAt"`
-	StoppedReason      string                `json:"stoppedReason"`
-	StopCode           ecstypes.TaskStopCode `json:"stopCode"`
-	Status             string                `json:"status"`
-	StatusExplanation  string                `json:"statusExplanation"`
-	Health             string                `json:"health"`
-	Containers         []StatusTaskContainer `json:"containers"`
+	Id                     string                `json:"id"`
+	TaskArn                string                `json:"taskArn"`
+	TaskDefinitionFamily   string                `json:"taskDefinitionFamily"`
+	TaskDefinitionRevision int32                 `json:"taskDefinitionRevision"`
+	EnableExecuteCommand   bool                  `json:"enableExecuteCommand"`
+	CreatedAt              *time.Time            `json:"createdAt"`
+	StartedBy              string                `json:"startedBy"`
+	Connectivity           ecstypes.Connectivity `json:"connectivity"`
+	ConnectivityAt         *time.Time            `json:"connectivityAt"`
+	PullStartedAt          *time.Time            `json:"pullStartedAt"`
+	PullStoppedAt          *time.Time            `json:"pullStoppedAt"`
+	StartedAt              *time.Time            `json:"startedAt"`
+	ExecutionStoppedAt     *time.Time            `json:"executionStoppedAt"`
+	StoppingAt             *time.Time            `json:"stoppingAt"`
+	StoppedAt              *time.Time            `json:"stoppedAt"`
+	StoppedReason          string                `json:"stoppedReason"`
+	StopCode               ecstypes.TaskStopCode `json:"stopCode"`
+	Status                 string                `json:"status"`
+	StatusExplanation      string                `json:"statusExplanation"`
+	Health                 string                `json:"health"`
+	Containers             []StatusTaskContainer `json:"containers"`
 }
 
 func StatusTaskFromEcsTask(task ecstypes.Task) StatusTask {
@@ -54,23 +58,28 @@ func StatusTaskFromEcsTask(task ecstypes.Task) StatusTask {
 		containers = append(containers, StatusTaskContainerFromEcs(container))
 	}
 
+	family, revision := parseTaskDefinition(aws.ToString(task.TaskDefinitionArn))
 	return StatusTask{
-		Id:                 parseTaskId(task.TaskArn),
-		CreatedAt:          task.CreatedAt,
-		StartedBy:          aws.ToString(task.StartedBy),
-		Connectivity:       task.Connectivity,
-		ConnectivityAt:     task.ConnectivityAt,
-		PullStartedAt:      task.PullStartedAt,
-		PullStoppedAt:      task.PullStoppedAt,
-		StartedAt:          task.StartedAt,
-		ExecutionStoppedAt: task.ExecutionStoppedAt,
-		StoppingAt:         task.StoppingAt,
-		StoppedAt:          task.StoppedAt,
-		StoppedReason:      aws.ToString(task.StoppedReason),
-		StopCode:           task.StopCode,
-		Status:             aws.ToString(task.LastStatus),
-		Health:             string(task.HealthStatus),
-		Containers:         containers,
+		Id:                     parseTaskId(task.TaskArn),
+		TaskArn:                aws.ToString(task.TaskArn),
+		TaskDefinitionFamily:   family,
+		TaskDefinitionRevision: revision,
+		EnableExecuteCommand:   task.EnableExecuteCommand,
+		CreatedAt:              task.CreatedAt,
+		StartedBy:              aws.ToString(task.StartedBy),
+		Connectivity:           task.Connectivity,
+		ConnectivityAt:         task.ConnectivityAt,
+		PullStartedAt:          task.PullStartedAt,
+		PullStoppedAt:          task.PullStoppedAt,
+		StartedAt:              task.StartedAt,
+		ExecutionStoppedAt:     task.ExecutionStoppedAt,
+		StoppingAt:             task.StoppingAt,
+		StoppedAt:              task.StoppedAt,
+		StoppedReason:          aws.ToString(task.StoppedReason),
+		StopCode:               task.StopCode,
+		Status:                 aws.ToString(task.LastStatus),
+		Health:                 string(task.HealthStatus),
+		Containers:             containers,
 	}
 }
 
@@ -96,6 +105,7 @@ func (t *StatusTask) Enrich(lbs StatusLoadBalancers, taskDef *ecstypes.TaskDefin
 
 type StatusTaskContainer struct {
 	Name              string                      `json:"name"`
+	Image             string                      `json:"image"`
 	Status            string                      `json:"status"`
 	Health            string                      `json:"health"`
 	Ports             []StatusTaskContainerPort   `json:"ports"`
@@ -122,6 +132,8 @@ func (c *StatusTaskContainer) Enrich(lbs StatusLoadBalancers, taskDef *ecstypes.
 	if containerDef == nil {
 		return
 	}
+
+	c.Image = aws.ToString(containerDef.Image)
 
 	for _, portMapping := range containerDef.PortMappings {
 		stcp := StatusTaskContainerPortFromEcs(*c, portMapping)
