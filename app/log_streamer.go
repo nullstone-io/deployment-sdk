@@ -25,7 +25,10 @@ type LogStreamOptions struct {
 
 	// A filter to apply when querying the log source
 	// For Kubernetes, this is a label selector to further filter down the logs
-	Selector *string
+	Selectors []string
+
+	// A filter to apply when querying a Kubernetes log source for a single pod
+	Pod string
 
 	// WatchInterval dictates how often the log streamer will query AWS for new events
 	// If left unspecified or 0, will use default watch interval of 1s

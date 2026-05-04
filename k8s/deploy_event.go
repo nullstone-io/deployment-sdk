@@ -3,6 +3,7 @@ package k8s
 import (
 	"bytes"
 	"github.com/nullstone-io/deployment-sdk/display"
+	"github.com/nullstone-io/deployment-sdk/k8s/failures"
 	"strings"
 	"time"
 )
@@ -19,6 +20,9 @@ type DeployEvent struct {
 	Reason    string
 	Object    string
 	Message   string
+	// Failure is the classified failure for this event, if the raw event matched
+	// a catalog entry. Nil for events that don't classify (most Normal events).
+	Failure *failures.Failure
 }
 
 func (e DeployEvent) String() string {
@@ -32,6 +36,12 @@ func (e DeployEvent) String() string {
 	if e.Reason != "" {
 		buf.WriteString("(")
 		buf.WriteString(e.Reason)
+		// Render the classified canonical name when it adds information beyond
+		// the raw reason — e.g. (Unhealthy → LivenessProbeFailed).
+		if e.Failure != nil && e.Failure.Name != "" && e.Failure.Name != e.Reason {
+			buf.WriteString(" → ")
+			buf.WriteString(e.Failure.Name)
+		}
 		buf.WriteString(") ")
 	}
 	if e.Type == EventTypeWarning {

@@ -22,17 +22,16 @@ func (l LogStreamer) Stream(ctx context.Context, options app.LogStreamOptions) e
 	if options.Emitter == nil {
 		options.Emitter = app.NewWriterLogEmitter(os.Stdout)
 	}
-	selector := fmt.Sprintf("nullstone.io/app=%s", l.AppName)
-	if options.Selector != nil && *options.Selector != "" {
-		selector = *options.Selector
-	}
+	options.Selectors = append([]string{
+		fmt.Sprintf("nullstone.io/app=%s", l.AppName)},
+		options.Selectors...,
+	)
 
 	streamer := logs.WorkloadStreamer{
 		Namespace:    l.AppNamespace,
 		WorkloadName: l.AppName,
 		NewConfigFn:  l.NewConfigFn,
 		Options:      options,
-		Selector:     selector,
 	}
 	return streamer.Stream(ctx)
 }
