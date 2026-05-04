@@ -18,6 +18,10 @@ var (
 	DefaultWatchInterval = 1 * time.Second
 )
 
+// FilterLogEvents accepts at most 100 log stream names per request.
+// https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilterLogEvents.html
+const maxStreamNamesPerCall = 100
+
 func NewLogStreamer(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.LogStreamer, error) {
 	outs, err := outputs.Retrieve[Outputs](ctx, source, appDetails.Workspace, appDetails.WorkspaceConfig)
 	if err != nil {
@@ -56,11 +60,36 @@ func (l LogStreamer) Stream(ctx context.Context, options app.LogStreamOptions) e
 	logger.Println("Querying the following log groups:")
 	logger.Printf("\t%s\n", strings.Join(logGroupNames, "\n\t"))
 
+	streamChunks := chunkLogStreams(options.LogStreamNames, maxStreamNamesPerCall)
+
 	g, ctx := errgroup.WithContext(ctx)
 	for _, logGroupName := range logGroupNames {
-		g.Go(l.streamLogGroup(ctx, logGroupName, options))
+		if len(streamChunks) == 0 {
+			g.Go(l.streamLogGroup(ctx, logGroupName, options))
+			continue
+		}
+		for _, chunk := range streamChunks {
+			chunkOpts := options
+			chunkOpts.LogStreamNames = chunk
+			g.Go(l.streamLogGroup(ctx, logGroupName, chunkOpts))
+		}
 	}
 	return g.Wait()
+}
+
+func chunkLogStreams(names []string, size int) [][]string {
+	if len(names) == 0 {
+		return nil
+	}
+	out := make([][]string, 0, (len(names)+size-1)/size)
+	for i := 0; i < len(names); i += size {
+		end := i + size
+		if end > len(names) {
+			end = len(names)
+		}
+		out = append(out, names[i:end])
+	}
+	return out
 }
 
 func (l LogStreamer) streamLogGroup(ctx context.Context, logGroupName string, options app.LogStreamOptions) func() error {

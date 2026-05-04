@@ -30,6 +30,26 @@ type LogStreamOptions struct {
 	// A filter to apply when querying a Kubernetes log source for a single pod
 	Pod string
 
+	// Task scopes the log query to a single ECS task ID. Honored by the ECS log streamer.
+	Task string
+
+	// Deployment scopes the log query to all tasks belonging to the given ECS deployment ID.
+	// Honored by the ECS log streamer; resolved to a list of task IDs at query time.
+	Deployment string
+
+	// Job scopes the log query to a job execution.
+	// For Kubernetes, the request handler typically converts this into a label selector.
+	// For ECS, this identifies a one-off task ID and is honored by the ECS log streamer
+	// the same way Task is.
+	Job string
+
+	// LogStreamNames is the resolved exact list of CloudWatch log streams to filter on.
+	// Populated by an upstream streamer (e.g. the ECS shim) that translates Task/
+	// Deployment/Job into stream names before delegating to the cloudwatch streamer.
+	// CloudWatch's FilterLogEvents accepts at most 100 names per request; the cloudwatch
+	// streamer chunks the list across goroutines as needed.
+	LogStreamNames []string
+
 	// WatchInterval dictates how often the log streamer will query AWS for new events
 	// If left unspecified or 0, will use default watch interval of 1s
 	// If a negative value is specified, watching will disable, the log streamer will terminate as soon as logs are emitted
