@@ -9,6 +9,7 @@ import (
 )
 
 type Outputs struct {
+	ServiceId         string             `ns:"service_id,optional"`
 	ServiceName       string             `ns:"service_name,optional"`
 	JobId             string             `ns:"job_id,optional"`
 	JobName           string             `ns:"job_name,optional"`

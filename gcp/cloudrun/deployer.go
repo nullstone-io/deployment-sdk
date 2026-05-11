@@ -67,12 +67,12 @@ func (d Deployer) deployService(ctx context.Context, meta app.DeployMetadata) (s
 
 	client, err := NewServicesClient(ctx, d.Infra.Deployer)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error initializing cloud run client: %w", err)
 	}
 
-	svc, err := client.GetService(ctx, &runpb.GetServiceRequest{Name: d.Infra.ServiceName})
+	svc, err := client.GetService(ctx, &runpb.GetServiceRequest{Name: d.Infra.ServiceId})
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error retrieving service: %w", err)
 	} else if svc == nil {
 		return "", fmt.Errorf("cloud run service %q not found", d.Infra.ServiceName)
 	}
@@ -103,7 +103,7 @@ func (d Deployer) deployJob(ctx context.Context, meta app.DeployMetadata) (strin
 
 	client, err := NewJobsClient(ctx, d.Infra.Deployer)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error initializing cloud run client: %w", err)
 	}
 
 	job, err := client.GetJob(ctx, &runpb.GetJobRequest{Name: d.Infra.JobId})
