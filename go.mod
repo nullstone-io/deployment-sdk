@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	cloud.google.com/go/compute v1.60.0
-	cloud.google.com/go/functions v1.22.0
+	cloud.google.com/go/functions v1.24.0
 	cloud.google.com/go/logging v1.16.0
 	cloud.google.com/go/longrunning v0.11.0
 	cloud.google.com/go/run v1.19.0
