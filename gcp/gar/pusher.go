@@ -49,10 +49,10 @@ type Pusher struct {
 }
 
 func (p Pusher) Print() {
-	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
-	colorstring.Fprintln(stdout, "[bold]Retrieved GAR or GCR outputs")
-	fmt.Fprintf(stdout, "	image_repo_url: %s\n", p.Infra.ImageRepoUrl)
-	fmt.Fprintf(stdout, "	image_pusher:   %s\n", p.Infra.ImagePusher.Email)
+	_, stderr := p.OsWriters.Stdout(), p.OsWriters.Stderr()
+	colorstring.Fprintln(stderr, "[bold]Retrieved GAR or GCR outputs")
+	fmt.Fprintf(stderr, "\timage_repo_url: %s\n", p.Infra.ImageRepoUrl)
+	fmt.Fprintf(stderr, "\timage_pusher:   %s\n", p.Infra.ImagePusher.Email)
 }
 
 func (p Pusher) Push(ctx context.Context, source, version string) error {

@@ -53,11 +53,11 @@ type Pusher struct {
 }
 
 func (p Pusher) Print() {
-	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
-	colorstring.Fprintln(stdout, "[bold]Retrieved ACR outputs")
-	fmt.Fprintf(stdout, "\tregistry_url:   %s\n", p.Infra.RegistryUrl)
-	fmt.Fprintf(stdout, "\timage_repo_url: %s\n", p.Infra.ImageRepoUrl)
-	fmt.Fprintf(stdout, "\timage_pusher:   %s/%s\n", p.Infra.ImagePusher.TenantId, p.Infra.ImagePusher.ClientId)
+	_, stderr := p.OsWriters.Stdout(), p.OsWriters.Stderr()
+	colorstring.Fprintln(stderr, "[bold]Retrieved ACR outputs")
+	fmt.Fprintf(stderr, "\tregistry_url:   %s\n", p.Infra.RegistryUrl)
+	fmt.Fprintf(stderr, "\timage_repo_url: %s\n", p.Infra.ImageRepoUrl)
+	fmt.Fprintf(stderr, "\timage_pusher:   %s/%s\n", p.Infra.ImagePusher.TenantId, p.Infra.ImagePusher.ClientId)
 }
 
 func (p Pusher) Push(ctx context.Context, source, version string) error {
