@@ -53,7 +53,7 @@ type Pusher struct {
 }
 
 func (p Pusher) Print() {
-	_, stderr := p.OsWriters.Stdout(), p.OsWriters.Stderr()
+	stderr := p.OsWriters.Stderr()
 	colorstring.Fprintln(stderr, "[bold]Retrieved ACR outputs")
 	fmt.Fprintf(stderr, "\tregistry_url:   %s\n", p.Infra.RegistryUrl)
 	fmt.Fprintf(stderr, "\timage_repo_url: %s\n", p.Infra.ImageRepoUrl)
@@ -61,7 +61,7 @@ func (p Pusher) Print() {
 }
 
 func (p Pusher) Push(ctx context.Context, source, version string) error {
-	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
+	stderr := p.OsWriters.Stderr()
 	p.Print()
 
 	sourceUrl := docker.ParseImageUrl(source)
@@ -72,27 +72,27 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 		return err
 	}
 
-	fmt.Fprintln(stdout)
-	fmt.Fprintln(stdout, "Authenticating with ACR...")
+	fmt.Fprintln(stderr)
+	fmt.Fprintln(stderr, "Authenticating with ACR...")
 	targetAuth, err := p.getAcrLoginAuth(ctx)
 	if err != nil {
 		return fmt.Errorf("error retrieving ACR credentials: %w", err)
 	}
-	fmt.Fprintln(stdout, "Authenticated")
+	fmt.Fprintln(stderr, "Authenticated")
 
 	dockerCli, err := docker.DiscoverDockerCli(p.OsWriters)
 	if err != nil {
 		return fmt.Errorf("error creating docker client: %w", err)
 	}
 
-	fmt.Fprintf(stdout, "Retagging source image %s => %s\n", sourceUrl, targetUrl)
+	fmt.Fprintf(stderr, "Retagging source image %s => %s\n", sourceUrl, targetUrl)
 	opts := client.ImageTagOptions{Source: sourceUrl.String(), Target: targetUrl.String()}
 	if _, err := dockerCli.Client().ImageTag(ctx, opts); err != nil {
 		return fmt.Errorf("error retagging image: %w", err)
 	}
 
-	fmt.Fprintln(stdout)
-	colorstring.Fprintf(stdout, "[bold]Pushing docker image to %s\n", targetUrl)
+	fmt.Fprintln(stderr)
+	colorstring.Fprintf(stderr, "[bold]Pushing docker image to %s\n", targetUrl)
 	if err := docker.PushImage(ctx, dockerCli, targetUrl, targetAuth); err != nil {
 		return fmt.Errorf("error pushing image: %w", err)
 	}
@@ -101,7 +101,7 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 }
 
 func (p Pusher) Pull(ctx context.Context, version string) error {
-	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
+	stderr := p.OsWriters.Stderr()
 	p.Print()
 
 	sourceUrl := p.Infra.ImageRepoUrl
@@ -110,21 +110,21 @@ func (p Pusher) Pull(ctx context.Context, version string) error {
 		return err
 	}
 
-	fmt.Fprintln(stdout)
-	fmt.Fprintln(stdout, "Authenticating with ACR...")
+	fmt.Fprintln(stderr)
+	fmt.Fprintln(stderr, "Authenticating with ACR...")
 	sourceAuth, err := p.getAcrLoginAuth(ctx)
 	if err != nil {
 		return fmt.Errorf("error retrieving ACR credentials: %w", err)
 	}
-	fmt.Fprintln(stdout, "Authenticated")
+	fmt.Fprintln(stderr, "Authenticated")
 
 	dockerCli, err := docker.DiscoverDockerCli(p.OsWriters)
 	if err != nil {
 		return fmt.Errorf("error creating docker client: %w", err)
 	}
 
-	fmt.Fprintln(stdout)
-	colorstring.Fprintf(stdout, "[bold]Pulling docker image %s\n", sourceUrl)
+	fmt.Fprintln(stderr)
+	colorstring.Fprintf(stderr, "[bold]Pulling docker image %s\n", sourceUrl)
 	if err := docker.PullImage(ctx, dockerCli, sourceUrl, sourceAuth); err != nil {
 		return fmt.Errorf("error pulling image: %w", err)
 	}

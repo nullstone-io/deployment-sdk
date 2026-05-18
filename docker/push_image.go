@@ -25,5 +25,5 @@ func PushImage(ctx context.Context, dockerCli *command.DockerCli, targetUrl Imag
 		return err
 	}
 
-	return jsonmessage.DisplayJSONMessagesToStream(responseBody, dockerCli.Out(), nil)
+	return jsonmessage.DisplayJSONMessagesToStream(responseBody, dockerCli.Err(), nil)
 }
