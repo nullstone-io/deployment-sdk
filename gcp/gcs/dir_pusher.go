@@ -34,7 +34,7 @@ type DirPusher struct {
 }
 
 func (p DirPusher) Push(ctx context.Context, source, version string) error {
-	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
+	stderr := p.OsWriters.Stderr()
 
 	if source == "" {
 		return fmt.Errorf("no source specified, source artifact (directory or archive) is required to push")
@@ -48,7 +48,7 @@ func (p DirPusher) Push(ctx context.Context, source, version string) error {
 		return fmt.Errorf("error scanning source: %w", err)
 	}
 
-	fmt.Fprintf(stdout, "Uploading %s to GCS bucket %s...\n", source, p.Infra.ArtifactsBucketName)
+	fmt.Fprintf(stderr, "Uploading %s to GCS bucket %s...\n", source, p.Infra.ArtifactsBucketName)
 	if err := UploadDirArtifact(ctx, p.Infra, source, filepaths, version); err != nil {
 		return fmt.Errorf("error uploading artifact: %w", err)
 	}
@@ -57,7 +57,7 @@ func (p DirPusher) Push(ctx context.Context, source, version string) error {
 }
 
 func (p DirPusher) Pull(ctx context.Context, version string) error {
-	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
+	stderr := p.OsWriters.Stderr()
 
 	if version == "" {
 		return fmt.Errorf("no version specified, version is required to pull")
@@ -65,12 +65,12 @@ func (p DirPusher) Pull(ctx context.Context, version string) error {
 
 	localDir := fmt.Sprintf("./%s-%s-%s", p.AppDetails.App.Name, p.AppDetails.Env.Name, version)
 
-	fmt.Fprintf(stdout, "Downloading from GCS bucket %s to %s...\n", p.Infra.ArtifactsBucketName, localDir)
+	fmt.Fprintf(stderr, "Downloading from GCS bucket %s to %s...\n", p.Infra.ArtifactsBucketName, localDir)
 	if err := DownloadDirArtifact(ctx, p.Infra, localDir, version); err != nil {
 		return fmt.Errorf("error downloading artifact: %w", err)
 	}
 
-	fmt.Fprintln(stdout, "Download complete")
+	fmt.Fprintln(stderr, "Download complete")
 	return nil
 }
 

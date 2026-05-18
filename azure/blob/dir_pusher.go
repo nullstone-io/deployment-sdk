@@ -39,7 +39,7 @@ type DirPusher struct {
 }
 
 func (p DirPusher) Push(ctx context.Context, source, version string) error {
-	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
+	stderr := p.OsWriters.Stderr()
 
 	if source == "" {
 		return fmt.Errorf("no source specified, source artifact (directory or archive) is required to push")
@@ -62,7 +62,7 @@ func (p DirPusher) Push(ctx context.Context, source, version string) error {
 	objDir = strings.TrimPrefix(objDir, "/")
 	logger := log.New(os.Stderr, "", 0)
 
-	fmt.Fprintf(stdout, "Uploading %s to Azure Blob Storage %s/%s...\n", source, p.Infra.StorageAccount, p.Infra.ContainerName)
+	fmt.Fprintf(stderr, "Uploading %s to Azure Blob Storage %s/%s...\n", source, p.Infra.StorageAccount, p.Infra.ContainerName)
 	for _, fp := range filepaths {
 		relPath, err := filepath.Rel(source, fp)
 		if err != nil {
@@ -89,7 +89,7 @@ func (p DirPusher) Push(ctx context.Context, source, version string) error {
 }
 
 func (p DirPusher) Pull(ctx context.Context, version string) error {
-	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
+	stderr := p.OsWriters.Stderr()
 
 	if version == "" {
 		return fmt.Errorf("no version specified, version is required to pull")
@@ -104,7 +104,7 @@ func (p DirPusher) Pull(ctx context.Context, version string) error {
 	prefix = strings.TrimPrefix(prefix, "/")
 	localDir := fmt.Sprintf("./%s-%s-%s", p.AppDetails.App.Name, p.AppDetails.Env.Name, version)
 
-	fmt.Fprintf(stdout, "Downloading from Azure Blob Storage to %s...\n", localDir)
+	fmt.Fprintf(stderr, "Downloading from Azure Blob Storage to %s...\n", localDir)
 	pager := client.NewListBlobsFlatPager(p.Infra.ContainerName, &azblob.ListBlobsFlatOptions{
 		Prefix: &prefix,
 	})
@@ -143,7 +143,7 @@ func (p DirPusher) Pull(ctx context.Context, version string) error {
 		}
 	}
 
-	fmt.Fprintln(stdout, "Download complete")
+	fmt.Fprintln(stderr, "Download complete")
 	return nil
 }
 

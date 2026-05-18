@@ -31,7 +31,7 @@ type ZipPusher struct {
 }
 
 func (p ZipPusher) Push(ctx context.Context, source, version string) error {
-	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
+	stderr := p.OsWriters.Stderr()
 
 	if source == "" {
 		return fmt.Errorf("--source is required to upload artifact")
@@ -48,17 +48,17 @@ func (p ZipPusher) Push(ctx context.Context, source, version string) error {
 	}
 	defer file.Close()
 
-	fmt.Fprintf(stdout, "Uploading %s to artifacts bucket\n", p.Infra.ArtifactsKey(version))
+	fmt.Fprintf(stderr, "Uploading %s to artifacts bucket\n", p.Infra.ArtifactsKey(version))
 	if err := UploadZipArtifact(ctx, p.Infra, file, version); err != nil {
 		return fmt.Errorf("error uploading artifact: %w", err)
 	}
 
-	fmt.Fprintln(stdout, "Upload complete")
+	fmt.Fprintln(stderr, "Upload complete")
 	return nil
 }
 
 func (p ZipPusher) Pull(ctx context.Context, version string) error {
-	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
+	stderr := p.OsWriters.Stderr()
 
 	if version == "" {
 		return fmt.Errorf("no version specified, version is required to pull")
@@ -66,12 +66,12 @@ func (p ZipPusher) Pull(ctx context.Context, version string) error {
 
 	localPath := fmt.Sprintf("./%s-%s-%s.zip", p.AppDetails.App.Name, p.AppDetails.Env.Name, version)
 
-	fmt.Fprintf(stdout, "Downloading %s from artifacts bucket\n", p.Infra.ArtifactsKey(version))
+	fmt.Fprintf(stderr, "Downloading %s from artifacts bucket\n", p.Infra.ArtifactsKey(version))
 	if err := DownloadZipArtifact(ctx, p.Infra, localPath, version); err != nil {
 		return fmt.Errorf("error downloading artifact: %w", err)
 	}
 
-	fmt.Fprintln(stdout, "Download complete")
+	fmt.Fprintln(stderr, "Download complete")
 	return nil
 }
 

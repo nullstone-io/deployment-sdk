@@ -45,12 +45,12 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 		return err
 	}
 
-	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
-	fmt.Fprintf(stdout, "Creating application version %q...\n", version)
+	stderr := p.OsWriters.Stderr()
+	fmt.Fprintf(stderr, "Creating application version %q...\n", version)
 	if _, err := CreateAppVersion(ctx, p.Infra, version); err != nil {
 		return fmt.Errorf("error creating application version: %w", err)
 	}
-	fmt.Fprintf(stdout, "Created application version %q\n", version)
+	fmt.Fprintf(stderr, "Created application version %q\n", version)
 
 	return nil
 }
