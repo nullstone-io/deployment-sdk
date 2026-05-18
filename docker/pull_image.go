@@ -25,5 +25,5 @@ func PullImage(ctx context.Context, dockerCli *command.DockerCli, sourceUrl Imag
 		return err
 	}
 
-	return jsonmessage.DisplayJSONMessagesToStream(responseBody, dockerCli.Out(), nil)
+	return jsonmessage.DisplayJSONMessagesToStream(responseBody, dockerCli.Err(), nil)
 }

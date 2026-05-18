@@ -35,7 +35,7 @@ type ZipPusher struct {
 }
 
 func (p ZipPusher) Push(ctx context.Context, source, version string) error {
-	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
+	stderr := p.OsWriters.Stderr()
 
 	if source == "" {
 		return fmt.Errorf("no source specified, source artifact (zip file) is required to push")
@@ -48,7 +48,7 @@ func (p ZipPusher) Push(ctx context.Context, source, version string) error {
 		return fmt.Errorf("error finding absolute filepath to --source=%s: %w", source, err)
 	}
 
-	fmt.Fprintf(stdout, "Uploading %s to GCS bucket...\n", source)
+	fmt.Fprintf(stderr, "Uploading %s to GCS bucket...\n", source)
 	if err := UploadZipArtifact(ctx, p.Infra, absSource, version); err != nil {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("source file %q does not exist", source)
@@ -56,12 +56,12 @@ func (p ZipPusher) Push(ctx context.Context, source, version string) error {
 		return fmt.Errorf("error uploading artifact: %w", err)
 	}
 
-	fmt.Fprintln(stdout, "Upload complete")
+	fmt.Fprintln(stderr, "Upload complete")
 	return nil
 }
 
 func (p ZipPusher) Pull(ctx context.Context, version string) error {
-	stdout, _ := p.OsWriters.Stdout(), p.OsWriters.Stderr()
+	stderr := p.OsWriters.Stderr()
 
 	if version == "" {
 		return fmt.Errorf("no version specified, version is required to pull")
@@ -69,12 +69,12 @@ func (p ZipPusher) Pull(ctx context.Context, version string) error {
 
 	localPath := fmt.Sprintf("./%s-%s-%s.zip", p.AppDetails.App.Name, p.AppDetails.Env.Name, version)
 
-	fmt.Fprintf(stdout, "Downloading %s from GCS bucket...\n", p.Infra.ArtifactsKey(version))
+	fmt.Fprintf(stderr, "Downloading %s from GCS bucket...\n", p.Infra.ArtifactsKey(version))
 	if err := DownloadZipArtifact(ctx, p.Infra, localPath, version); err != nil {
 		return fmt.Errorf("error downloading artifact: %w", err)
 	}
 
-	fmt.Fprintln(stdout, "Download complete")
+	fmt.Fprintln(stderr, "Download complete")
 	return nil
 }
 
