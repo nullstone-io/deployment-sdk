@@ -20,6 +20,9 @@ type S3Uploader struct {
 	ObjectDirectory string
 	// OnObjectUpload allows performing an operation (like logging) when a file completes upload
 	OnObjectUpload func(objectKey string)
+	// CacheControlFor returns the Cache-Control header for a file given its path relative to
+	// baseDir. Optional; when nil or it returns "", Cache-Control is left unset.
+	CacheControlFor func(relPath string) string
 }
 
 func (u *S3Uploader) UploadDir(ctx context.Context, cfg aws.Config, baseDir string, filepaths []string) error {
@@ -45,12 +48,18 @@ func (u *S3Uploader) uploadOne(ctx context.Context, uploader *manager.Uploader, 
 	if mimeType == "" {
 		mimeType = "text/plain"
 	}
-	_, err = uploader.Upload(ctx, &s3.PutObjectInput{
+	input := &s3.PutObjectInput{
 		Bucket:      aws.String(u.BucketName),
 		Key:         aws.String(objectKey),
 		Body:        file,
 		ContentType: aws.String(mimeType),
-	})
+	}
+	if u.CacheControlFor != nil {
+		if cc := u.CacheControlFor(fp); cc != "" {
+			input.CacheControl = aws.String(cc)
+		}
+	}
+	_, err = uploader.Upload(ctx, input)
 	if err != nil {
 		return fmt.Errorf("error uploading file %q: %w", objectKey, err)
 	}
