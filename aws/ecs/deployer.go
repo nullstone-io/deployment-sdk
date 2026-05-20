@@ -80,6 +80,9 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	fmt.Fprintln(stdout, fmt.Sprintf("Updating main container image tag to application version %q", meta.Version))
 	updatedTaskDef = ReplaceEnvVars(*updatedTaskDef, meta)
 	fmt.Fprintln(stdout, "Updating environment variables")
+	if ApplyUserEnvVars(updatedTaskDef, meta) {
+		fmt.Fprintln(stdout, "Applying additional environment variables from deploy")
+	}
 	if ReplaceOtelResourceAttributesEnvVar(updatedTaskDef, meta) {
 		fmt.Fprintln(stdout, "Updating OpenTelemetry resource attributes (service.version and service.commit.sha)")
 	}

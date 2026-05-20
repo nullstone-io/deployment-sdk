@@ -33,6 +33,30 @@ func ReplaceEnvVars(jobDef batchtypes.JobDefinition, meta app.DeployMetadata) ba
 	return jobDef
 }
 
+// ApplyUserEnvVars upserts user-supplied (deploy-time) env vars into the job definition's container.
+// Unlike ReplaceEnvVars, this adds env vars that don't already exist in addition to overriding existing ones.
+func ApplyUserEnvVars(jobDef *batchtypes.JobDefinition, meta app.DeployMetadata) bool {
+	userEnvVars := env_vars.ResolveUser(meta)
+	if len(userEnvVars) == 0 {
+		return false
+	}
+
+	for name, value := range userEnvVars {
+		jobDef.ContainerProperties.Environment = upsertEnvVar(jobDef.ContainerProperties.Environment, name, value)
+	}
+	return true
+}
+
+func upsertEnvVar(kvps []batchtypes.KeyValuePair, name, value string) []batchtypes.KeyValuePair {
+	for i, kvp := range kvps {
+		if kvp.Name != nil && *kvp.Name == name {
+			kvps[i].Value = aws.String(value)
+			return kvps
+		}
+	}
+	return append(kvps, batchtypes.KeyValuePair{Name: aws.String(name), Value: aws.String(value)})
+}
+
 func ReplaceOtelResourceAttributesEnvVar(jobDef *batchtypes.JobDefinition, meta app.DeployMetadata) bool {
 	fn := otel.UpdateResourceAttributes(meta.Version, meta.CommitSha, false)
 

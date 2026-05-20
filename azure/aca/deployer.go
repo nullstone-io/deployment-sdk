@@ -87,6 +87,9 @@ func (d Deployer) deployContainerApp(ctx context.Context, meta app.DeployMetadat
 	fmt.Fprintf(stdout, "Updating main container image tag to application version %q\n", meta.Version)
 	replaceEnvVars(mainContainer, env_vars.GetStandard(meta))
 	fmt.Fprintln(stdout, "Updating environment variables")
+	if applyUserEnvVars(mainContainer, env_vars.ResolveUser(meta)) {
+		fmt.Fprintln(stdout, "Applying additional environment variables from deploy")
+	}
 	template.Containers[mainIdx] = mainContainer
 
 	poller, err := appsClient.BeginUpdate(ctx, d.Infra.ResourceGroup, d.Infra.ContainerAppName, armappcontainers.ContainerApp{
@@ -137,6 +140,9 @@ func (d Deployer) deployJob(ctx context.Context, meta app.DeployMetadata) (strin
 	fmt.Fprintf(stdout, "Updating main container image tag to application version %q in job\n", meta.Version)
 	replaceJobEnvVars(mainContainer, env_vars.GetStandard(meta))
 	fmt.Fprintln(stdout, "Updating environment variables in job")
+	if applyUserEnvVars(mainContainer, env_vars.ResolveUser(meta)) {
+		fmt.Fprintln(stdout, "Applying additional environment variables from deploy in job")
+	}
 	template.Containers[mainIdx] = mainContainer
 
 	poller, err := jobsClient.BeginUpdate(ctx, d.Infra.ResourceGroup, d.Infra.JobName, armappcontainers.JobPatchProperties{
@@ -195,6 +201,31 @@ func replaceEnvVars(container *armappcontainers.Container, standard map[string]s
 			}
 		}
 	}
+}
+
+// applyUserEnvVars upserts user-supplied (deploy-time) env vars into the container.
+// Unlike replaceEnvVars, this adds env vars that don't already exist in addition to overriding existing ones.
+func applyUserEnvVars(container *armappcontainers.Container, userEnvVars map[string]string) bool {
+	if len(userEnvVars) == 0 {
+		return false
+	}
+
+	for name, value := range userEnvVars {
+		upsertEnvVar(container, name, value)
+	}
+	return true
+}
+
+func upsertEnvVar(container *armappcontainers.Container, name, value string) {
+	n, v := name, value
+	for i, ev := range container.Env {
+		if ev.Name != nil && *ev.Name == name {
+			container.Env[i].Value = &v
+			container.Env[i].SecretRef = nil
+			return
+		}
+	}
+	container.Env = append(container.Env, &armappcontainers.EnvironmentVar{Name: &n, Value: &v})
 }
 
 func getJobContainerByName(containers []*armappcontainers.Container, name string) (int, *armappcontainers.Container) {
