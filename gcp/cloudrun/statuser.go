@@ -10,20 +10,7 @@ import (
 
 var (
 	_ app.StatusOverviewResult = StatusOverview{}
-)
-
-type StatusOverview struct {
-}
-
-func (s StatusOverview) GetDeploymentVersions() []string {
-	return make([]string, 0)
-}
-
-type Status struct {
-}
-
-var (
-	_ app.Statuser = &Statuser{}
+	_ app.Statuser             = Statuser{}
 )
 
 func NewStatuser(ctx context.Context, osWriters logging.OsWriters, source outputs.RetrieverSource, appDetails app.Details) (app.Statuser, error) {
@@ -47,11 +34,69 @@ type Statuser struct {
 }
 
 func (s Statuser) StatusOverview(ctx context.Context) (app.StatusOverviewResult, error) {
-	// TODO: Implement when ServiceName != ""
-	return StatusOverview{}, nil
+	ov := StatusOverview{
+		Location:     s.Infra.Location(),
+		ServiceName:  s.Infra.ServiceName,
+		JobName:      s.Infra.JobName,
+		TrafficSplit: make([]TrafficSplitEntry, 0),
+	}
+
+	if s.Infra.ServiceName != "" {
+		svc, err := s.statusService(ctx)
+		if err != nil {
+			return ov, err
+		}
+		versions := make([]string, 0)
+		for _, rev := range svc.Revisions {
+			if rev.TrafficPercent <= 0 && rev.Role != RevisionRoleLatest {
+				continue
+			}
+			ov.TrafficSplit = append(ov.TrafficSplit, TrafficSplitEntry{
+				RevisionName:   rev.Name,
+				TrafficPercent: rev.TrafficPercent,
+			})
+			if rev.TrafficPercent > 0 {
+				ov.ServingRevisionCount++
+			}
+			if rev.AppVersion != "" {
+				versions = append(versions, rev.AppVersion)
+			}
+		}
+		ov.versions = versions
+		return ov, nil
+	}
+
+	execs, err := s.statusJob(ctx)
+	if err != nil {
+		return ov, err
+	}
+	if len(execs) > 0 && execs[0].AppVersion != "" {
+		ov.versions = []string{execs[0].AppVersion}
+	}
+	return ov, nil
 }
 
 func (s Statuser) Status(ctx context.Context) (any, error) {
-	// TODO: Implement when ServiceName != ""
-	return Status{}, nil
+	out := Status{
+		Location:    s.Infra.Location(),
+		ServiceName: s.Infra.ServiceName,
+		JobName:     s.Infra.JobName,
+		Executions:  make([]JobExecution, 0),
+	}
+
+	if s.Infra.ServiceName != "" {
+		svc, err := s.statusService(ctx)
+		if err != nil {
+			return nil, err
+		}
+		out.Service = svc
+		return out, nil
+	}
+
+	execs, err := s.statusJob(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out.Executions = execs
+	return out, nil
 }

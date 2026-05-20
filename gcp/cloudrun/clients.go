@@ -35,3 +35,19 @@ func NewServicesClient(ctx context.Context, account gcp.ServiceAccount) (*run.Se
 	}
 	return run.NewServicesClient(ctx, option.WithTokenSource(tokenSource))
 }
+
+func NewRevisionsClient(ctx context.Context, account gcp.ServiceAccount) (*run.RevisionsClient, error) {
+	tokenSource, err := account.TokenSource(ctx, GcpScopes...)
+	if err != nil {
+		return nil, err
+	}
+	return run.NewRevisionsClient(ctx, option.WithTokenSource(tokenSource))
+}
+
+func NewTasksClient(ctx context.Context, account gcp.ServiceAccount) (*run.TasksClient, error) {
+	tokenSource, err := account.TokenSource(ctx, GcpScopes...)
+	if err != nil {
+		return nil, err
+	}
+	return run.NewTasksClient(ctx, option.WithTokenSource(tokenSource))
+}
