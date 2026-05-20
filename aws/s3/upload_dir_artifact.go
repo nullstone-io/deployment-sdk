@@ -18,6 +18,9 @@ func UploadDirArtifact(ctx context.Context, infra Outputs, source string, filepa
 		OnObjectUpload: func(objectKey string) {
 			logger.Println(fmt.Sprintf("Uploaded %s", objectKey))
 		},
+		CacheControlFor: func(relPath string) string {
+			return CacheControlFor(infra.CacheControlRules, relPath)
+		},
 	}
 	return uploader.UploadDir(ctx, nsaws.NewConfig(infra.Deployer, infra.Region), source, filepaths)
 }

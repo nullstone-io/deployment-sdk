@@ -36,6 +36,34 @@ func ReplaceEnvVars(taskDef types.TaskDefinition, meta app.DeployMetadata) *type
 	return &taskDef
 }
 
+// ApplyUserEnvVars upserts user-supplied (deploy-time) env vars into every container definition.
+// Unlike ReplaceEnvVars, this adds env vars that don't already exist in addition to overriding existing ones.
+// Values are interpolated against other user env vars and the standard env vars (see env_vars.ResolveUser).
+func ApplyUserEnvVars(taskDef *types.TaskDefinition, meta app.DeployMetadata) bool {
+	userEnvVars := env_vars.ResolveUser(meta)
+	if len(userEnvVars) == 0 {
+		return false
+	}
+
+	for i, cd := range taskDef.ContainerDefinitions {
+		for name, value := range userEnvVars {
+			cd.Environment = upsertEnvVar(cd.Environment, name, value)
+		}
+		taskDef.ContainerDefinitions[i] = cd
+	}
+	return true
+}
+
+func upsertEnvVar(kvps []types.KeyValuePair, name, value string) []types.KeyValuePair {
+	for i, kvp := range kvps {
+		if kvp.Name != nil && *kvp.Name == name {
+			kvps[i].Value = aws.String(value)
+			return kvps
+		}
+	}
+	return append(kvps, types.KeyValuePair{Name: aws.String(name), Value: aws.String(value)})
+}
+
 func ReplaceOtelResourceAttributesEnvVar(taskDef *types.TaskDefinition, meta app.DeployMetadata) bool {
 	fn := otel.UpdateResourceAttributes(meta.Version, meta.CommitSha, false)
 

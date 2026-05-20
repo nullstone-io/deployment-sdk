@@ -175,6 +175,9 @@ func (d Deployer) updatePodTemplate(template corev1.PodTemplateSpec, appType str
 	fmt.Fprintln(stdout, fmt.Sprintf("Updating main container image tag to application version %q in %s", meta.Version, appType))
 	ReplaceEnvVars(mainContainer, env_vars.GetStandard(meta))
 	fmt.Fprintln(stdout, fmt.Sprintf("Updating environment variables in %s", appType))
+	if ApplyUserEnvVars(mainContainer, env_vars.ResolveUser(meta)) {
+		fmt.Fprintln(stdout, fmt.Sprintf("Applying additional environment variables from deploy in %s", appType))
+	}
 	if ReplaceOtelResourceAttributesEnvVar(mainContainer, meta.Version, meta.CommitSha) {
 		fmt.Fprintln(stdout, fmt.Sprintf("Updating OpenTelemetry resource attributes (service.version and service.commit.sha) in %s", appType))
 	}

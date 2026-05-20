@@ -85,6 +85,9 @@ func (d Deployer) deployService(ctx context.Context, meta app.DeployMetadata) (s
 	fmt.Fprintln(stdout, fmt.Sprintf("Updating main container image tag to application version %q in service", meta.Version))
 	ReplaceEnvVars(mainContainer, env_vars.GetStandard(meta))
 	fmt.Fprintln(stdout, "Updating environment variables in service")
+	if ApplyUserEnvVars(mainContainer, env_vars.ResolveUser(meta)) {
+		fmt.Fprintln(stdout, "Applying additional environment variables from deploy in service")
+	}
 	if ReplaceOtelResourceAttributesEnvVar(mainContainer, meta) {
 		fmt.Fprintln(d.OsWriters.Stdout(), "Updating OpenTelemetry resource attributes (service.version and service.commit.sha) in service")
 	}
@@ -121,6 +124,9 @@ func (d Deployer) deployJob(ctx context.Context, meta app.DeployMetadata) (strin
 	fmt.Fprintln(stdout, fmt.Sprintf("Updating main container image tag to application version %q in job", meta.Version))
 	ReplaceEnvVars(mainContainer, env_vars.GetStandard(meta))
 	fmt.Fprintln(stdout, "Updating environment variables in job")
+	if ApplyUserEnvVars(mainContainer, env_vars.ResolveUser(meta)) {
+		fmt.Fprintln(stdout, "Applying additional environment variables from deploy in job")
+	}
 	if ReplaceOtelResourceAttributesEnvVar(mainContainer, meta) {
 		fmt.Fprintln(d.OsWriters.Stdout(), "Updating OpenTelemetry resource attributes (service.version and service.commit.sha) in job")
 	}
@@ -158,6 +164,32 @@ func ReplaceEnvVars(container *runpb.Container, standard map[string]string) {
 			ReplaceEnvVarValue(container.Env[i], func(previous string) string { return val })
 		}
 	}
+}
+
+// ApplyUserEnvVars upserts user-supplied (deploy-time) env vars into the container.
+// Unlike ReplaceEnvVars, this adds env vars that don't already exist in addition to overriding existing ones.
+func ApplyUserEnvVars(container *runpb.Container, userEnvVars map[string]string) bool {
+	if len(userEnvVars) == 0 {
+		return false
+	}
+
+	for name, value := range userEnvVars {
+		upsertEnvVar(container, name, value)
+	}
+	return true
+}
+
+func upsertEnvVar(container *runpb.Container, name, value string) {
+	for i, cur := range container.Env {
+		if cur.Name == name {
+			container.Env[i].Values = &runpb.EnvVar_Value{Value: value}
+			return
+		}
+	}
+	container.Env = append(container.Env, &runpb.EnvVar{
+		Name:   name,
+		Values: &runpb.EnvVar_Value{Value: value},
+	})
 }
 
 func ReplaceOtelResourceAttributesEnvVar(container *runpb.Container, meta app.DeployMetadata) bool {
