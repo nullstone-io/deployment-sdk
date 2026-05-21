@@ -89,6 +89,9 @@ func (s Statuser) Status(ctx context.Context) (any, error) {
 		if err != nil {
 			return nil, err
 		}
+		// Best-effort: layer live instance counts + request health from Cloud
+		// Monitoring on top of the Run v2 data. Failures are logged, not fatal.
+		s.enrichServiceMetrics(ctx, svc)
 		out.Service = svc
 		return out, nil
 	}
