@@ -32,7 +32,7 @@ require (
 	github.com/aws/smithy-go v1.25.1
 	github.com/docker/cli v29.5.2+incompatible
 	github.com/docker/docker v28.5.2+incompatible
-	github.com/fatih/color v1.18.0
+	github.com/fatih/color v1.19.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-colorable v0.1.14
@@ -48,12 +48,12 @@ require (
 	golang.org/x/sync v0.20.0
 	google.golang.org/api v0.280.0
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
-	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20260520151138-52af136b91ac
+	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20260520222828-989095fec005
 	k8s.io/api v0.36.1
 	k8s.io/apimachinery v0.36.1
 	k8s.io/client-go v0.36.1
 	k8s.io/kubectl v0.36.1
-	sigs.k8s.io/aws-iam-authenticator v0.7.10
+	sigs.k8s.io/aws-iam-authenticator v0.7.16
 )
 
 require (
@@ -166,9 +166,9 @@ require (
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.5 // indirect
-	github.com/prometheus/procfs v0.19.2 // indirect
+	github.com/prometheus/procfs v0.20.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
