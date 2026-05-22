@@ -43,6 +43,12 @@ type LogStreamOptions struct {
 	// the same way Task is.
 	Job string
 
+	// Execution scopes the log query to a single Cloud Run job execution.
+	// The value is the execution's short name (e.g. "my-job-slqpw"), which matches
+	// the Cloud Logging label run.googleapis.com/execution_name. Honored by the
+	// Cloud Logging streamer; ignored by other providers.
+	Execution string
+
 	// LogStreamNames is the resolved exact list of CloudWatch log streams to filter on.
 	// Populated by an upstream streamer (e.g. the ECS shim) that translates Task/
 	// Deployment/Job into stream names before delegating to the cloudwatch streamer.

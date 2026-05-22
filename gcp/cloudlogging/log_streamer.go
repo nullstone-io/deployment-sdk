@@ -46,12 +46,22 @@ type LogStreamer struct {
 	Infra     Outputs
 }
 
+// executionNameLabel is the Cloud Logging label Cloud Run stamps on every job
+// task log entry, identifying the owning execution by its short name.
+const executionNameLabel = "run.googleapis.com/execution_name"
+
 func (s LogStreamer) Stream(ctx context.Context, options app.LogStreamOptions) error {
 	if options.WatchInterval == time.Duration(0) {
 		options.WatchInterval = DefaultWatchInterval
 	}
 	if options.Emitter == nil {
 		options.Emitter = app.NewWriterLogEmitter(os.Stdout)
+	}
+	// Narrow to a single job execution when requested. %q renders both the label
+	// key and value as quoted strings, producing a valid Cloud Logging clause:
+	//   labels."run.googleapis.com/execution_name"="my-job-slqpw"
+	if options.Execution != "" {
+		options.Selectors = append(options.Selectors, fmt.Sprintf("labels.%q=%q", executionNameLabel, options.Execution))
 	}
 
 	logger := log.New(s.OsWriters.Stderr(), "", 0)
