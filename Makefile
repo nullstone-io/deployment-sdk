@@ -11,3 +11,6 @@ update-aws:
 
 update-gcp:
 	go get -u $$(go list -mod=mod -m all | grep '^cloud.google.com/go' | awk '{print $$1}') && go mod tidy
+
+update-k8s:
+	go get -u $$(go list -mod=mod -m all | grep '^k8s.io' | awk '{print $$1}') && go mod tidy
