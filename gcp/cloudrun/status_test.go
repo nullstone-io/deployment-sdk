@@ -6,6 +6,7 @@ import (
 
 	"cloud.google.com/go/run/apiv2/runpb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -201,20 +202,26 @@ func TestDeriveExecutionFailure(t *testing.T) {
 	})
 	t.Run("OOM when exit 137 detected", func(t *testing.T) {
 		je := JobExecution{Phase: JobExecutionPhaseFailed, TaskCount: 42, FailedCount: 4}
-		diag := taskDiag{failedIndexes: []int32{17, 19, 28, 33}, oom: true}
+		code := int32(137)
+		diag := taskDiag{failedIndexes: []int32{17, 19, 28, 33}, oom: true, exitCode: &code}
 		f := deriveExecutionFailure(je, diag)
 		assert.NotNil(t, f)
 		assert.Equal(t, FailureOOMKilled, f.Code)
 		assert.Contains(t, f.Title, "OOMKilled")
 		assert.Contains(t, f.Title, "4 tasks")
+		require.NotNil(t, f.ExitCode)
+		assert.Equal(t, int32(137), *f.ExitCode)
 	})
 	t.Run("generic failure otherwise", func(t *testing.T) {
 		je := JobExecution{Phase: JobExecutionPhaseFailed, TaskCount: 10, FailedCount: 1}
-		diag := taskDiag{failedIndexes: []int32{3}}
+		code := int32(2)
+		diag := taskDiag{failedIndexes: []int32{3}, exitCode: &code}
 		f := deriveExecutionFailure(je, diag)
 		assert.NotNil(t, f)
 		assert.Equal(t, FailureJobTaskFailed, f.Code)
 		assert.Contains(t, f.Title, "1 task")
+		require.NotNil(t, f.ExitCode)
+		assert.Equal(t, int32(2), *f.ExitCode)
 	})
 }
 

@@ -64,6 +64,10 @@ type Failure struct {
 	Code    FailureCode `json:"code"`
 	Title   string      `json:"title"`
 	Message string      `json:"message"`
+	// ExitCode is the process exit code of a failed task, when one is available.
+	// Only set for job-execution failures (Cloud Run service failures have no
+	// single exit code). 137 indicates an OOM kill (128 + SIGKILL).
+	ExitCode *int32 `json:"exitCode,omitempty"`
 }
 
 type Revision struct {

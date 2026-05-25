@@ -29,6 +29,11 @@ type AppStatusJobExecution struct {
 	StartedAt   *time.Time                 `json:"startedAt,omitempty"`
 	CompletedAt *time.Time                 `json:"completedAt,omitempty"`
 	ExitReason  string                     `json:"exitReason,omitempty"`
+	// ExitCode is the process exit code of the failed container, recovered from
+	// the Job's pod. The Job object itself only carries a condition reason
+	// (ExitReason); the numeric code lives on the terminated container state.
+	// Unset when the code can't be determined (e.g. the pod was garbage-collected).
+	ExitCode *int32 `json:"exitCode,omitempty"`
 }
 
 // AppStatusJobSummary aggregates Job phases for the StatusOverview view.
@@ -42,8 +47,10 @@ type AppStatusJobSummary struct {
 
 // AppStatusJobExecutionFromK8s folds a single batchv1.Job into the execution
 // record. Phase is derived from conditions first, then active/succeeded/failed
-// counters as a fallback for pre-condition-set Jobs.
-func AppStatusJobExecutionFromK8s(job batchv1.Job) AppStatusJobExecution {
+// counters as a fallback for pre-condition-set Jobs. pods is the namespace's
+// pod list — on failure we scan it for the Job's pod to recover the container
+// exit code, which the Job object doesn't carry.
+func AppStatusJobExecutionFromK8s(job batchv1.Job, pods []corev1.Pod) AppStatusJobExecution {
 	exec := AppStatusJobExecution{
 		Name:        job.Name,
 		ExecutionId: string(job.UID),
@@ -70,8 +77,54 @@ func AppStatusJobExecutionFromK8s(job batchv1.Job) AppStatusJobExecution {
 				exec.CompletedAt = &t
 			}
 		}
+		exec.ExitCode = jobFailedExitCode(job, pods)
 	}
 	return exec
+}
+
+// jobFailedExitCode finds the non-zero exit code of a container in one of the
+// Job's pods. It returns the first such code found, or nil when no owned pod
+// has a non-zero terminated container (the pod may have been garbage-collected,
+// or the failure was a Job-level condition like DeadlineExceeded with no pod).
+func jobFailedExitCode(job batchv1.Job, pods []corev1.Pod) *int32 {
+	for i := range pods {
+		if !podOwnedByJob(pods[i], job) {
+			continue
+		}
+		if code := podTerminatedExitCode(pods[i]); code != nil {
+			return code
+		}
+	}
+	return nil
+}
+
+// podOwnedByJob reports whether pod is a child of job, matched on the controller
+// owner reference UID (robust across the job-name label rename in k8s 1.27).
+func podOwnedByJob(pod corev1.Pod, job batchv1.Job) bool {
+	for _, or := range pod.OwnerReferences {
+		if or.Kind == "Job" && or.UID == job.UID {
+			return true
+		}
+	}
+	return false
+}
+
+// podTerminatedExitCode returns the first non-zero exit code among the pod's
+// containers, preferring the current terminated state over the last one. Zero
+// exit codes are skipped so a sidecar that exited cleanly doesn't mask the
+// real failure.
+func podTerminatedExitCode(pod corev1.Pod) *int32 {
+	for _, cs := range pod.Status.ContainerStatuses {
+		if t := cs.State.Terminated; t != nil && t.ExitCode != 0 {
+			code := t.ExitCode
+			return &code
+		}
+		if t := cs.LastTerminationState.Terminated; t != nil && t.ExitCode != 0 {
+			code := t.ExitCode
+			return &code
+		}
+	}
+	return nil
 }
 
 // jobPhase classifies a Job into our 4-state enum. Conditions are authoritative

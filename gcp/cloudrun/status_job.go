@@ -98,6 +98,10 @@ func (s Statuser) mapExecution(exec *runpb.Execution) JobExecution {
 type taskDiag struct {
 	failedIndexes []int32
 	oom           bool
+	// exitCode is the exit code of the first failed task we encounter. It feeds
+	// the failure banner so users see the actual process exit code, not just our
+	// failure-mode label.
+	exitCode *int32
 }
 
 func (s Statuser) listExecutionTasks(ctx context.Context, executionName string) ([]Task, taskDiag, error) {
@@ -121,9 +125,15 @@ func (s Statuser) listExecutionTasks(ctx context.Context, executionName string) 
 		tasks = append(tasks, mapped)
 		if mapped.State == TaskStateFailed {
 			diag.failedIndexes = append(diag.failedIndexes, mapped.Index)
-			// Exit 137 (128 + SIGKILL) is the strongest OOM signal Cloud Run gives.
-			if res := t.GetLastAttemptResult(); res != nil && res.GetExitCode() == 137 {
-				diag.oom = true
+			if res := t.GetLastAttemptResult(); res != nil {
+				code := res.GetExitCode()
+				if diag.exitCode == nil {
+					diag.exitCode = &code
+				}
+				// Exit 137 (128 + SIGKILL) is the strongest OOM signal Cloud Run gives.
+				if code == 137 {
+					diag.oom = true
+				}
 			}
 		}
 	}
@@ -192,15 +202,17 @@ func deriveExecutionFailure(je JobExecution, diag taskDiag) *Failure {
 	}
 	if diag.oom {
 		return &Failure{
-			Code:    FailureOOMKilled,
-			Title:   fmt.Sprintf("OOMKilled (%d task%s)", count, plural(count)),
-			Message: fmt.Sprintf("%d task%s exceeded the memory limit and exhausted retries (exit 137). Raise the memory limit or reduce per-task memory use.", count, plural(count)),
+			Code:     FailureOOMKilled,
+			Title:    fmt.Sprintf("OOMKilled (%d task%s)", count, plural(count)),
+			Message:  fmt.Sprintf("%d task%s exceeded the memory limit and exhausted retries (exit 137). Raise the memory limit or reduce per-task memory use.", count, plural(count)),
+			ExitCode: diag.exitCode,
 		}
 	}
 	return &Failure{
-		Code:    FailureJobTaskFailed,
-		Title:   fmt.Sprintf("Task failure (%d task%s)", count, plural(count)),
-		Message: fmt.Sprintf("%d of %d tasks failed and exhausted retries. Inspect the failed-task logs for the exit reason.", je.FailedCount, je.TaskCount),
+		Code:     FailureJobTaskFailed,
+		Title:    fmt.Sprintf("Task failure (%d task%s)", count, plural(count)),
+		Message:  fmt.Sprintf("%d of %d tasks failed and exhausted retries. Inspect the failed-task logs for the exit reason.", je.FailedCount, je.TaskCount),
+		ExitCode: diag.exitCode,
 	}
 }
 
