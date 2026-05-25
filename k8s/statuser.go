@@ -140,7 +140,7 @@ func (s *Statuser) Status(ctx context.Context) (any, error) {
 	}
 
 	for _, job := range s.jobs {
-		st.Jobs = append(st.Jobs, AppStatusJobExecutionFromK8s(job))
+		st.Jobs = append(st.Jobs, AppStatusJobExecutionFromK8s(job, s.pods))
 	}
 
 	// Surface rollout-level failures (ProgressDeadlineExceeded / ReplicaFailure)

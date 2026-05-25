@@ -109,7 +109,7 @@ func TestAppStatusJobExecutionFromK8s(t *testing.T) {
 				},
 			},
 		}
-		got := AppStatusJobExecutionFromK8s(job)
+		got := AppStatusJobExecutionFromK8s(job, nil)
 		assert.Equal(t, "nightly-sync", got.Name)
 		assert.Equal(t, "uid-1", got.ExecutionId)
 		assert.Equal(t, "v1.2.3", got.AppVersion)
@@ -138,19 +138,84 @@ func TestAppStatusJobExecutionFromK8s(t *testing.T) {
 				}},
 			},
 		}
-		got := AppStatusJobExecutionFromK8s(job)
+		got := AppStatusJobExecutionFromK8s(job, nil)
 		assert.Equal(t, JobPhaseFailed, got.Phase)
 		assert.Equal(t, "BackoffLimitExceeded: Job has reached the specified backoff limit", got.ExitReason)
 		// CompletionTime is unset for failed Jobs; we fall back to the failure transition time.
 		require.NotNil(t, got.CompletedAt)
 		assert.Equal(t, failedAt.Time, *got.CompletedAt)
+		// No pods supplied -> exit code can't be recovered.
+		assert.Nil(t, got.ExitCode)
+	})
+
+	t.Run("failed recovers exit code from the job's pod", func(t *testing.T) {
+		job := batchv1.Job{
+			ObjectMeta: metav1.ObjectMeta{Name: "broken-job", UID: types.UID("uid-2"), CreationTimestamp: created},
+			Status: batchv1.JobStatus{
+				StartTime: &started,
+				Conditions: []batchv1.JobCondition{{
+					Type: batchv1.JobFailed, Status: corev1.ConditionTrue, Reason: "BackoffLimitExceeded",
+				}},
+			},
+		}
+		pods := []corev1.Pod{
+			// An unrelated pod (different owner) must be ignored.
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "other",
+					OwnerReferences: []metav1.OwnerReference{{Kind: "Job", UID: types.UID("uid-other")}},
+				},
+				Status: corev1.PodStatus{ContainerStatuses: []corev1.ContainerStatus{
+					{State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{ExitCode: 7}}},
+				}},
+			},
+			// The job's pod: clean sidecar (0) is skipped, the crashing container (137) wins.
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "broken-job-abc",
+					OwnerReferences: []metav1.OwnerReference{{Kind: "Job", UID: types.UID("uid-2")}},
+				},
+				Status: corev1.PodStatus{ContainerStatuses: []corev1.ContainerStatus{
+					{Name: "sidecar", State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{ExitCode: 0}}},
+					{Name: "main", State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{ExitCode: 137}}},
+				}},
+			},
+		}
+		got := AppStatusJobExecutionFromK8s(job, pods)
+		assert.Equal(t, JobPhaseFailed, got.Phase)
+		require.NotNil(t, got.ExitCode)
+		assert.Equal(t, int32(137), *got.ExitCode)
+	})
+
+	t.Run("exit code falls back to lastTerminationState (CrashLoopBackOff)", func(t *testing.T) {
+		job := batchv1.Job{
+			ObjectMeta: metav1.ObjectMeta{Name: "crashloop-job", UID: types.UID("uid-4"), CreationTimestamp: created},
+			Status: batchv1.JobStatus{
+				StartTime:  &started,
+				Conditions: []batchv1.JobCondition{{Type: batchv1.JobFailed, Status: corev1.ConditionTrue}},
+			},
+		}
+		pods := []corev1.Pod{{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            "crashloop-job-xyz",
+				OwnerReferences: []metav1.OwnerReference{{Kind: "Job", UID: types.UID("uid-4")}},
+			},
+			Status: corev1.PodStatus{ContainerStatuses: []corev1.ContainerStatus{{
+				Name:                 "main",
+				State:                corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "CrashLoopBackOff"}},
+				LastTerminationState: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{ExitCode: 1}},
+			}}},
+		}}
+		got := AppStatusJobExecutionFromK8s(job, pods)
+		require.NotNil(t, got.ExitCode)
+		assert.Equal(t, int32(1), *got.ExitCode)
 	})
 
 	t.Run("queued has only ScheduledAt", func(t *testing.T) {
 		job := batchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{Name: "pending-job", UID: types.UID("uid-3"), CreationTimestamp: created},
 		}
-		got := AppStatusJobExecutionFromK8s(job)
+		got := AppStatusJobExecutionFromK8s(job, nil)
 		assert.Equal(t, JobPhaseQueued, got.Phase)
 		require.NotNil(t, got.ScheduledAt)
 		assert.Nil(t, got.StartedAt)
