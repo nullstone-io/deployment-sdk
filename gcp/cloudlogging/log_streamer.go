@@ -50,6 +50,10 @@ type LogStreamer struct {
 // task log entry, identifying the owning execution by its short name.
 const executionNameLabel = "run.googleapis.com/execution_name"
 
+// revisionNameLabel is the Cloud Logging label Cloud Run stamps on every service
+// log entry, identifying the owning revision by its name.
+const revisionNameLabel = "run.googleapis.com/revision_name"
+
 func (s LogStreamer) Stream(ctx context.Context, options app.LogStreamOptions) error {
 	if options.WatchInterval == time.Duration(0) {
 		options.WatchInterval = DefaultWatchInterval
@@ -62,6 +66,11 @@ func (s LogStreamer) Stream(ctx context.Context, options app.LogStreamOptions) e
 	//   labels."run.googleapis.com/execution_name"="my-job-slqpw"
 	if options.Execution != "" {
 		options.Selectors = append(options.Selectors, fmt.Sprintf("labels.%q=%q", executionNameLabel, options.Execution))
+	}
+	// Narrow to a single service revision when requested, producing:
+	//   labels."run.googleapis.com/revision_name"="my-service-00001-abc"
+	if options.Revision != "" {
+		options.Selectors = append(options.Selectors, fmt.Sprintf("labels.%q=%q", revisionNameLabel, options.Revision))
 	}
 
 	logger := log.New(s.OsWriters.Stderr(), "", 0)
