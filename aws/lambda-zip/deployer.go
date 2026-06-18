@@ -2,6 +2,7 @@ package lambda_zip
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -89,6 +90,11 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	}
 	// Wait for function code version to take effect
 	if err := nslambda.WaitForFunctionChanges(ctx, d.Infra, time.Minute, heartbeat("apply the new code")); err != nil {
+		// Applying new code normally finishes in well under a minute; a timeout here means AWS is
+		// taking far longer than expected.
+		if errors.Is(err, nslambda.ErrTimeoutWaitingForChanges) {
+			return "", fmt.Errorf("AWS took much longer than expected (over 1 minute) to apply the new code. This usually resolves on a retry. Please retry the deployment.")
+		}
 		return "", fmt.Errorf("error waiting for updated lambda code: %w", err)
 	}
 	colorstring.Fprintln(stderr, "[green]Code updated")
