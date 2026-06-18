@@ -65,7 +65,7 @@ func (s Statuser) statusJob(ctx context.Context) ([]JobExecution, error) {
 
 func (s Statuser) mapExecution(exec *runpb.Execution) JobExecution {
 	je := JobExecution{
-		Name:           s.Infra.JobName,
+		Name:           s.Infra.JobName(),
 		ExecutionId:    shortName(exec.GetName()),
 		Phase:          executionPhase(exec),
 		ScheduledAt:    tsToTime(exec.GetCreateTime()),

@@ -15,7 +15,6 @@ type Outputs struct {
 	Region            string             `ns:"region,optional"`
 	ServiceId         string             `ns:"service_id,optional"`
 	JobId             string             `ns:"job_id,optional"`
-	JobName           string             `ns:"job_name,optional"`
 	ImageRepoUrl      docker.ImageUrl    `ns:"image_repo_url,optional"`
 	Deployer          gcp.ServiceAccount `ns:"deployer"`
 	MainContainerName string             `ns:"main_container_name,optional"`
@@ -56,6 +55,14 @@ func (o *Outputs) Location() LocationInfo {
 // unset (e.g. a job workspace).
 func (o *Outputs) ServiceName() string {
 	return shortName(o.ServiceId)
+}
+
+// JobName returns the bare job name parsed from job_id. Cloud Run job ids use
+// the form projects/{project}/locations/{region}/jobs/{name}; this returns the
+// final {name} segment, or an empty string when job_id is unset (e.g. a service
+// workspace).
+func (o *Outputs) JobName() string {
+	return shortName(o.JobId)
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {

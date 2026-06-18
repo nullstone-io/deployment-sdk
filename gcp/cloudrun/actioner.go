@@ -263,7 +263,7 @@ func buildTrafficTargets(revisionName string, percent int32, latestReady string)
 // cancelExecution cancels a running job execution. It waits for the cancel to
 // be acknowledged so the caller gets a real confirmation (or the failure).
 func (a Actioner) cancelExecution(ctx context.Context, input json.RawMessage) (*workspace.ActionResult, error) {
-	if a.Infra.JobName == "" {
+	if a.Infra.JobId == "" {
 		return nil, fmt.Errorf("%s requires a job workspace", ActionCancelExecution)
 	}
 	var in CancelExecutionInput
@@ -306,7 +306,7 @@ func (a Actioner) cancelExecution(ctx context.Context, input json.RawMessage) (*
 // whole job is re-executed and the result message says so. (The job's own
 // per-task retry policy handles transient task failures within an execution.)
 func (a Actioner) rerunJob(ctx context.Context, input json.RawMessage) (*workspace.ActionResult, error) {
-	if a.Infra.JobName == "" {
+	if a.Infra.JobId == "" {
 		return nil, fmt.Errorf("%s requires a job workspace", ActionRerunJob)
 	}
 	var in RerunJobInput
@@ -324,12 +324,12 @@ func (a Actioner) rerunJob(ctx context.Context, input json.RawMessage) (*workspa
 
 	op, err := client.RunJob(ctx, &runpb.RunJobRequest{Name: a.Infra.JobId})
 	if err != nil {
-		return nil, fmt.Errorf("error running job %q: %w", a.Infra.JobName, err)
+		return nil, fmt.Errorf("error running job %q: %w", a.Infra.JobId, err)
 	}
 	// Don't wait: the execution runs asynchronously and may take a long time.
 
 	data, err := json.Marshal(RerunJobResult{
-		Job:             a.Infra.JobName,
+		Job:             a.Infra.JobName(),
 		SourceExecution: in.ExecutionId,
 		Operation:       op.Name(),
 	})
@@ -337,9 +337,9 @@ func (a Actioner) rerunJob(ctx context.Context, input json.RawMessage) (*workspa
 		return nil, err
 	}
 
-	msg := fmt.Sprintf("started a new execution of job %q", a.Infra.JobName)
+	msg := fmt.Sprintf("started a new execution of job %q", a.Infra.JobId)
 	if in.OnlyFailedTasks {
-		msg = fmt.Sprintf("Cloud Run reruns the entire job; individual failed tasks can't be targeted. Started a full execution of job %q.", a.Infra.JobName)
+		msg = fmt.Sprintf("Cloud Run reruns the entire job; individual failed tasks can't be targeted. Started a full execution of job %q.", a.Infra.JobId)
 	}
 	return &workspace.ActionResult{
 		Status:  "started",
