@@ -36,12 +36,12 @@ type Statuser struct {
 func (s Statuser) StatusOverview(ctx context.Context) (app.StatusOverviewResult, error) {
 	ov := StatusOverview{
 		Location:     s.Infra.Location(),
-		ServiceName:  s.Infra.ServiceName,
+		ServiceName:  s.Infra.ServiceName(),
 		JobName:      s.Infra.JobName,
 		TrafficSplit: make([]TrafficSplitEntry, 0),
 	}
 
-	if s.Infra.ServiceName != "" {
+	if s.Infra.ServiceId != "" {
 		svc, err := s.statusService(ctx)
 		if err != nil {
 			return ov, err
@@ -79,12 +79,12 @@ func (s Statuser) StatusOverview(ctx context.Context) (app.StatusOverviewResult,
 func (s Statuser) Status(ctx context.Context) (any, error) {
 	out := Status{
 		Location:    s.Infra.Location(),
-		ServiceName: s.Infra.ServiceName,
+		ServiceName: s.Infra.ServiceName(),
 		JobName:     s.Infra.JobName,
 		Executions:  make([]JobExecution, 0),
 	}
 
-	if s.Infra.ServiceName != "" {
+	if s.Infra.ServiceId != "" {
 		svc, err := s.statusService(ctx)
 		if err != nil {
 			return nil, err

@@ -14,7 +14,6 @@ type Outputs struct {
 	ProjectId         string             `ns:"project_id,optional"`
 	Region            string             `ns:"region,optional"`
 	ServiceId         string             `ns:"service_id,optional"`
-	ServiceName       string             `ns:"service_name,optional"`
 	JobId             string             `ns:"job_id,optional"`
 	JobName           string             `ns:"job_name,optional"`
 	ImageRepoUrl      docker.ImageUrl    `ns:"image_repo_url,optional"`
@@ -26,7 +25,7 @@ type Outputs struct {
 // project_id/region outputs are absent, it falls back to parsing them from the
 // service_id/job_id, which use the form
 // projects/{project}/locations/{region}/{services|jobs}/{name}.
-func (o Outputs) Location() LocationInfo {
+func (o *Outputs) Location() LocationInfo {
 	loc := LocationInfo{ProjectId: o.ProjectId, Region: o.Region}
 	if loc.ProjectId != "" && loc.Region != "" {
 		return loc
@@ -49,6 +48,14 @@ func (o Outputs) Location() LocationInfo {
 		}
 	}
 	return loc
+}
+
+// ServiceName returns the bare service name parsed from service_id. Cloud Run
+// service ids use the form projects/{project}/locations/{region}/services/{name};
+// this returns the final {name} segment, or an empty string when service_id is
+// unset (e.g. a job workspace).
+func (o *Outputs) ServiceName() string {
+	return shortName(o.ServiceId)
 }
 
 func (o *Outputs) InitializeCreds(source outputs.RetrieverSource, ws *types.Workspace) {

@@ -22,11 +22,11 @@ type JobDeployLogger struct {
 func (d *JobDeployLogger) Close() {}
 
 func (d *JobDeployLogger) GetDeployStatus(ctx context.Context, reference string) (app.RolloutStatus, error) {
-	if d.Infra.JobName == "" {
+	if d.Infra.JobId == "" {
 		d.log(LogEvent{
-			Source:  d.Infra.ServiceName,
+			Source:  d.Infra.JobId,
 			At:      time.Now(),
-			Message: `Empty or missing "job_name" output in app module. Skipping check for healthy.`,
+			Message: `Empty or missing "job_id" output in app module. Skipping check for healthy.`,
 		})
 		return app.RolloutStatusComplete, nil
 	}

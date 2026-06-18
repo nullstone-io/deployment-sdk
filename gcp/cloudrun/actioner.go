@@ -118,7 +118,7 @@ func (a Actioner) PerformAction(ctx context.Context, options workspace.ActionOpt
 // the new revision is created ready-but-idle and can be promoted with
 // route-traffic.
 func (a Actioner) restartRevision(ctx context.Context, input json.RawMessage) (*workspace.ActionResult, error) {
-	if a.Infra.ServiceName == "" {
+	if a.Infra.ServiceId == "" {
 		return nil, fmt.Errorf("%s requires a service workspace", ActionRestartRevision)
 	}
 	var in RestartRevisionInput
@@ -140,7 +140,7 @@ func (a Actioner) restartRevision(ctx context.Context, input json.RawMessage) (*
 	}
 	tmpl := svc.GetTemplate()
 	if tmpl == nil {
-		return nil, fmt.Errorf("service %q has no template to restart", a.Infra.ServiceName)
+		return nil, fmt.Errorf("service %q has no template to restart", a.Infra.ServiceId)
 	}
 
 	// Clear the pinned revision name so the server auto-generates a fresh one,
@@ -155,13 +155,13 @@ func (a Actioner) restartRevision(ctx context.Context, input json.RawMessage) (*
 
 	op, err := client.UpdateService(ctx, &runpb.UpdateServiceRequest{Service: svc})
 	if err != nil {
-		return nil, fmt.Errorf("error restarting service %q: %w", a.Infra.ServiceName, err)
+		return nil, fmt.Errorf("error restarting service %q: %w", a.Infra.ServiceId, err)
 	}
 	// Don't block on the new revision becoming ready; that can take a while. The
 	// status view reflects progress on the next poll.
 
 	data, err := json.Marshal(RestartRevisionResult{
-		Service:      a.Infra.ServiceName,
+		Service:      a.Infra.ServiceName(),
 		FromRevision: in.RevisionName,
 		RestartedAt:  restartedAt,
 		Operation:    op.Name(),
@@ -171,7 +171,7 @@ func (a Actioner) restartRevision(ctx context.Context, input json.RawMessage) (*
 	}
 	return &workspace.ActionResult{
 		Status:  "started",
-		Message: fmt.Sprintf("restart triggered for service %q", a.Infra.ServiceName),
+		Message: fmt.Sprintf("restart triggered for service %q", a.Infra.ServiceId),
 		Data:    data,
 	}, nil
 }
@@ -179,7 +179,7 @@ func (a Actioner) restartRevision(ctx context.Context, input json.RawMessage) (*
 // routeTraffic points `percent` of the service's traffic at revisionName. When
 // percent is less than 100 the remainder is routed to the latest ready revision.
 func (a Actioner) routeTraffic(ctx context.Context, input json.RawMessage) (*workspace.ActionResult, error) {
-	if a.Infra.ServiceName == "" {
+	if a.Infra.ServiceId == "" {
 		return nil, fmt.Errorf("%s requires a service workspace", ActionRouteTraffic)
 	}
 	var in RouteTrafficInput
@@ -216,7 +216,7 @@ func (a Actioner) routeTraffic(ctx context.Context, input json.RawMessage) (*wor
 	}
 
 	data, err := json.Marshal(RouteTrafficResult{
-		Service:      a.Infra.ServiceName,
+		Service:      a.Infra.ServiceName(),
 		RevisionName: in.RevisionName,
 		Percent:      in.Percent,
 	})
