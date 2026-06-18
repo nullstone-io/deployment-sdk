@@ -48,8 +48,8 @@ type ClusterInfo struct {
 }
 
 type Status struct {
-	Cluster     ClusterInfo  `json:"cluster"`
-	ServiceName string       `json:"serviceName"`
+	Cluster     ClusterInfo `json:"cluster"`
+	ServiceName string      `json:"serviceName"`
 	// IsJob is true when the workspace is a one-off RunTask workspace (no ECS service).
 	// Frontend uses this to route to the job-executions view rather than the deployments view.
 	IsJob      bool              `json:"isJob"`
