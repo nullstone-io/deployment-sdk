@@ -26,9 +26,9 @@ func TestParseClusterName(t *testing.T) {
 
 func TestParseTaskDefinition(t *testing.T) {
 	tests := []struct {
-		name        string
-		arn         string
-		wantFamily  string
+		name         string
+		arn          string
+		wantFamily   string
 		wantRevision int32
 	}{
 		{"standard arn", "arn:aws:ecs:us-east-1:123456789012:task-definition/my-app:42", "my-app", 42},
