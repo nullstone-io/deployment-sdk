@@ -25,6 +25,28 @@ func TestOutputsLocation(t *testing.T) {
 	})
 }
 
+func TestOutputsServiceName(t *testing.T) {
+	t.Run("parses name from service_id", func(t *testing.T) {
+		o := Outputs{ServiceId: "projects/proj/locations/us-east1/services/fortuna-api"}
+		assert.Equal(t, "fortuna-api", o.ServiceName())
+	})
+	t.Run("empty when service_id is unset", func(t *testing.T) {
+		o := Outputs{JobId: "projects/p/locations/r/jobs/migrate"}
+		assert.Equal(t, "", o.ServiceName())
+	})
+}
+
+func TestOutputsJobName(t *testing.T) {
+	t.Run("parses name from job_id", func(t *testing.T) {
+		o := Outputs{JobId: "projects/proj/locations/europe-west1/jobs/batch-reindex"}
+		assert.Equal(t, "batch-reindex", o.JobName())
+	})
+	t.Run("empty when job_id is unset", func(t *testing.T) {
+		o := Outputs{ServiceId: "projects/p/locations/r/services/svc"}
+		assert.Equal(t, "", o.JobName())
+	})
+}
+
 func TestShortName(t *testing.T) {
 	assert.Equal(t, "svc-00012-abc", shortName("projects/p/locations/r/services/svc/revisions/svc-00012-abc"))
 	assert.Equal(t, "bare", shortName("bare"))
@@ -226,7 +248,7 @@ func TestDeriveExecutionFailure(t *testing.T) {
 }
 
 func TestMapExecution(t *testing.T) {
-	s := Statuser{Infra: Outputs{JobName: "batch-reindex", MainContainerName: "main"}}
+	s := Statuser{Infra: Outputs{JobId: "projects/p/locations/r/jobs/batch-reindex", MainContainerName: "main"}}
 	now := timestamppb.New(time.Now())
 	exec := &runpb.Execution{
 		Name:           "projects/p/locations/r/jobs/batch-reindex/executions/batch-reindex-0042",

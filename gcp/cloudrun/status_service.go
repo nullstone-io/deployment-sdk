@@ -24,7 +24,7 @@ func (s Statuser) statusService(ctx context.Context) (*Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving service: %w", err)
 	} else if svc == nil {
-		return nil, fmt.Errorf("cloud run service %q not found", s.Infra.ServiceName)
+		return nil, fmt.Errorf("cloud run service %q not found", s.Infra.ServiceName())
 	}
 
 	// Index the observed traffic split by revision name.
@@ -64,7 +64,7 @@ func (s Statuser) statusService(ctx context.Context) (*Service, error) {
 	}
 
 	return &Service{
-		ServiceName:    s.Infra.ServiceName,
+		ServiceName:    s.Infra.ServiceName(),
 		Generation:     svc.GetGeneration(),
 		State:          state,
 		Url:            svc.GetUri(),

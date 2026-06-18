@@ -16,21 +16,24 @@ func NewDeployWatcher(ctx context.Context, osWriters logging.OsWriters, source o
 	}
 	outs.InitializeCreds(source, appDetails.Workspace)
 
-	if outs.ServiceName != "" {
+	if outs.ServiceId != "" {
 		return &ServiceDeployWatcher{
 			OsWriters: osWriters,
 			Details:   appDetails,
 			Infra:     outs,
 		}, nil
-	}
-	return &app.PollingDeployWatcher{
-		OsWriters: osWriters,
-		StatusGetter: &JobDeployLogger{
+	} else if outs.JobId != "" {
+		return &app.PollingDeployWatcher{
 			OsWriters: osWriters,
-			Details:   appDetails,
-			Infra:     outs,
-		},
-	}, nil
+			StatusGetter: &JobDeployLogger{
+				OsWriters: osWriters,
+				Details:   appDetails,
+				Infra:     outs,
+			},
+		}, nil
+	} else {
+		return nil, fmt.Errorf("cannot watch deployment, no service_id or job_id in app module")
+	}
 }
 
 var _ app.DeployWatcher = &ServiceDeployWatcher{}

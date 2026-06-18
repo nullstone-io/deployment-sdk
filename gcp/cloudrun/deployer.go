@@ -37,7 +37,7 @@ type Deployer struct {
 func (d Deployer) Print() {
 	stdout, _ := d.OsWriters.Stdout(), d.OsWriters.Stderr()
 	colorstring.Fprintln(stdout, "[bold]Retrieved Cloud Run service outputs")
-	fmt.Fprintf(stdout, "\tservice_name:   %s\n", d.Infra.ServiceName)
+	fmt.Fprintf(stdout, "\tservice_id:     %s\n", d.Infra.ServiceId)
 	fmt.Fprintf(stdout, "\tjob_id:         %s\n", d.Infra.JobId)
 	fmt.Fprintf(stdout, "\timage_repo_url: %s\n", d.Infra.ImageRepoUrl)
 }
@@ -52,12 +52,12 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 
 	fmt.Fprintln(stdout)
 	fmt.Fprintf(stdout, "Deploying app %q\n", d.Details.App.Name)
-	if d.Infra.ServiceName != "" {
+	if d.Infra.ServiceId != "" {
 		return d.deployService(ctx, meta)
 	} else if d.Infra.JobId != "" {
 		return d.deployJob(ctx, meta)
 	} else {
-		fmt.Fprintf(stdout, "No service_name or job_name in app module. Skipping deployment.\n")
+		fmt.Fprintf(stdout, "No service_id or job_id in app module. Skipping deployment.\n")
 		return "", nil
 	}
 }
@@ -74,7 +74,7 @@ func (d Deployer) deployService(ctx context.Context, meta app.DeployMetadata) (s
 	if err != nil {
 		return "", fmt.Errorf("error retrieving service: %w", err)
 	} else if svc == nil {
-		return "", fmt.Errorf("cloud run service %q not found", d.Infra.ServiceName)
+		return "", fmt.Errorf("cloud run service %q not found", d.Infra.ServiceId)
 	}
 
 	mainContainerIndex, mainContainer := GetContainerByName(svc.Template.Containers, d.Infra.MainContainerName)

@@ -118,7 +118,7 @@ func (a Actioner) PerformAction(ctx context.Context, options workspace.ActionOpt
 // the new revision is created ready-but-idle and can be promoted with
 // route-traffic.
 func (a Actioner) restartRevision(ctx context.Context, input json.RawMessage) (*workspace.ActionResult, error) {
-	if a.Infra.ServiceName == "" {
+	if a.Infra.ServiceId == "" {
 		return nil, fmt.Errorf("%s requires a service workspace", ActionRestartRevision)
 	}
 	var in RestartRevisionInput
@@ -140,7 +140,7 @@ func (a Actioner) restartRevision(ctx context.Context, input json.RawMessage) (*
 	}
 	tmpl := svc.GetTemplate()
 	if tmpl == nil {
-		return nil, fmt.Errorf("service %q has no template to restart", a.Infra.ServiceName)
+		return nil, fmt.Errorf("service %q has no template to restart", a.Infra.ServiceId)
 	}
 
 	// Clear the pinned revision name so the server auto-generates a fresh one,
@@ -155,13 +155,13 @@ func (a Actioner) restartRevision(ctx context.Context, input json.RawMessage) (*
 
 	op, err := client.UpdateService(ctx, &runpb.UpdateServiceRequest{Service: svc})
 	if err != nil {
-		return nil, fmt.Errorf("error restarting service %q: %w", a.Infra.ServiceName, err)
+		return nil, fmt.Errorf("error restarting service %q: %w", a.Infra.ServiceId, err)
 	}
 	// Don't block on the new revision becoming ready; that can take a while. The
 	// status view reflects progress on the next poll.
 
 	data, err := json.Marshal(RestartRevisionResult{
-		Service:      a.Infra.ServiceName,
+		Service:      a.Infra.ServiceName(),
 		FromRevision: in.RevisionName,
 		RestartedAt:  restartedAt,
 		Operation:    op.Name(),
@@ -171,7 +171,7 @@ func (a Actioner) restartRevision(ctx context.Context, input json.RawMessage) (*
 	}
 	return &workspace.ActionResult{
 		Status:  "started",
-		Message: fmt.Sprintf("restart triggered for service %q", a.Infra.ServiceName),
+		Message: fmt.Sprintf("restart triggered for service %q", a.Infra.ServiceId),
 		Data:    data,
 	}, nil
 }
@@ -179,7 +179,7 @@ func (a Actioner) restartRevision(ctx context.Context, input json.RawMessage) (*
 // routeTraffic points `percent` of the service's traffic at revisionName. When
 // percent is less than 100 the remainder is routed to the latest ready revision.
 func (a Actioner) routeTraffic(ctx context.Context, input json.RawMessage) (*workspace.ActionResult, error) {
-	if a.Infra.ServiceName == "" {
+	if a.Infra.ServiceId == "" {
 		return nil, fmt.Errorf("%s requires a service workspace", ActionRouteTraffic)
 	}
 	var in RouteTrafficInput
@@ -216,7 +216,7 @@ func (a Actioner) routeTraffic(ctx context.Context, input json.RawMessage) (*wor
 	}
 
 	data, err := json.Marshal(RouteTrafficResult{
-		Service:      a.Infra.ServiceName,
+		Service:      a.Infra.ServiceName(),
 		RevisionName: in.RevisionName,
 		Percent:      in.Percent,
 	})
@@ -263,7 +263,7 @@ func buildTrafficTargets(revisionName string, percent int32, latestReady string)
 // cancelExecution cancels a running job execution. It waits for the cancel to
 // be acknowledged so the caller gets a real confirmation (or the failure).
 func (a Actioner) cancelExecution(ctx context.Context, input json.RawMessage) (*workspace.ActionResult, error) {
-	if a.Infra.JobName == "" {
+	if a.Infra.JobId == "" {
 		return nil, fmt.Errorf("%s requires a job workspace", ActionCancelExecution)
 	}
 	var in CancelExecutionInput
@@ -306,7 +306,7 @@ func (a Actioner) cancelExecution(ctx context.Context, input json.RawMessage) (*
 // whole job is re-executed and the result message says so. (The job's own
 // per-task retry policy handles transient task failures within an execution.)
 func (a Actioner) rerunJob(ctx context.Context, input json.RawMessage) (*workspace.ActionResult, error) {
-	if a.Infra.JobName == "" {
+	if a.Infra.JobId == "" {
 		return nil, fmt.Errorf("%s requires a job workspace", ActionRerunJob)
 	}
 	var in RerunJobInput
@@ -324,12 +324,12 @@ func (a Actioner) rerunJob(ctx context.Context, input json.RawMessage) (*workspa
 
 	op, err := client.RunJob(ctx, &runpb.RunJobRequest{Name: a.Infra.JobId})
 	if err != nil {
-		return nil, fmt.Errorf("error running job %q: %w", a.Infra.JobName, err)
+		return nil, fmt.Errorf("error running job %q: %w", a.Infra.JobId, err)
 	}
 	// Don't wait: the execution runs asynchronously and may take a long time.
 
 	data, err := json.Marshal(RerunJobResult{
-		Job:             a.Infra.JobName,
+		Job:             a.Infra.JobName(),
 		SourceExecution: in.ExecutionId,
 		Operation:       op.Name(),
 	})
@@ -337,9 +337,9 @@ func (a Actioner) rerunJob(ctx context.Context, input json.RawMessage) (*workspa
 		return nil, err
 	}
 
-	msg := fmt.Sprintf("started a new execution of job %q", a.Infra.JobName)
+	msg := fmt.Sprintf("started a new execution of job %q", a.Infra.JobId)
 	if in.OnlyFailedTasks {
-		msg = fmt.Sprintf("Cloud Run reruns the entire job; individual failed tasks can't be targeted. Started a full execution of job %q.", a.Infra.JobName)
+		msg = fmt.Sprintf("Cloud Run reruns the entire job; individual failed tasks can't be targeted. Started a full execution of job %q.", a.Infra.JobId)
 	}
 	return &workspace.ActionResult{
 		Status:  "started",
