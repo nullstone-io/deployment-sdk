@@ -83,7 +83,7 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 		return "", fmt.Errorf("error updating lambda code version: %w", err)
 	}
 	// Wait for function code version to take effect
-	if err := nslambda.WaitForFunctionChanges(ctx, d.Infra, time.Minute, waitForChangesHeartbeat); err != nil {
+	if err := nslambda.WaitForFunctionChanges(ctx, d.Infra, 12*time.Minute, waitForChangesHeartbeat); err != nil {
 		return "", fmt.Errorf("error waiting for updated lambda configuration: %w", err)
 	}
 	fmt.Fprintf(stdout, "Updated lambda code\n")
