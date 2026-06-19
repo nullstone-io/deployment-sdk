@@ -3,14 +3,15 @@ package nsaws
 import (
 	"context"
 	"fmt"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"mime"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 type S3Uploader struct {
@@ -26,7 +27,7 @@ type S3Uploader struct {
 }
 
 func (u *S3Uploader) UploadDir(ctx context.Context, cfg aws.Config, baseDir string, filepaths []string) error {
-	uploader := manager.NewUploader(s3.NewFromConfig(cfg))
+	uploader := transfermanager.New(s3.NewFromConfig(cfg))
 	for _, fp := range filepaths {
 		if err := u.uploadOne(ctx, uploader, baseDir, fp); err != nil {
 			return fmt.Errorf("error uploading %q: %w", fp, err)
@@ -35,7 +36,7 @@ func (u *S3Uploader) UploadDir(ctx context.Context, cfg aws.Config, baseDir stri
 	return nil
 }
 
-func (u *S3Uploader) uploadOne(ctx context.Context, uploader *manager.Uploader, baseDir, fp string) error {
+func (u *S3Uploader) uploadOne(ctx context.Context, client *transfermanager.Client, baseDir, fp string) error {
 	localFilepath := filepath.Join(baseDir, fp)
 	file, err := os.Open(localFilepath)
 	if err != nil {
@@ -48,7 +49,7 @@ func (u *S3Uploader) uploadOne(ctx context.Context, uploader *manager.Uploader, 
 	if mimeType == "" {
 		mimeType = "text/plain"
 	}
-	input := &s3.PutObjectInput{
+	input := &transfermanager.UploadObjectInput{
 		Bucket:      aws.String(u.BucketName),
 		Key:         aws.String(objectKey),
 		Body:        file,
@@ -59,7 +60,7 @@ func (u *S3Uploader) uploadOne(ctx context.Context, uploader *manager.Uploader, 
 			input.CacheControl = aws.String(cc)
 		}
 	}
-	_, err = uploader.Upload(ctx, input)
+	_, err = client.UploadObject(ctx, input)
 	if err != nil {
 		return fmt.Errorf("error uploading file %q: %w", objectKey, err)
 	}

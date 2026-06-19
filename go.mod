@@ -18,7 +18,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.7.0
 	github.com/aws/aws-sdk-go-v2 v1.42.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.24
-	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.22.28
+	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.2.11
 	github.com/aws/aws-sdk-go-v2/service/batch v1.66.0
 	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.65.2
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.59.0
