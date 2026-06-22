@@ -46,7 +46,7 @@ require (
 	github.com/tomnomnom/linkheader v0.0.0-20250811210735-e5fe3b51442e
 	github.com/vmihailenco/tagparser v0.1.2
 	golang.org/x/oauth2 v0.36.0
-	golang.org/x/sync v0.20.0
+	golang.org/x/sync v0.21.0
 	google.golang.org/api v0.280.0
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20260520222828-989095fec005
