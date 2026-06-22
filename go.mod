@@ -36,7 +36,7 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
-	github.com/mattn/go-colorable v0.1.14
+	github.com/mattn/go-colorable v0.1.15
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/moby/moby/client v0.4.1
 	github.com/nullstone-io/module v0.2.10
