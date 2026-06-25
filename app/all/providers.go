@@ -14,6 +14,7 @@ import (
 	"github.com/nullstone-io/deployment-sdk/app/serverless/aws-lambda-container"
 	"github.com/nullstone-io/deployment-sdk/app/serverless/aws-lambda-zip"
 	azure_functions "github.com/nullstone-io/deployment-sdk/app/serverless/azure-functions"
+	gcp_composer "github.com/nullstone-io/deployment-sdk/app/serverless/gcp-composer"
 	gcp_cloudfunctions_function "github.com/nullstone-io/deployment-sdk/app/serverless/gcp-cloudfunctions-function"
 	"github.com/nullstone-io/deployment-sdk/app/static-site/aws-s3"
 	azure_blob "github.com/nullstone-io/deployment-sdk/app/static-site/azure-blob"
@@ -34,6 +35,7 @@ var (
 		gcp_gcs.ModuleContractName:                     gcp_gcs.Provider,
 		gcp_cloudrun.ModuleContractName:                gcp_cloudrun.Provider,
 		gcp_cloudfunctions_function.ModuleContractName: gcp_cloudfunctions_function.Provider,
+		gcp_composer.ModuleContractName:                gcp_composer.Provider,
 		azure_aca.ModuleContractName:                   azure_aca.Provider,
 		azure_aks.ModuleContractName:                   azure_aks.Provider,
 		azure_functions.ModuleContractName:             azure_functions.Provider,
