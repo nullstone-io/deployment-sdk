@@ -8,6 +8,7 @@ require (
 	cloud.google.com/go/logging v1.18.0
 	cloud.google.com/go/longrunning v1.0.0
 	cloud.google.com/go/monitoring v1.29.0
+	cloud.google.com/go/orchestration v1.16.0
 	cloud.google.com/go/run v1.21.0
 	cloud.google.com/go/storage v1.62.2
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.21.1
