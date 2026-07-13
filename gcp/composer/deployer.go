@@ -89,7 +89,7 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 				SoftwareConfig: &servicepb.SoftwareConfig{EnvVariables: updated},
 			},
 		},
-		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"service_config.environment_variables"}},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"config.software_config.env_variables"}},
 	})
 	if err != nil {
 		return "", fmt.Errorf("error updating Composer environment: %w", err)
