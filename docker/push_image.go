@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/docker/cli/cli/command"
-	"github.com/docker/docker/api/types/registry"
-	"github.com/docker/docker/pkg/jsonmessage"
+	"github.com/moby/moby/api/types/registry"
 	"github.com/moby/moby/client"
+	"github.com/moby/moby/client/pkg/jsonmessage"
 )
 
-func PushImage(ctx context.Context, dockerCli *command.DockerCli, targetUrl ImageUrl, targetAuth registry.AuthConfig) error {
+func PushImage(ctx context.Context, dockerCli *Cli, targetUrl ImageUrl, targetAuth registry.AuthConfig) error {
 	encodedAuth, err := EncodeAuthToBase64(targetAuth)
 	if err != nil {
 		return fmt.Errorf("error encoding remote auth configuration: %w", err)
@@ -25,5 +24,5 @@ func PushImage(ctx context.Context, dockerCli *command.DockerCli, targetUrl Imag
 		return err
 	}
 
-	return jsonmessage.DisplayJSONMessagesToStream(responseBody, dockerCli.Err(), nil)
+	return jsonmessage.DisplayStream(responseBody, dockerCli.Err())
 }
