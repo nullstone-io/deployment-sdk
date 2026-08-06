@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
-	dockerregistry "github.com/docker/docker/api/types/registry"
+	dockerregistry "github.com/moby/moby/api/types/registry"
 	"github.com/mitchellh/colorstring"
 	"github.com/moby/moby/client"
 	"github.com/nullstone-io/deployment-sdk/app"

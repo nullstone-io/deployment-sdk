@@ -3,7 +3,7 @@ package docker
 import (
 	"encoding/base64"
 	"encoding/json"
-	"github.com/docker/docker/api/types/registry"
+	"github.com/moby/moby/api/types/registry"
 )
 
 // EncodeAuthToBase64 serializes the auth configuration as JSON base64 payload

@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/docker/cli/cli/command"
-	"github.com/docker/docker/api/types/registry"
-	"github.com/docker/docker/pkg/jsonmessage"
+	"github.com/moby/moby/api/types/registry"
 	"github.com/moby/moby/client"
+	"github.com/moby/moby/client/pkg/jsonmessage"
 )
 
 func PullImage(ctx context.Context, dockerCli *command.DockerCli, sourceUrl ImageUrl, sourceAuth registry.AuthConfig) error {
@@ -25,5 +25,6 @@ func PullImage(ctx context.Context, dockerCli *command.DockerCli, sourceUrl Imag
 		return err
 	}
 
-	return jsonmessage.DisplayJSONMessagesToStream(responseBody, dockerCli.Err(), nil)
+	errStream := dockerCli.Err()
+	return jsonmessage.DisplayJSONMessagesStream(responseBody, errStream, errStream.FD(), errStream.IsTerminal(), nil)
 }
