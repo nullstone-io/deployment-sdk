@@ -37,6 +37,11 @@ type Getter struct {
 func (g Getter) GetMetrics(ctx context.Context, options workspace.MetricsGetterOptions) (*workspace.MetricsData, error) {
 	periodSec := nsaws.CalcPeriod(options.StartTime, options.EndTime)
 	queries := g.Infra.MetricsMappings.BuildMetricQueries(options.Metrics, periodSec)
+	if len(queries) == 0 {
+		// CloudWatch rejects a GetMetricData request with no queries
+		// A workspace with no metrics mappings (or a filter matching none) has no metrics to fetch
+		return workspace.NewMetricsData(), nil
+	}
 	input := &cloudwatch.GetMetricDataInput{
 		StartTime:         options.StartTime,
 		EndTime:           options.EndTime,
