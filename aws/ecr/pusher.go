@@ -5,17 +5,15 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strings"
-	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
-	ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/mitchellh/colorstring"
 	dockerregistry "github.com/moby/moby/api/types/registry"
 	"github.com/moby/moby/client"
 	"github.com/nullstone-io/deployment-sdk/app"
 	"github.com/nullstone-io/deployment-sdk/aws"
 	"github.com/nullstone-io/deployment-sdk/aws/creds"
+	"github.com/nullstone-io/deployment-sdk/aws/iampropagation"
 	"github.com/nullstone-io/deployment-sdk/docker"
 	"github.com/nullstone-io/deployment-sdk/logging"
 	"github.com/nullstone-io/deployment-sdk/outputs"
@@ -70,32 +68,36 @@ func (p Pusher) Push(ctx context.Context, source, version string) error {
 		return err
 	}
 
-	fmt.Fprintln(stderr)
-	fmt.Fprintln(stderr, "Authenticating with ECR...")
-	targetAuth, err := p.getEcrLoginAuth(ctx)
-	if err != nil {
-		return fmt.Errorf("error retrieving image registry credentials: %w", err)
-	}
-	fmt.Fprintln(stderr, "Authenticated")
-
 	dockerCli, err := docker.DiscoverDockerCli(p.OsWriters)
 	if err != nil {
 		return fmt.Errorf("error creating docker client: %w", err)
 	}
 
+	fmt.Fprintln(stderr)
 	fmt.Fprintf(stderr, "Retagging source image %s => %s\n", sourceUrl, targetUrl)
 	opts := client.ImageTagOptions{Source: sourceUrl.String(), Target: targetUrl.String()}
 	if _, err := dockerCli.Client().ImageTag(ctx, opts); err != nil {
 		return fmt.Errorf("error retagging image: %w", err)
 	}
 
-	fmt.Fprintln(stderr)
-	colorstring.Fprintf(stderr, "[bold]Pushing docker image to %s\n", targetUrl)
-	if err := docker.PushImage(ctx, dockerCli, targetUrl, targetAuth); err != nil {
-		return fmt.Errorf("error pushing image: %w", err)
-	}
+	// On a first launch, the `image_pusher` identity is created seconds before this push runs.
+	// AWS IAM is eventually consistent, so authenticating/pushing can fail with access-denied
+	// until the identity's permissions propagate; retry both together until they do.
+	return iampropagation.Retry(ctx, p.OsWriters, "pushing the image to ECR", iampropagation.DefaultWindow, func(ctx context.Context) error {
+		fmt.Fprintln(stderr)
+		fmt.Fprintln(stderr, "Authenticating with ECR...")
+		targetAuth, err := p.getEcrLoginAuth(ctx)
+		if err != nil {
+			return fmt.Errorf("error retrieving image registry credentials: %w", err)
+		}
+		fmt.Fprintln(stderr, "Authenticated")
 
-	return nil
+		colorstring.Fprintf(stderr, "[bold]Pushing docker image to %s\n", targetUrl)
+		if err := docker.PushImage(ctx, dockerCli, targetUrl, targetAuth); err != nil {
+			return fmt.Errorf("error pushing image: %w", err)
+		}
+		return nil
+	})
 }
 
 func (p Pusher) Pull(ctx context.Context, version string) error {
@@ -131,14 +133,21 @@ func (p Pusher) Pull(ctx context.Context, version string) error {
 }
 
 func (p Pusher) ListArtifactVersions(ctx context.Context) ([]string, error) {
-	targetAuth, err := p.getEcrLoginAuth(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error retrieving image registry credentials: %w", err)
-	}
+	var tags []string
+	// Same IAM propagation race as Push: this can run moments after the `image_pusher` identity is created.
+	err := iampropagation.Retry(ctx, p.OsWriters, "listing artifact versions in ECR", iampropagation.DefaultWindow, func(ctx context.Context) error {
+		targetAuth, err := p.getEcrLoginAuth(ctx)
+		if err != nil {
+			return fmt.Errorf("error retrieving image registry credentials: %w", err)
+		}
 
-	tags, err := docker.ListRemoteTags(ctx, p.Infra.ImageRepoUrl, targetAuth)
+		if tags, err = docker.ListRemoteTags(ctx, p.Infra.ImageRepoUrl, targetAuth); err != nil {
+			return fmt.Errorf("error listing remote tags: %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("error listing remote tags: %w", err)
+		return nil, err
 	}
 	return tags, nil
 }
@@ -164,16 +173,9 @@ func (p Pusher) validate(targetUrl docker.ImageUrl) error {
 }
 
 func (p Pusher) getEcrLoginAuth(ctx context.Context) (dockerregistry.AuthConfig, error) {
-	retryOpts := func(options *ecr.Options) {
-		// Set retryer to backoff 0s-20s with max attempts of 5s
-		// This has a retry window of 0s-100s
-		retryer := retry.NewStandard(func(options *retry.StandardOptions) {
-			options.MaxAttempts = 5
-			options.MaxBackoff = 20 * time.Second
-		})
-		options.Retryer = retry.AddWithErrorCodes(retryer, (*ecstypes.AccessDeniedException)(nil).ErrorCode())
-	}
-	ecrClient := ecr.NewFromConfig(nsaws.NewConfig(p.Infra.ImagePusher, p.Infra.Region), retryOpts)
+	// Access-denied retries (IAM propagation on first launch) are handled by iampropagation.Retry
+	// around the whole push/list operation, so the client uses the default SDK retryer here.
+	ecrClient := ecr.NewFromConfig(nsaws.NewConfig(p.Infra.ImagePusher, p.Infra.Region))
 	out, err := ecrClient.GetAuthorizationToken(ctx, &ecr.GetAuthorizationTokenInput{})
 	if err != nil {
 		return dockerregistry.AuthConfig{}, err
