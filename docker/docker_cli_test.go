@@ -9,7 +9,9 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"io"
 	"math/big"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -148,45 +150,104 @@ func TestClientOptionsScheme(t *testing.T) {
 	}{
 		{
 			name:     "plain tcp stays http",
-			endpoint: Endpoint{Host: "tcp://127.0.0.1:2375"},
+			endpoint: Endpoint{},
 			want:     "http",
 		},
 		{
 			name:     "tls material promotes to https",
-			endpoint: Endpoint{Host: "tcp://127.0.0.1:2376", CAFile: writeUnrelatedCA(t)},
+			endpoint: Endpoint{CAFile: writeUnrelatedCA(t)},
 			want:     "https",
 		},
 		{
 			name:     "skip-tls-verify promotes to https",
-			endpoint: Endpoint{Host: "tcp://127.0.0.1:2376", SkipTLSVerify: true},
+			endpoint: Endpoint{SkipTLSVerify: true},
 			want:     "https",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			sniffer := newSchemeSniffer(t)
+			test.endpoint.Host = sniffer.host
 			opts, err := clientOptions(test.endpoint)
 			require.NoError(t, err)
 			api, err := client.New(opts...)
 			require.NoError(t, err)
 			defer api.Close()
 
-			assert.Equal(t, test.want, schemeOf(t, api))
+			// The sniffer closes the connection after the first byte, so the ping always
+			// fails; only the bytes that reached the wire matter.
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_, _ = api.Ping(ctx, client.PingOptions{})
+
+			assert.Equal(t, test.want, sniffer.scheme(t))
 		})
 	}
 }
 
-// schemeOf reports whether the client will talk http or https. The client does not
-// expose its scheme, so we read it off the daemon host it reports.
-func schemeOf(t *testing.T, api *client.Client) string {
+// schemeSniffer reports whether a client talks http or https by looking at the first
+// byte it sends. The client does not expose its scheme, and the ping error is no good
+// as a signal: on Linux the moby client collapses "connection refused" into a generic
+// "Cannot connect to the Docker daemon" message that drops the URL entirely.
+//
+// A TLS handshake always begins with a record of type 0x16; a plaintext HTTP request
+// begins with an ASCII method.
+type schemeSniffer struct {
+	host   string
+	result chan string
+}
+
+func newSchemeSniffer(t *testing.T) *schemeSniffer {
 	t.Helper()
-	// Ping against a closed port surfaces the scheme in the error string.
-	_, err := api.Ping(context.Background(), client.PingOptions{})
-	require.Error(t, err)
-	if strings.Contains(err.Error(), "https://") {
-		return "https"
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = ln.Close() })
+
+	s := &schemeSniffer{
+		host:   "tcp://" + ln.Addr().String(),
+		result: make(chan string, 1),
 	}
-	return "http"
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			s.sniff(conn)
+		}
+	}()
+	return s
+}
+
+// sniff reads one byte, classifies it, and hangs up. Only the first connection is
+// reported; any later ones (client retries) are closed without a reading.
+func (s *schemeSniffer) sniff(conn net.Conn) {
+	defer conn.Close()
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	first := make([]byte, 1)
+	if _, err := io.ReadFull(conn, first); err != nil {
+		return
+	}
+	scheme := "http"
+	if first[0] == 0x16 {
+		scheme = "https"
+	}
+	select {
+	case s.result <- scheme:
+	default:
+	}
+}
+
+func (s *schemeSniffer) scheme(t *testing.T) string {
+	t.Helper()
+	select {
+	case scheme := <-s.result:
+		return scheme
+	case <-time.After(5 * time.Second):
+		t.Fatal("client never sent a byte to the sniffer")
+		return ""
+	}
 }
 
 // writeUnrelatedCA generates a self-signed CA that has signed nothing. Note that we
