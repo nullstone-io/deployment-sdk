@@ -36,6 +36,6 @@ func GetAllDeploymentTaskArns(ctx context.Context, infra Outputs, deploymentId s
 	allTaskArns = append(allTaskArns, out2.TaskArns...)
 
 	sort.Strings(allTaskArns)
-	slices.Compact(allTaskArns)
+	allTaskArns = slices.Compact(allTaskArns)
 	return allTaskArns, nil
 }
