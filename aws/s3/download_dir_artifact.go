@@ -32,7 +32,10 @@ func DownloadDirArtifact(ctx context.Context, infra Outputs, localDir string, ve
 		}
 
 		localPath := filepath.Join(localDir, filepath.FromSlash(relPath))
-		if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
+		if rel, err := filepath.Rel(localDir, localPath); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			return fmt.Errorf("refusing to write object %q outside %q", key, localDir)
+		}
+		if err := os.MkdirAll(filepath.Dir(localPath), 0750); err != nil {
 			return fmt.Errorf("error creating directory for %q: %w", localPath, err)
 		}
 
@@ -44,7 +47,7 @@ func DownloadDirArtifact(ctx context.Context, infra Outputs, localDir string, ve
 			return fmt.Errorf("error downloading %q: %w", key, err)
 		}
 
-		file, err := os.Create(localPath)
+		file, err := os.Create(localPath) // #nosec G304 -- path is under the caller-provided localDir; traversal guarded above
 		if err != nil {
 			out.Body.Close()
 			return fmt.Errorf("error creating local file %q: %w", localPath, err)

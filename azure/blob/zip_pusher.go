@@ -58,7 +58,7 @@ func (p ZipPusher) Push(ctx context.Context, source, version string) error {
 	objectKey = strings.TrimPrefix(objectKey, "/")
 
 	fmt.Fprintf(stderr, "Uploading %s to Azure Blob Storage...\n", source)
-	file, err := os.Open(absSource)
+	file, err := os.Open(absSource) // #nosec G304 -- source is the artifact path supplied by the caller
 	if err != nil {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("source file %q does not exist", source)
@@ -93,7 +93,7 @@ func (p ZipPusher) Pull(ctx context.Context, version string) error {
 	localPath := fmt.Sprintf("./%s-%s-%s.zip", p.AppDetails.App.Name, p.AppDetails.Env.Name, version)
 
 	fmt.Fprintf(stderr, "Downloading %s from Azure Blob Storage...\n", objectKey)
-	file, err := os.Create(localPath)
+	file, err := os.Create(localPath) // #nosec G304 -- fixed filename pattern in the working dir
 	if err != nil {
 		return fmt.Errorf("error creating local file: %w", err)
 	}

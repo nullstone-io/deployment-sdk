@@ -83,7 +83,7 @@ func currentContextName() (string, error) {
 	if dir == "" {
 		return "", nil
 	}
-	raw, err := os.ReadFile(filepath.Join(dir, "config.json"))
+	raw, err := os.ReadFile(filepath.Join(dir, "config.json")) // #nosec G304 -- well-known file under the docker config dir
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return "", nil
@@ -106,7 +106,7 @@ func loadContextEndpoint(name string) (Endpoint, error) {
 	}
 	contextDir := contextDirOf(name)
 
-	raw, err := os.ReadFile(filepath.Join(dir, "contexts", "meta", contextDir, "meta.json"))
+	raw, err := os.ReadFile(filepath.Join(dir, "contexts", "meta", contextDir, "meta.json")) // #nosec G304 -- well-known file under the docker config dir
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return Endpoint{}, fmt.Errorf("docker context %q not found", name)

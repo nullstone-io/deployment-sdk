@@ -40,7 +40,7 @@ func (p ZipPusher) Push(ctx context.Context, source, version string) error {
 		return fmt.Errorf("--version is required to upload artifact")
 	}
 
-	file, err := os.Open(source)
+	file, err := os.Open(source) // #nosec G304 -- source is the artifact path supplied by the caller
 	if os.IsNotExist(err) {
 		return fmt.Errorf("source file %q does not exist", source)
 	} else if err != nil {

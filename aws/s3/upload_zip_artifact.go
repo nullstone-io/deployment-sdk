@@ -2,7 +2,7 @@ package s3
 
 import (
 	"context"
-	"crypto/md5"
+	"crypto/md5" // #nosec G501 -- S3 Content-MD5 integrity header, not used for security
 	"encoding/base64"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -16,7 +16,7 @@ func UploadZipArtifact(ctx context.Context, infra Outputs, content io.ReadSeeker
 
 	// Calculate md5 content to add as header (necessary for s3 buckets that have object lock enabled)
 	// After calculating, we need to reset the content stream to transmit using s3.PutObject
-	md5Summer := md5.New()
+	md5Summer := md5.New() // #nosec G401 -- S3 Content-MD5 integrity header, not used for security
 	if _, err := io.Copy(md5Summer, content); err != nil {
 		return fmt.Errorf("error calculating md5 hash: %w", err)
 	}
