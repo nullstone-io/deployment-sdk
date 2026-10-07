@@ -80,7 +80,7 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 		zipPath = meta.PackageMode
 	}
 
-	zipData, err := os.ReadFile(zipPath)
+	zipData, err := os.ReadFile(zipPath) // #nosec G304 -- artifact path supplied by the caller
 	if err != nil {
 		// If we can't read a local zip, try deploying via the ARM API with the version as a reference
 		fmt.Fprintf(stdout, "No local zip file found at %q, deploying via ARM restart...\n", zipPath)

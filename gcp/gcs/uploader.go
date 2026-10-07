@@ -64,7 +64,7 @@ func (u *Uploader) uploadOne(ctx context.Context, bucket *storage.BucketHandle, 
 	objectKey := u.ObjectKeyFn(filename)
 
 	localFilepath := filepath.Join(baseDir, filename)
-	file, err := os.Open(localFilepath)
+	file, err := os.Open(localFilepath) // #nosec G304 -- file enumerated from the caller-provided baseDir
 	if err != nil {
 		return fmt.Errorf("error opening local file %q: %w", localFilepath, err)
 	}

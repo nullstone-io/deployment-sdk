@@ -193,7 +193,7 @@ func (p Pusher) newStorageClient(ctx context.Context) (*storage.Client, error) {
 
 func uploadOne(ctx context.Context, bucket *storage.BucketHandle, baseDir, rel, objectKey string) error {
 	localFilepath := filepath.Join(baseDir, rel)
-	file, err := os.Open(localFilepath)
+	file, err := os.Open(localFilepath) // #nosec G304 -- file enumerated from the caller-provided baseDir
 	if err != nil {
 		return fmt.Errorf("error opening local file %q: %w", localFilepath, err)
 	}
@@ -219,7 +219,10 @@ func downloadOne(ctx context.Context, bucket *storage.BucketHandle, objectName, 
 		return nil
 	}
 	localFilepath := filepath.Join(localDir, filepath.FromSlash(rel))
-	if err := os.MkdirAll(filepath.Dir(localFilepath), 0755); err != nil {
+	if rel, err := filepath.Rel(localDir, localFilepath); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("refusing to write object %q outside %q", objectName, localDir)
+	}
+	if err := os.MkdirAll(filepath.Dir(localFilepath), 0750); err != nil {
 		return fmt.Errorf("error creating local directory: %w", err)
 	}
 
@@ -229,7 +232,7 @@ func downloadOne(ctx context.Context, bucket *storage.BucketHandle, objectName, 
 	}
 	defer reader.Close()
 
-	file, err := os.Create(localFilepath)
+	file, err := os.Create(localFilepath) // #nosec G304 -- path is under the caller-provided localDir; traversal guarded above
 	if err != nil {
 		return fmt.Errorf("error creating local file %q: %w", localFilepath, err)
 	}

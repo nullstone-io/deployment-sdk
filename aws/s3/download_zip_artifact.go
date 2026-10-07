@@ -23,7 +23,7 @@ func DownloadZipArtifact(ctx context.Context, infra Outputs, localPath string, v
 	}
 	defer out.Body.Close()
 
-	file, err := os.Create(localPath)
+	file, err := os.Create(localPath) // #nosec G304 -- localPath is supplied by the caller
 	if err != nil {
 		return fmt.Errorf("error creating local file %q: %w", localPath, err)
 	}

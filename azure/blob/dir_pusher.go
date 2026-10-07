@@ -73,7 +73,7 @@ func (p DirPusher) Push(ctx context.Context, source, version string) error {
 			objectKey = objDir + "/" + objectKey
 		}
 
-		file, err := os.Open(fp)
+		file, err := os.Open(fp) // #nosec G304 -- file enumerated from the caller-provided source dir
 		if err != nil {
 			return fmt.Errorf("error opening file %s: %w", fp, err)
 		}
@@ -121,7 +121,10 @@ func (p DirPusher) Pull(ctx context.Context, version string) error {
 			relPath = strings.TrimPrefix(relPath, "/")
 			localPath := filepath.Join(localDir, relPath)
 
-			if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
+			if rel, err := filepath.Rel(localDir, localPath); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+				return fmt.Errorf("refusing to write object %q outside %q", *blob.Name, localDir)
+			}
+			if err := os.MkdirAll(filepath.Dir(localPath), 0750); err != nil {
 				return fmt.Errorf("error creating directory: %w", err)
 			}
 
@@ -129,7 +132,7 @@ func (p DirPusher) Pull(ctx context.Context, version string) error {
 			if err != nil {
 				return fmt.Errorf("error downloading %s: %w", *blob.Name, err)
 			}
-			file, err := os.Create(localPath)
+			file, err := os.Create(localPath) // #nosec G304 -- path is under the caller-provided localDir; traversal guarded above
 			if err != nil {
 				resp.Body.Close()
 				return fmt.Errorf("error creating file %s: %w", localPath, err)

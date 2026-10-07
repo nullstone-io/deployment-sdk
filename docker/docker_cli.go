@@ -90,7 +90,7 @@ func clientOptions(endpoint Endpoint) ([]client.Opt, error) {
 
 func insecureHttpClient(endpoint Endpoint) (*http.Client, error) {
 	tlsConfig := &tls.Config{
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: true, // #nosec G402 -- honours the SkipTLSVerify setting of the user's own docker context
 		MinVersion:         tls.VersionTLS12,
 	}
 	if endpoint.CertFile != "" && endpoint.KeyFile != "" {
