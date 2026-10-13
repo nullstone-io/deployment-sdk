@@ -1,6 +1,6 @@
 module github.com/nullstone-io/deployment-sdk
 
-go 1.26.3
+go 1.26.5
 
 require (
 	cloud.google.com/go/compute v1.64.0
@@ -39,7 +39,7 @@ require (
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/moby/moby/api v1.55.0
 	github.com/moby/moby/client v0.5.1
-	github.com/nullstone-io/module v0.2.11
+	github.com/nullstone-io/module v0.3.1
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/stretchr/testify v1.12.1
 	github.com/tomnomnom/linkheader v0.0.0-20250811210735-e5fe3b51442e
@@ -48,7 +48,7 @@ require (
 	golang.org/x/sync v0.23.0
 	google.golang.org/api v0.288.0
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
-	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20260716142317-86afc1414450
+	gopkg.in/nullstone-io/go-api-client.v0 v0.0.0-20261013131729-0d25c7ea6561
 	k8s.io/api v0.36.1
 	k8s.io/apimachinery v0.36.1
 	k8s.io/client-go v0.36.1
