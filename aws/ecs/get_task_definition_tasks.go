@@ -16,6 +16,9 @@ func GetTaskFamilyTasks(ctx context.Context, infra Outputs) ([]ecstypes.Task, er
 		Family:        aws.String(infra.TaskFamily()),
 		DesiredStatus: ecstypes.DesiredStatusRunning,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("unable to get tasks associated with task family (%s): %w", infra.TaskFamily(), err)
+	}
 	stoppedTasks, err := ecsClient.ListTasks(ctx, &ecs.ListTasksInput{
 		Cluster:       aws.String(infra.ClusterArn()),
 		Family:        aws.String(infra.TaskFamily()),

@@ -35,6 +35,15 @@ func (o *Outputs) ClusterArn() string {
 	return o.Cluster.ClusterArn
 }
 
+// ExecutionsLogGroupName is the CloudWatch log group where the cluster records ECS task state-change events.
+// It is empty when the cluster module predates execution history, in which case only live tasks are visible.
+func (o *Outputs) ExecutionsLogGroupName() string {
+	if o.ClusterNamespace.ExecutionsLogGroupName != "" {
+		return o.ClusterNamespace.ExecutionsLogGroupName
+	}
+	return o.Cluster.ExecutionsLogGroupName
+}
+
 func (o *Outputs) TaskFamily() string {
 	temp := strings.Split(o.TaskArn, ":")
 	family := temp[len(temp)-2]
@@ -42,9 +51,11 @@ func (o *Outputs) TaskFamily() string {
 }
 
 type ClusterNamespaceOutputs struct {
-	ClusterArn string `ns:"cluster_arn"`
+	ClusterArn             string `ns:"cluster_arn"`
+	ExecutionsLogGroupName string `ns:"executions_log_group_name,optional"`
 }
 
 type ClusterOutputs struct {
-	ClusterArn string `ns:"cluster_arn"`
+	ClusterArn             string `ns:"cluster_arn"`
+	ExecutionsLogGroupName string `ns:"executions_log_group_name,optional"`
 }
