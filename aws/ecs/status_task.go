@@ -118,6 +118,7 @@ type StatusTaskContainer struct {
 func StatusTaskContainerFromEcs(container ecstypes.Container) StatusTaskContainer {
 	return StatusTaskContainer{
 		Name:              aws.ToString(container.Name),
+		Image:             aws.ToString(container.Image),
 		Status:            aws.ToString(container.LastStatus),
 		Health:            string(container.HealthStatus),
 		ExitCode:          container.ExitCode,
@@ -133,7 +134,11 @@ func (c *StatusTaskContainer) Enrich(lbs StatusLoadBalancers, taskDef *ecstypes.
 		return
 	}
 
-	c.Image = aws.ToString(containerDef.Image)
+	// The task reports the image it actually ran; the definition is only a fallback for tasks that never
+	// reported one (e.g. tasks that failed before pulling).
+	if c.Image == "" {
+		c.Image = aws.ToString(containerDef.Image)
+	}
 
 	for _, portMapping := range containerDef.PortMappings {
 		stcp := StatusTaskContainerPortFromEcs(*c, portMapping)
