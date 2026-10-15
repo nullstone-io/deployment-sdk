@@ -21,24 +21,21 @@ type QueryClient struct {
 }
 
 type QueryOptions struct {
-	Start *time.Time
-	End   *time.Time
-	// Step refers to the resolution of datapoints, measured in number of seconds
-	Step int
+	Start              time.Time
+	End                time.Time
+	IntervalCalculator *IntervalCalculator
 }
 
 func (c *QueryClient) Query(ctx context.Context, query string, options QueryOptions) (*QueryResponse, error) {
+	finalQuery := options.IntervalCalculator.SubstituteVariables(query)
+
 	u := *c.BaseUrl
 	u.Path = path.Join(c.BaseUrl.Path, "api/v1/query_range")
 	params := url.Values{}
-	params.Add("query", query)
-	if options.Start != nil {
-		params.Add("start", options.Start.Format(time.RFC3339))
-	}
-	if options.End != nil {
-		params.Add("end", options.End.Format(time.RFC3339))
-	}
-	params.Add("step", fmt.Sprint(options.Step))
+	params.Add("query", finalQuery)
+	params.Add("start", options.Start.Format(time.RFC3339))
+	params.Add("end", options.End.Format(time.RFC3339))
+	params.Add("step", fmt.Sprint(options.IntervalCalculator.GetInterval()))
 	u.RawQuery = params.Encode()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)

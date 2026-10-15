@@ -2,27 +2,35 @@ package cloudmonitoring
 
 import (
 	"context"
-	"github.com/nullstone-io/deployment-sdk/prometheus"
-	"github.com/nullstone-io/deployment-sdk/workspace"
 	"sync"
 	"time"
+
+	"github.com/nullstone-io/deployment-sdk/prometheus"
+	"github.com/nullstone-io/deployment-sdk/workspace"
 )
 
 // TimeSeriesFetcherFromMapping creates an interface for fetching the metrics in a background goroutine
-// This fetcher utilizes the QueryClient to fetch metrics using MQL
+// This fetcher uses the QueryClient to fetch metrics using MQL
 func TimeSeriesFetcherFromMapping(mapping MetricMapping, options workspace.MetricsGetterOptions, series *workspace.MetricSeries) *TimeSeriesFetcher {
-	interval := CalcPeriod(options.StartTime, options.EndTime)
-	steps := int(interval / time.Second)
-	qo := prometheus.QueryOptions{
-		Start: options.StartTime,
-		End:   options.EndTime,
-		Step:  steps,
+	end := time.Now()
+	start := end.Add(-time.Hour)
+	if options.StartTime != nil {
+		start = *options.StartTime
 	}
-	if qo.Start == nil {
-		start := time.Now().Add(-time.Hour)
-		qo.Start = &start
+	if options.EndTime != nil {
+		end = *options.EndTime
 	}
 
+	qo := prometheus.QueryOptions{
+		Start: start,
+		End:   end,
+		IntervalCalculator: prometheus.NewIntervalCalculator(prometheus.IntervalOptions{
+			Start:          start,
+			End:            end,
+			PanelWidth:     options.PanelWidth,
+			ScrapeInterval: options.ScrapeInterval,
+		}),
+	}
 	return &TimeSeriesFetcher{
 		Query:   mapping.Query,
 		Options: qo,
