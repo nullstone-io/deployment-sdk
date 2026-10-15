@@ -15,7 +15,7 @@ func (c TaskDefinitionsCache) Get(ctx context.Context, infra Outputs, taskDefArn
 		return def, nil
 	}
 
-	def, err := GetTaskDefinition(ctx, infra)
+	def, err := GetTaskDefinitionByArn(ctx, infra, *taskDefArn)
 	if err != nil {
 		return nil, err
 	}
