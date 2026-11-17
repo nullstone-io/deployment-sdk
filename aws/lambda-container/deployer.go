@@ -41,6 +41,15 @@ func (d Deployer) Print() {
 	fmt.Fprintf(stderr, "	region:         %s\n", d.Infra.Region)
 	fmt.Fprintf(stderr, "	lambda_name:    %s\n", d.Infra.LambdaName)
 	fmt.Fprintf(stderr, "	image_repo_url: %s\n", d.Infra.ImageRepoUrl)
+	if d.Infra.LambdaAlias != "" {
+		fmt.Fprintf(stderr, "	lambda_alias:   %s\n", d.Infra.LambdaAlias)
+		keep, usingDefault := d.Infra.VersionsToKeep()
+		if usingDefault {
+			fmt.Fprintf(stderr, "	lambda_versions_to_keep: %d (using default)\n", keep)
+		} else {
+			fmt.Fprintf(stderr, "	lambda_versions_to_keep: %d\n", keep)
+		}
+	}
 }
 
 func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, error) {
@@ -101,6 +110,54 @@ func (d Deployer) Deploy(ctx context.Context, meta app.DeployMetadata) (string, 
 	}
 	colorstring.Fprintln(stderr, "[green]Container image updated")
 
+	// Without an alias, triggers invoke the function directly ($LATEST), so the deploy is already live.
+	// With an alias, the deploy only takes effect once the alias points at a published version.
+	if d.Infra.LambdaAlias != "" {
+		if err := d.rolloutVersion(ctx, meta, heartbeat); err != nil {
+			return "", err
+		}
+	}
+
 	colorstring.Fprintf(stderr, "[bold]Deployed app %q\n", d.Details.App.Name)
 	return "", nil
+}
+
+// versionActiveTimeout bounds how long we wait for AWS to prepare a published version.
+// With SnapStart, AWS initializes the function and snapshots it before the version becomes usable.
+const versionActiveTimeout = 10 * time.Minute
+
+// rolloutVersion snapshots what was just deployed as a numbered version of the function, waits for AWS to
+// prepare it, then moves the app's alias to it; this is the moment the deploy takes effect.
+// The alias cannot move any earlier: AWS rejects pointing an alias at a version that is not ready.
+// Older versions are then pruned.
+func (d Deployer) rolloutVersion(ctx context.Context, meta app.DeployMetadata, heartbeat func(activity string) func(elapsed time.Duration)) error {
+	stderr := d.OsWriters.Stderr()
+
+	colorstring.Fprintln(stderr, "[bold]Publishing lambda version")
+	version, err := nslambda.PublishVersion(ctx, d.Infra, fmt.Sprintf("app version %s", meta.Version))
+	if err != nil {
+		return fmt.Errorf("error publishing lambda version: %w", err)
+	}
+	fmt.Fprintf(stderr, "	lambda version: %s\n", version)
+	if err := nslambda.WaitForVersionActive(ctx, d.Infra, version, versionActiveTimeout, heartbeat("prepare the published version")); err != nil {
+		return fmt.Errorf("error waiting for lambda version %s: %w", version, err)
+	}
+	colorstring.Fprintln(stderr, "[green]Lambda version published")
+
+	colorstring.Fprintf(stderr, "[bold]Pointing alias %q at lambda version %s\n", d.Infra.LambdaAlias, version)
+	if err := nslambda.UpdateAlias(ctx, d.Infra, d.Infra.LambdaAlias, version); err != nil {
+		return fmt.Errorf("error updating lambda alias %q: %w", d.Infra.LambdaAlias, err)
+	}
+	colorstring.Fprintln(stderr, "[green]Alias updated")
+
+	// The deploy is live at this point; failing to clean up old versions should not fail it.
+	keep, _ := d.Infra.VersionsToKeep()
+	deleted, err := nslambda.PruneVersions(ctx, d.Infra, keep)
+	if len(deleted) > 0 {
+		fmt.Fprintf(stderr, "	removed %d old lambda version(s)\n", len(deleted))
+	}
+	if err != nil {
+		colorstring.Fprintf(stderr, "[yellow]Could not remove old lambda versions: %s\n", err)
+	}
+	return nil
 }
